@@ -12,10 +12,10 @@
             "headwayTime": 1.5
         },
         "route": [
-            "road_west",
-            "road_east"
+            "road_west_to_mid_1",
+            "road_east_1"
         ],
-        "interval": 5.0,
+        "interval": 3.0,
         "startTime": 0,
         "endTime": -1
     },
@@ -34,6 +34,86 @@
         "route": [
             "road_north_to_mid_1",
             "road_mid_to_south_1"
+        ],
+        "interval": 5.0,
+        "startTime": 0,
+        "endTime": -1
+    },
+    {
+        "vehicle": {
+            "length": 5.0,
+            "width": 2.0,
+            "maxPosAcc": 2.0,
+            "maxNegAcc": 4.5,
+            "usualPosAcc": 2.0,
+            "usualNegAcc": 4.5,
+            "minGap": 5,
+            "maxSpeed": 15,
+            "headwayTime": 1.5
+        },
+        "route": [
+            "road_south_to_mid_1",
+            "road_mid_to_north_1"
+        ],
+        "interval": 5.0,
+        "startTime": 0,
+        "endTime": -1
+    },
+    {
+        "vehicle": {
+            "length": 5.0,
+            "width": 2.0,
+            "maxPosAcc": 2.0,
+            "maxNegAcc": 4.5,
+            "usualPosAcc": 2.0,
+            "usualNegAcc": 4.5,
+            "minGap": 5,
+            "maxSpeed": 15,
+            "headwayTime": 1.5
+        },
+        "route": [
+            "road_east_2",
+            "road_mid_to_west_1"
+        ],
+        "interval": 5.0,
+        "startTime": 0,
+        "endTime": -1
+    },
+    {
+        "vehicle": {
+            "length": 5.0,
+            "width": 2.0,
+            "maxPosAcc": 2.0,
+            "maxNegAcc": 4.5,
+            "usualPosAcc": 2.0,
+            "usualNegAcc": 4.5,
+            "minGap": 5,
+            "maxSpeed": 15,
+            "headwayTime": 1.5
+        },
+        "route": [
+            "road_east_north_to_east_1",
+            "road_east_to_east_south_1"
+        ],
+        "interval": 5.0,
+        "startTime": 0,
+        "endTime": -1
+    },
+    {
+        "vehicle": {
+            "length": 5.0,
+            "width": 2.0,
+            "maxPosAcc": 2.0,
+            "maxNegAcc": 4.5,
+            "usualPosAcc": 2.0,
+            "usualNegAcc": 4.5,
+            "minGap": 5,
+            "maxSpeed": 15,
+            "headwayTime": 1.5
+        },
+        "route": [
+            "road_east_south_to_east_1",
+            "road_east_to_east_north_1"
         ],
         "interval": 5.0,
         "startTime": 0,
