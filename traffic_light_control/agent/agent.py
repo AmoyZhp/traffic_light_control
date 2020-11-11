@@ -23,6 +23,9 @@ class Agent():
          Returns:
              Action: action
         """
-        traffic_phase = random.randrange(0, 8)
-        action = Action(self.intersection_id, traffic_phase)
+        temp = random.randint(0, 1)
+        keep_phase = True
+        if temp == 0:
+            keep_phase = False
+        action = Action(self.intersection_id, keep_phase)
         return action
