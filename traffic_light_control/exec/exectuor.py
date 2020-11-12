@@ -16,7 +16,7 @@ class Exectutor():
         config_path = CONFIG_PATH
         thread_num = 1
         episode = 1
-        max_time = 300
+        max_time = 500
         env = TlEnv(config_path, thread_num)
         agent = Agent("intersection_mid")
 

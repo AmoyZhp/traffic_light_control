@@ -2,8 +2,11 @@ from typing import Dict, List, Set
 import cityflow
 from basis.action import Action
 from envs.intersection import Intersection
-from envs.phase import Direction, Movement, Phase
+from envs.lane import Lane
+from envs.phase import GraphDirection, Location
+from envs.phase import Movement, Phase, TrafficStreamDirection
 from basis.state import State
+from envs.road import Road
 from policy.static_policy import StaticPolicy
 
 
@@ -20,17 +23,76 @@ class TlEnv():
         phase_plan: List[Phase] = []
         phase_plan.append(Phase(movements=[Movement.WE, Movement.EW]))
         phase_plan.append(Phase(movements=[Movement.SN, Movement.NS]))
-        self.core_inter = Intersection(id_core, phase_plan)
+        west_out = Road(id="road_west_to_mid_1", lanes={
+            TrafficStreamDirection.STRAIGHT: [
+                Lane("road_west_to_mid_1_0", 15),
+                Lane("road_west_to_mid_1_1", 15),
+                Lane("road_west_to_mid_1_2", 15)
+            ]
+        }, eng=self.eng)
+        west_in = Road(id="road_mid_to_west_1", lanes={
+            TrafficStreamDirection.STRAIGHT: [
+                Lane("road_mid_to_west_1_0", 15),
+            ]
+        }, eng=self.eng)
+
+        east_in = Road(id="road_mid_to_east_1", lanes={
+            TrafficStreamDirection.STRAIGHT: [
+                Lane("road_mid_to_east_1_0", 15)
+            ]
+        }, eng=self.eng)
+        east_out = Road(id="road_east_to_mid_1", lanes={
+            TrafficStreamDirection.STRAIGHT: [
+                Lane("road_east_to_mid_1_0", 15),
+            ]
+        }, eng=self.eng)
+
+        north_out = Road(id="road_north_to_mid_1", lanes={
+            TrafficStreamDirection.STRAIGHT: [
+                Lane("road_north_to_mid_1_0", 15)
+            ]
+        }, eng=self.eng)
+
+        north_in = Road(id="road_mid_to_north_1", lanes={
+            TrafficStreamDirection.STRAIGHT: [
+                Lane("road_mid_to_north_1_0", 15)
+            ]
+        }, eng=self.eng)
+
+        south_in = Road(id="road_mid_to_south_1", lanes={
+            TrafficStreamDirection.STRAIGHT: [
+                Lane("road_mid_to_south_1_0", 15)
+            ]
+        }, eng=self.eng)
+
+        south_out = Road(id="road_south_to_mid_1", lanes={
+            TrafficStreamDirection.STRAIGHT: [
+                Lane("road_south_to_mid_1_0", 15)
+            ]
+        }, eng=self.eng)
+
+        roads = {}
+        roads[Location.W] = {GraphDirection.OUT: west_out,
+                             GraphDirection.IN: west_in}
+        roads[Location.E] = {GraphDirection.OUT: east_out,
+                             GraphDirection.IN: east_in}
+        roads[Location.N] = {GraphDirection.OUT: north_out,
+                             GraphDirection.IN: north_in}
+        roads[Location.S] = {GraphDirection.OUT: south_out,
+                             GraphDirection.IN: south_in}
+
+        self.core_inter = Intersection(id_core, phase_plan, roads=roads)
 
         # 静态策略的路口
         self.static_inter: Dict[str, Intersection] = {}
         id_1 = "intersection_east"
-        self.static_inter[id_1] = Intersection(id_1, [Phase([]), Phase([])])
+        self.static_inter[id_1] = Intersection(
+            id_1, [Phase([]), Phase([])], roads=None)
         self.static_plan: Dict[str, List[int]] = {}
         self.static_plan[id_1] = [10, 40]
         self.static_policy = StaticPolicy()
 
-        self.history: List[State] = []
+        self.history: List[Intersection] = []
         self.time = 0
 
     def step(self, action: Action):
@@ -49,8 +111,8 @@ class TlEnv():
         self.eng.next_step()
         self.time += 1
 
-        state = None
-        reward = 0.0
+        state = 0.0
+        reward = self.__get_reward()
         done = False
         info = []
 
@@ -65,49 +127,102 @@ class TlEnv():
         return State({}, None, None)
 
     def __get_reward(self) -> float:
-        intersection_id = "intersection_mid"
-        pressure = self.__cal_pressure(intersection_id)
+        pressure = self.__cal_pressure()
         reward = -pressure
-        # 如果发生完全的阻塞则给一个非常大的负数奖励
-        if self.__is_stuck(intersection_id):
-            reward = reward - 1000000
+        return reward
 
-    def __cal_pressure(self, intersection_id: str) -> float:
-        intersection = self.intersections[intersection_id]
+    def __cal_pressure(self) -> float:
+        intersection = self.core_inter
         current_phase = intersection.get_current_phase()
         pressure = 0.0
         for mov in current_phase.get_movements():
-            out_density = 0.0
-            in_density = 0.0
+            out_capacity = 0
+            out_vehicles = 0
+            in_capacity = 0
+            in_vehicles = 0
             if mov == Movement.WE:
-                out_capacity = intersection.get_roads_capacity(
-                    Movement.WE, Direction.W)
-                out_vehicles = intersection.get_roads_vehicles(
-                    Movement.WE, Direction.W)
-                out_density = out_vehicles / out_capacity
+                out_capacity = intersection.get_road_capacity(
+                    Location.W, GraphDirection.OUT,
+                    TrafficStreamDirection.STRAIGHT,
+                )
+                out_vehicles = intersection.get_road_vehicles(
+                    Location.W,  GraphDirection.OUT,
+                    TrafficStreamDirection.STRAIGHT,
+                )
 
-                in_capacity = intersection.get_roads_capacity(
-                    Movement.WE, Direction.E)
-                in_vehicles = intersection.get_roads_vehicles(
-                    Movement.WE, Direction.E)
-                in_density = in_vehicles / in_capacity
+                in_capacity = intersection.get_road_capacity(
+                    Location.E,  GraphDirection.IN,
+                    TrafficStreamDirection.STRAIGHT,
+                )
+                in_vehicles = intersection.get_road_vehicles(
+                    Location.E,  GraphDirection.IN,
+                    TrafficStreamDirection.STRAIGHT,
+                )
+
+            if mov == Movement.EW:
+                out_capacity = intersection.get_road_capacity(
+                    Location.E, GraphDirection.OUT,
+                    TrafficStreamDirection.STRAIGHT
+                )
+                out_vehicles = intersection.get_road_vehicles(
+                    Location.E, GraphDirection.OUT,
+                    TrafficStreamDirection.STRAIGHT
+                )
+
+                in_capacity = intersection.get_road_capacity(
+                    Location.W, GraphDirection.IN,
+                    TrafficStreamDirection.STRAIGHT
+                )
+                in_vehicles = intersection.get_road_vehicles(
+                    Location.W, GraphDirection.IN,
+                    TrafficStreamDirection.STRAIGHT
+                )
+            if mov == Movement.NS:
+                out_capacity = intersection.get_road_capacity(
+                    Location.N, GraphDirection.OUT,
+                    TrafficStreamDirection.STRAIGHT
+                )
+                out_vehicles = intersection.get_road_vehicles(
+                    Location.N, GraphDirection.OUT,
+                    TrafficStreamDirection.STRAIGHT
+                )
+
+                in_capacity = intersection.get_road_capacity(
+                    Location.S, GraphDirection.IN,
+                    TrafficStreamDirection.STRAIGHT
+                )
+                in_vehicles = intersection.get_road_vehicles(
+                    Location.S, GraphDirection.IN,
+                    TrafficStreamDirection.STRAIGHT
+                )
+            if mov == Movement.SN:
+                out_capacity = intersection.get_road_capacity(
+                    Location.S, GraphDirection.OUT,
+                    TrafficStreamDirection.STRAIGHT
+                )
+                out_vehicles = intersection.get_road_vehicles(
+                    Location.S, GraphDirection.OUT,
+                    TrafficStreamDirection.STRAIGHT
+                )
+
+                in_capacity = intersection.get_road_capacity(
+                    Location.N, GraphDirection.IN,
+                    TrafficStreamDirection.STRAIGHT
+                )
+                in_vehicles = intersection.get_road_vehicles(
+                    Location.N, GraphDirection.IN,
+                    TrafficStreamDirection.STRAIGHT
+                )
+
+            out_density = out_vehicles / out_capacity
+            in_density = in_vehicles / in_capacity
             # TO DO : 其他方向的判断
             move_pressure = abs(out_density - in_density)
             pressure += move_pressure
 
         return pressure
 
-    def __is_stuck(self, intersection_id: str) -> bool:
-        intersection = self.intersections[intersection_id]
-        current_phase = intersection.get_current_phase()
-        for mov in current_phase.get_movements():
-            if mov == Movement.NS:
-                out_waiting_vehicles = intersection.get_road_waiting_vehicles(
-                    Movement.NS, Direction.N)
-                last_state = self.history[self.time-1]
-                # 不相等的话说明刚刚变更了路灯状态，无法判断是否阻塞
-                if last_state.current_phase.equal(current_phase) is False:
-                    return False
+    def __is_stuck(self) -> bool:
         return False
 
     def close(self):

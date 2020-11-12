@@ -9,14 +9,22 @@ class Movement(Enum):
     SN = auto()
 
 
-class Direction(Enum):
+class Location(Enum):
     W = auto()
     E = auto()
     N = auto()
     S = auto()
+
+
+class TrafficStreamDirection(Enum):
     STRAIGHT = auto()
     LEFT = auto()
     RIGHT = auto()
+
+
+class GraphDirection(Enum):
+    IN = auto()
+    OUT = auto()
 
 
 class Phase():
