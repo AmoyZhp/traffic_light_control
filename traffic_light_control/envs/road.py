@@ -1,5 +1,6 @@
 from typing import Dict, List
 import cityflow
+import numpy as np
 from envs.lane import Lane
 from envs.phase import TrafficStreamDirection
 
@@ -21,20 +22,33 @@ class Road():
                 self.stream_capacity[direction] += lane.get_capacity()
 
     def get_capacity(self, streamDir: TrafficStreamDirection) -> int:
+        if streamDir not in self.lanes.keys():
+            return 0
         return self.stream_capacity[streamDir]
 
     def get_vehicles(self, streamDir: TrafficStreamDirection) -> int:
-        directed_lanes = self.lanes[streamDir]
+        if streamDir not in self.lanes.keys():
+            return 0
         vehicles = 0
+        directed_lanes = self.lanes[streamDir]
         vehicles_dict = self.eng.get_lane_vehicle_count()
         for lane in directed_lanes:
             vehicles += vehicles_dict[lane.get_id()]
         return vehicles
 
     def get_waiting_vehicles(self, streamDir: TrafficStreamDirection) -> int:
+        if streamDir not in self.lanes.keys():
+            return 0
         directed_lanes = self.lanes[streamDir]
         vehicles = 0
         vehicles_dict = self.eng.get_lane_waiting_vehicle_count()
         for lane in directed_lanes:
             vehicles += vehicles_dict[lane.get_id()]
         return vehicles
+
+    def to_tensor(self) -> np.ndarray:
+        tensor = np.zeros(3)
+        tensor[0] = self.get_vehicles(TrafficStreamDirection.LEFT)
+        tensor[1] = self.get_vehicles(TrafficStreamDirection.STRAIGHT)
+        tensor[2] = self.get_vehicles(TrafficStreamDirection.RIGHT)
+        return tensor

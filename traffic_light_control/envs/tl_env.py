@@ -1,5 +1,6 @@
-from typing import Dict, List, Set
+from typing import Dict, List
 import cityflow
+import numpy as np
 from basis.action import Action
 from envs.intersection import Intersection
 from envs.lane import Lane
@@ -111,7 +112,7 @@ class TlEnv():
         self.eng.next_step()
         self.time += 1
 
-        state = 0.0
+        state = self.__get_state()
         reward = self.__get_reward()
         done = False
         info = []
@@ -120,11 +121,11 @@ class TlEnv():
 
     def reset(self) -> State:
         self.eng.reset()
-        state = State({}, None, None)
+        state = State(self.core_inter)
         return state
 
     def __get_state(self) -> State:
-        return State({}, None, None)
+        return State(self.core_inter)
 
     def __get_reward(self) -> float:
         pressure = self.__cal_pressure()

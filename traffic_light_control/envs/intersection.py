@@ -1,4 +1,6 @@
 import cityflow
+import numpy as np
+from numpy.core.defchararray import greater
 from envs.road import Road
 from typing import Dict, List
 
@@ -50,3 +52,49 @@ class Intersection():
     def move_to_next_phase(self):
         self.current_phase_index = (
             self.current_phase_index + 1) % len(self.phase_plan)
+
+    def to_tensor(self) -> np.ndarray:
+        tensor = np.array([])
+
+        tensor = np.hstack(
+            (tensor,
+             self.roads[Location.W][GraphDirection.IN].to_tensor()))
+        tensor = np.hstack(
+            (tensor,
+             self.roads[Location.W][GraphDirection.OUT].to_tensor()))
+
+        tensor = np.hstack(
+            (tensor, self.roads[Location.E][GraphDirection.IN].to_tensor()))
+        tensor = np.hstack(
+            (tensor, self.roads[Location.E][GraphDirection.OUT].to_tensor()))
+
+        tensor = np.hstack(
+            (tensor, self.roads[Location.N][GraphDirection.IN].to_tensor())
+        )
+        tensor = np.hstack(
+            (tensor, self.roads[Location.N][GraphDirection.OUT].to_tensor())
+        )
+
+        tensor = np.hstack(
+            (tensor, self.roads[Location.S][GraphDirection.IN].to_tensor())
+        )
+        tensor = np.hstack(
+            (tensor, self.roads[Location.S][GraphDirection.OUT].to_tensor())
+        )
+
+        current_phase_one_hot = np.zeros(len(self.phase_plan))
+        current_phase_one_hot[self.current_phase_index] = 1
+
+        tensor = np.hstack(
+            (tensor, current_phase_one_hot)
+        )
+
+        next_phase_index = (self.current_phase_index +
+                            1) % len(self.phase_plan)
+        next_phase_one_hot = np.zeros(len(self.phase_plan))
+        next_phase_one_hot[next_phase_index] = 1
+
+        tensor = np.hstack(
+            (tensor, next_phase_one_hot)
+        )
+        return tensor
