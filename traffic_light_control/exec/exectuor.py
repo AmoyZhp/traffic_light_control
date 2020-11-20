@@ -23,21 +23,21 @@ class Exectutor():
 
         capacity = 50000
         learning_rate = 1e-4
-        batch_size = 512
+        batch_size = 128
         discount_factor = 0.99
-        eps_max = 0.99
+        eps_init = 0.99
         eps_min = 0.01
-        eps_decay = 0.999
-        update_count = 100
+        eps_frame = 5000
+        update_count = 500
         state_space = 6*4 + 2*2
         action_space = 2
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         if torch.cuda.is_available() is False:
-            print( " cuda is not available")
+            print(" cuda is not available")
         config = DQNConfig(learning_rate=learning_rate, batch_size=batch_size,
                            capacity=capacity,
-                           discount_factor=discount_factor, eps_max=eps_max,
-                           eps_min=eps_min, eps_decay=eps_decay,
+                           discount_factor=discount_factor, eps_init=eps_init,
+                           eps_min=eps_min, eps_frame=eps_frame,
                            update_count=update_count, state_space=state_space,
                            action_space=action_space, device=device)
         agent = DQNAgent(intersection_id, config)
@@ -63,8 +63,8 @@ class Exectutor():
                 state = next_state
                 agent.update_policy()
             end = time.time()
-            print("episodes {}, reward is {}, time cost {}s".format(i_ep,
-                                                     total_reward, end - begin))
+            print("episodes {}, eps {}, reward is {}, time cost {}s".format(
+                i_ep, agent.policy.eps, total_reward, end - begin))
             if (i_ep + 1) % 500 == 0:
                 path = "model_{}.pth".format(i_ep)
                 agent.save_model(path=path)

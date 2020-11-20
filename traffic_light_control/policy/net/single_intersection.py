@@ -8,7 +8,7 @@ class SingleIntesection(nn.Module):
         super(SingleIntesection, self).__init__()
         self.fc1 = nn.Linear(input_space, 128)
         self.fc2 = nn.Linear(128, 64)
-        self.fc3 = nn.Linear(64,32)
+        self.fc3 = nn.Linear(64, 32)
         self.fc4 = nn.Linear(32, output_space)
 
     def forward(self, x):
@@ -18,4 +18,3 @@ class SingleIntesection(nn.Module):
         action = self.fc4(x)
 
         return action
-

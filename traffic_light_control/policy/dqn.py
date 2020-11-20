@@ -9,16 +9,16 @@ import policy.net.single_intersection as net
 
 class DQNConfig():
     def __init__(self, learning_rate: float, batch_size: float, capacity: int,
-                 discount_factor: float, eps_max: float, eps_min: float,
-                 eps_decay: float, update_count: int,
+                 discount_factor: float, eps_init: float, eps_min: float,
+                 eps_frame: int, update_count: int,
                  action_space, state_space, device) -> None:
         self.capacity = capacity
         self.learning_rate = learning_rate
         self.batch_size = batch_size
         self.discount_factor = discount_factor
-        self.eps_max = eps_max
+        self.eps_init = eps_init
         self.eps_min = eps_min
-        self.eps_decay = eps_decay
+        self.eps_frame = eps_frame
         self.update_count = update_count
         self.device = device
         self.action_space = action_space
@@ -34,9 +34,10 @@ class DQN():
         self.learning_rate = config.learning_rate
         self.batch_size = config.batch_size
         self.discount_factor = config.discount_factor
-        self.eps = config.eps_max
+        self.eps_init = config.eps_init
         self.eps_min = config.eps_min
-        self.eps_decay = config.eps_decay
+        self.eps_frame = config.eps_frame
+        self.eps = self.eps_init
         self.update_count = config.update_count
         self.action_space = config.action_space
         self.state_space = config.state_space
@@ -51,18 +52,20 @@ class DQN():
         self.optimizer = optim.Adam(
             self.acting_net.parameters(), self.learning_rate)
         self.loss_func = nn.MSELoss()
+        self.step = 0
 
     def select_action(self, state):
-        if np.random.rand() < self.eps:  # epslion greedy
+        self.eps = max(self.eps_init - self.step /
+                       self.eps_frame, self.eps_min)
+        if np.random.rand() < self.eps:
             action = np.random.choice(range(self.action_space), 1).item()
-            if self.eps > self.eps_min:
-                self.eps = self.eps * self.eps_decay
             return action
         state = torch.tensor(state, dtype=torch.float, device=self.device)
         with torch.no_grad():
             value = self.acting_net(state)
         _, index = torch.max(value, 0)
         action = index.item()
+        self.step += 1
         return action
 
     def select_eval_action(self, state):
