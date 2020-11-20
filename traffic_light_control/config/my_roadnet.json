@@ -219,25 +219,13 @@
                 }
             ],
             "trafficLight": {
-                "roadLinkIndices": [
-                    0,
-                    1,
-                    2,
-                    3
-                ],
+                "roadLinkIndices": [],
                 "lightphases": [
                     {
                         "time": 10,
                         "availableRoadLinks": [
                             0,
                             1
-                        ]
-                    },
-                    {
-                        "time": 30,
-                        "availableRoadLinks": [
-                            2,
-                            3
                         ]
                     }
                 ]

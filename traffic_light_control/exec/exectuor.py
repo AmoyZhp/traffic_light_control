@@ -62,6 +62,8 @@ class Exectutor():
                 agent.store(transition)
                 state = next_state
                 agent.update_policy()
+                if done:
+                    break
             end = time.time()
             print("episodes {}, eps {}, reward is {}, time cost {}s".format(
                 i_ep, agent.policy.eps, total_reward, end - begin))

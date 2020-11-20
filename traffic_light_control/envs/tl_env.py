@@ -88,9 +88,9 @@ class TlEnv():
         self.static_inter: Dict[str, Intersection] = {}
         id_1 = "intersection_east"
         self.static_inter[id_1] = Intersection(
-            id_1, [Phase([]), Phase([])], roads=None)
+            id_1, [Phase([])], roads=None)
         self.static_plan: Dict[str, List[int]] = {}
-        self.static_plan[id_1] = [10, 40]
+        self.static_plan[id_1] = [10]
         self.static_policy = StaticPolicy()
 
         self.history: List[Intersection] = []
