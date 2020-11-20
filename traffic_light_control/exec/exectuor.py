@@ -4,6 +4,7 @@ from agent.dqn import DQNAgent
 from policy.dqn import DQN, DQNConfig
 from policy.buffer.replay_memory import Transition
 import torch
+import time
 
 CONFIG_PATH = "./config/config.json"
 
@@ -15,14 +16,14 @@ class Exectutor():
     def train(self):
         config_path = CONFIG_PATH
         thread_num = 1
-        num_episodes = 5
+        num_episodes = 2000
         max_time = 300
         intersection_id = "intersection_mid"
         env = TlEnv(config_path, max_time=max_time, thread_num=thread_num)
 
-        capacity = 100000
-        learning_rate = 1e-2
-        batch_size = 256
+        capacity = 50000
+        learning_rate = 1e-4
+        batch_size = 512
         discount_factor = 0.99
         eps_max = 0.99
         eps_min = 0.01
@@ -30,8 +31,9 @@ class Exectutor():
         update_count = 100
         state_space = 6*4 + 2*2
         action_space = 2
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available() is False:
+            print( " cuda is not available")
         config = DQNConfig(learning_rate=learning_rate, batch_size=batch_size,
                            capacity=capacity,
                            discount_factor=discount_factor, eps_max=eps_max,
@@ -42,6 +44,7 @@ class Exectutor():
         for i_ep in range(num_episodes):
             total_reward = 0.0
             state = env.reset()
+            begin = time.time()
             for t in range(max_time):
                 action = agent.act(state)
                 next_state, reward, done, _ = env.step(action)
@@ -59,9 +62,10 @@ class Exectutor():
                 agent.store(transition)
                 state = next_state
                 agent.update_policy()
-            print("episodes {}, reward is {}".format(i_ep,
-                                                     total_reward))
-            if (i_ep + 1) % 5 == 0:
+            end = time.time()
+            print("episodes {}, reward is {}, time cost {}s".format(i_ep,
+                                                     total_reward, end - begin))
+            if (i_ep + 1) % 500 == 0:
                 path = "model_{}.pth".format(i_ep)
                 agent.save_model(path=path)
 
