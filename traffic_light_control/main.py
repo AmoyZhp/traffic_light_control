@@ -21,7 +21,7 @@ if __name__ == "__main__":
             elif opt in ("-p", "--path"):
                 path = arg
             elif opt in ("-e", "--episode"):
-                episode = arg
+                episode = int(arg)
             elif opt in ("-th", "--thread"):
                 thread = int(arg)
         print("mode {}, path {}, ep {}, thread {}".format(
