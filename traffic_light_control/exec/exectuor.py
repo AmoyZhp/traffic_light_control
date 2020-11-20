@@ -27,7 +27,7 @@ class Exectutor():
         discount_factor = 0.99
         eps_init = 0.99
         eps_min = 0.01
-        eps_frame = 5000
+        eps_frame = 100000
         update_count = 500
         state_space = 6*4 + 2*2
         action_space = 2
