@@ -15,7 +15,7 @@ class TlEnv():
     """encapsulate cityflow by gym api
     """
 
-    def __init__(self, config_path: str, thread_num=1):
+    def __init__(self, config_path: str, max_time: int, thread_num=1):
         self.eng = cityflow.Engine(config_path, thread_num)
 
         id_core = "intersection_mid"
@@ -95,6 +95,7 @@ class TlEnv():
 
         self.history: List[Intersection] = []
         self.time = 0
+        self.max_time = max_time
 
     def step(self, action: Action):
         if action.keep_phase is False:
@@ -114,13 +115,15 @@ class TlEnv():
 
         state = self.__get_state()
         reward = self.__get_reward()
-        done = False
+        done = False if self.time < self.max_time else True
         info = []
 
         return state, reward, done, info
 
     def reset(self) -> State:
         self.eng.reset()
+        self.time = 0
+        self.history: List[Intersection] = []
         state = State(self.core_inter)
         return state
 
@@ -128,9 +131,18 @@ class TlEnv():
         return State(self.core_inter)
 
     def __get_reward(self) -> float:
-        pressure = self.__cal_pressure()
-        reward = -pressure
+        reward = -self.__cal_waiting_lane()
         return reward
+
+    def __cal_waiting_lane(self) -> int:
+        intersection = self.core_inter
+        total = 0
+        for loc in Location:
+            for grapDir in GraphDirection:
+                for stream in TrafficStreamDirection:
+                    total += intersection.get_road_waiting_vehicles(
+                        loc, grapDir, stream)
+        return total
 
     def __cal_pressure(self) -> float:
         intersection = self.core_inter

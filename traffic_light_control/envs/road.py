@@ -33,6 +33,8 @@ class Road():
         directed_lanes = self.lanes[streamDir]
         vehicles_dict = self.eng.get_lane_vehicle_count()
         for lane in directed_lanes:
+            if lane.get_id() not in vehicles_dict.keys():
+                print("key error of lane id {}".format(lane.get_id()))
             vehicles += vehicles_dict[lane.get_id()]
         return vehicles
 

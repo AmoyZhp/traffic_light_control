@@ -31,6 +31,8 @@ class Intersection():
                           streamDirection: TrafficStreamDirection,
                           ) -> int:
         road = self.roads[loc][graphDir]
+        if road is None:
+            return 0
         capacity = road.get_capacity(streamDirection)
         return capacity
 
@@ -38,6 +40,8 @@ class Intersection():
                           streamDirection: TrafficStreamDirection
                           ) -> int:
         road = self.roads[loc][graphDir]
+        if road is None:
+            return 0
         vehicles = road.get_vehicles(streamDirection)
         return vehicles
 
@@ -45,7 +49,10 @@ class Intersection():
                                   graphDir: GraphDirection,
                                   streamDirection: TrafficStreamDirection
                                   ) -> int:
+
         road = self.roads[loc][graphDir]
+        if road is None:
+            return 0
         vehicles = road.get_vehicles(streamDirection)
         return vehicles
 
