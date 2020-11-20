@@ -13,16 +13,16 @@ class Exectutor():
     def __init__(self):
         pass
 
-    def train(self):
+    def train(self, episode, thread_num=1):
         config_path = CONFIG_PATH
-        thread_num = 1
-        num_episodes = 2000
+        thread_num = thread_num
+        num_episodes = episode
         max_time = 300
         intersection_id = "intersection_mid"
         env = TlEnv(config_path, max_time=max_time, thread_num=thread_num)
 
         capacity = 50000
-        learning_rate = 1e-4
+        learning_rate = 5e-4
         batch_size = 128
         discount_factor = 0.99
         eps_init = 0.99
@@ -97,7 +97,7 @@ class Exectutor():
             print("episodes {}, reward is {}".format(i_ep,
                                                      total_reward))
 
-    def test(self):
+    def test(self, model_path):
         config_path = CONFIG_PATH
         thread_num = 1
         num_episodes = 50
@@ -108,9 +108,9 @@ class Exectutor():
         learning_rate = 1e-2
         batch_size = 256
         discount_factor = 0.99
-        eps_max = 0.99
+        eps_init = 0.99
         eps_min = 0.01
-        eps_decay = 0.999
+        eps_frame = 0.999
         update_count = 100
         state_space = 6*4 + 2*2
         action_space = 2
@@ -118,12 +118,12 @@ class Exectutor():
 
         config = DQNConfig(learning_rate=learning_rate, batch_size=batch_size,
                            capacity=capacity,
-                           discount_factor=discount_factor, eps_max=eps_max,
-                           eps_min=eps_min, eps_decay=eps_decay,
+                           discount_factor=discount_factor, eps_init=eps_init,
+                           eps_min=eps_min, eps_frame=eps_frame,
                            update_count=update_count, state_space=state_space,
                            action_space=action_space, device=device)
         agent = DQNAgent(intersection_id, config)
-        agent.load_model("./model_4.pth")
+        agent.load_model(model_path)
         for i_ep in range(num_episodes):
             total_reward = 0.0
             state = env.reset()
