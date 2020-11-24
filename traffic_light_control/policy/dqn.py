@@ -79,9 +79,9 @@ class DQN():
     def store_transition(self, transition):
         self.memory.sotre(transition)
 
-    def update(self):
+    def update(self) -> float:
         if len(self.memory) < self.batch_size:
-            return
+            return 0.0
         trans_batch = self.memory.sample(self.batch_size)
         batch = Transition(*zip(*trans_batch))
 
@@ -121,6 +121,7 @@ class DQN():
         self.update_count += 1
         if self.update_count % self.update_count == 0:
             self.target_net.load_state_dict(self.acting_net.state_dict())
+        return loss.item()
 
     def save_model(self, path: str):
         state = {"net": self.acting_net.state_dict(),

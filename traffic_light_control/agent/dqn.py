@@ -33,7 +33,7 @@ class DQNAgent():
         self.policy.store_transition(transition)
 
     def update_policy(self):
-        self.policy.update()
+        return self.policy.update()
 
     def load_model(self, path: str):
         self.policy.load_model(path)
