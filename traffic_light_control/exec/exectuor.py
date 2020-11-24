@@ -21,9 +21,9 @@ class Exectutor():
         intersection_id = "intersection_mid"
         env = TlEnv(config_path, max_time=max_time, thread_num=thread_num)
 
-        capacity = 50000
+        capacity = 200000
         learning_rate = 5e-4
-        batch_size = 128
+        batch_size = 512
         discount_factor = 0.99
         eps_init = 0.99
         eps_min = 0.01

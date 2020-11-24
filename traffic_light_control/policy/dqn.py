@@ -55,6 +55,7 @@ class DQN():
         self.step = 0
 
     def select_action(self, state):
+        self.step += 1
         self.eps = max(self.eps_init - self.step /
                        self.eps_frame, self.eps_min)
         if np.random.rand() < self.eps:
@@ -65,7 +66,6 @@ class DQN():
             value = self.acting_net(state)
         _, index = torch.max(value, 0)
         action = index.item()
-        self.step += 1
         return action
 
     def select_eval_action(self, state):
