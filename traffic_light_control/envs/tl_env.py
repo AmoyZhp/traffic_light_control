@@ -131,7 +131,7 @@ class TlEnv():
         return State(self.core_inter)
 
     def __get_reward(self) -> float:
-        reward = -self.__cal_waiting_lane()
+        reward = -self.__cal_pressure()
         return reward
 
     def __cal_waiting_lane(self) -> int:

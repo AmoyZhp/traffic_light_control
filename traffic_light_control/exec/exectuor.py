@@ -10,6 +10,9 @@ import sys
 import getopt
 
 CONFIG_PATH = "./config/config.json"
+MAX_TIME = 150
+INTERVAL = 5
+DATA_SAVE_PERIOD = 200
 
 
 class Exectutor():
@@ -54,14 +57,12 @@ class Exectutor():
 
     def train(self, num_episodes, thread_num=1):
         config_path = CONFIG_PATH
-        max_time = 300
         intersection_id = "intersection_mid"
-        env = TlEnv(config_path, max_time=max_time, thread_num=thread_num)
-
-        data_save_period = 200
+        env = TlEnv(config_path, max_time=MAX_TIME, thread_num=thread_num)
+        data_save_period = DATA_SAVE_PERIOD
         capacity = 100000
-        learning_rate = 1e-3
-        batch_size = 512
+        learning_rate = 5e-4
+        batch_size = 256
         discount_factor = 0.99
         eps_init = 1.0
         eps_min = 0.01
@@ -88,8 +89,11 @@ class Exectutor():
             total_net_time = 0.0
             state = env.reset()
             begin = time.time()
-            for t in range(max_time):
-
+            for t in range(MAX_TIME + 1):
+                if t % INTERVAL != 0:
+                    action = Action(agent.intersection_id, True)
+                    env.step(action)
+                    continue
                 step_time = time.time()
                 action = agent.act(state)
                 total_net_time += (time.time() - step_time)
@@ -135,19 +139,19 @@ class Exectutor():
                 agent.save_model(path=full_path)
                 eval_reward_history = self.eval(
                     agent=agent, env=env,
-                    num_episodes=10, max_time=max_time)
+                    num_episodes=10)
                 save_data = {"reward": reward_history,
                              "loss": loss_history,
                              "eval_reward": eval_reward_history}
                 self.__save_dict(save_data, "./params/obs.txt")
 
     def eval(self, agent: DQNAgent, env: TlEnv,
-             num_episodes: int,  max_time: int):
+             num_episodes: int):
         reward_history = {}
         for episode in range(num_episodes):
             total_reward = 0.0
             state = env.reset()
-            for t in range(max_time):
+            for t in range(MAX_TIME):
                 action = agent.eval_act(state)
                 next_state, reward, done, _ = env.step(action)
                 total_reward += reward
@@ -162,9 +166,8 @@ class Exectutor():
     def test(self, model_file, num_episodes=1):
         config_path = "./config/test_config.json"
         thread_num = 1
-        max_time = 300
         intersection_id = "intersection_mid"
-        env = TlEnv(config_path, max_time=max_time, thread_num=thread_num)
+        env = TlEnv(config_path, max_time=MAX_TIME, thread_num=thread_num)
         capacity = 100000
         learning_rate = 1e-2
         batch_size = 256
@@ -189,7 +192,11 @@ class Exectutor():
         for i_ep in range(num_episodes):
             total_reward = 0.0
             state = env.reset()
-            for t in range(max_time):
+            for t in range(MAX_TIME):
+                if t % INTERVAL != 0:
+                    action = Action(agent.intersection_id, True)
+                    env.step(action)
+                    continue
                 action = agent.eval_act(state)
                 next_state, reward, done, _ = env.step(action)
                 total_reward += reward
