@@ -65,7 +65,7 @@ class Exectutor():
         learning_rate = 1e-3
         batch_size = 512
         discount_factor = 0.99
-        eps_init = 0.99
+        eps_init = 1.0
         eps_min = 0.01
         eps_frame = 100000
         update_count = 500
