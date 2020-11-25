@@ -46,7 +46,7 @@ class Exectutor():
             mode, model_file, episode, thread
         ))
         if mode == "test":
-            self.test(model_file, episode=episode)
+            self.test(model_file, num_episodes=episode)
         elif mode == "train":
             self.train(num_episodes=episode, thread_num=thread)
         else:
@@ -128,13 +128,14 @@ class Exectutor():
                         + " total reward : {} , avg loss : {:.4f} ".format(
                             total_reward, total_loss / t))
                     break
-            if (episode + 1) % data_save_period == 0:
+            if ((episode + 1) % data_save_period == 0
+                    or episode == num_episodes - 1):
                 dir_path = "./params/"
                 full_path = dir_path + "model_{}.pth".format(episode)
                 agent.save_model(path=full_path)
                 eval_reward_history = self.eval(
                     agent=agent, env=env,
-                    num_episodes=50, max_time=max_time)
+                    num_episodes=10, max_time=max_time)
                 save_data = {"reward": reward_history,
                              "loss": loss_history,
                              "eval_reward": eval_reward_history}
@@ -159,7 +160,7 @@ class Exectutor():
         return reward_history
 
     def test(self, model_file, num_episodes=1):
-        config_path = CONFIG_PATH
+        config_path = "./config/test_config.json"
         thread_num = 1
         max_time = 300
         intersection_id = "intersection_mid"
