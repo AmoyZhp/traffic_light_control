@@ -60,9 +60,9 @@ class Exectutor():
         intersection_id = "intersection_mid"
         env = TlEnv(config_path, max_time=max_time, thread_num=thread_num)
 
-        data_save_period = 10
-        capacity = 200000
-        learning_rate = 5e-4
+        data_save_period = 200
+        capacity = 100000
+        learning_rate = 1e-3
         batch_size = 512
         discount_factor = 0.99
         eps_init = 0.99
@@ -86,11 +86,20 @@ class Exectutor():
         for episode in range(num_episodes):
             total_reward = 0.0
             total_loss = 0.0
+            total_sim_time = 0.0
+            total_net_time = 0.0
             state = env.reset()
             begin = time.time()
             for t in range(max_time):
+
+                step_time = time.time()
                 action = agent.act(state)
+                total_net_time += (time.time() - step_time)
+
+                step_time = time.time()
                 next_state, reward, done, _ = env.step(action)
+                total_sim_time += (time.time() - step_time)
+
                 t_state = torch.tensor(state.to_tensor()).float().unsqueeze(0)
                 t_action = torch.tensor(action.to_tensor()).long().view(1, 1)
                 t_reward = torch.tensor(reward).float().view(1, 1)
@@ -103,15 +112,21 @@ class Exectutor():
                     t_state, t_action, t_reward, t_next_state)
                 agent.store(transition)
                 state = next_state
+
+                step_time = time.time()
                 loss = agent.update_policy()
+                total_net_time += (time.time() - step_time)
+
                 total_reward += reward
                 total_loss += loss
                 if done:
                     end = time.time()
                     reward_history[episode + 1] = total_reward
                     loss_history[episode + 1] = total_loss
-                    print("episodes : {}, eps : {}, time cost : {}s".format(
+                    print("episodes: {}, eps: {}, time cost: {:.4f}s".format(
                         episode, agent.policy.eps, end - begin)
+                        + "sim time : {:.4f}s, net time : {:.4f} ".format(
+                            total_sim_time, total_net_time)
                         + " total reward : {} , avg loss : {:.4f} ".format(
                             total_reward, total_loss / t))
                     break
