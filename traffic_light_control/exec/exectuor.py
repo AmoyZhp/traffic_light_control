@@ -48,14 +48,12 @@ class Exectutor():
         if mode == "test":
             self.test(model_file, episode=episode)
         elif mode == "train":
-            self.train(episode=episode, thread_num=thread)
+            self.train(num_episodes=episode, thread_num=thread)
         else:
             print("please input mode")
 
-    def train(self, episode, thread_num=1):
+    def train(self, num_episodes, thread_num=1):
         config_path = CONFIG_PATH
-        thread_num = thread_num
-        num_episodes = episode
         max_time = 300
         intersection_id = "intersection_mid"
         env = TlEnv(config_path, max_time=max_time, thread_num=thread_num)
