@@ -15,7 +15,7 @@
             "road_west_to_mid_1",
             "road_east_1"
         ],
-        "interval": 1.0,
+        "interval": 5,
         "startTime": 0,
         "endTime": -1
     },
@@ -35,7 +35,7 @@
             "road_north_to_mid_1",
             "road_mid_to_south_1"
         ],
-        "interval": 1.0,
+        "interval": 2,
         "startTime": 0,
         "endTime": -1
     },
@@ -55,7 +55,7 @@
             "road_south_to_mid_1",
             "road_mid_to_north_1"
         ],
-        "interval": 1.0,
+        "interval": 2,
         "startTime": 0,
         "endTime": -1
     },
@@ -75,7 +75,7 @@
             "road_east_2",
             "road_mid_to_west_1"
         ],
-        "interval": 1.0,
+        "interval": 5,
         "startTime": 0,
         "endTime": -1
     }

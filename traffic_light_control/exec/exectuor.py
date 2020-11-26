@@ -1,4 +1,6 @@
 from typing import Dict
+
+from numpy.lib.type_check import imag
 from basis.action import Action
 from envs.tl_env import TlEnv
 from agent.dqn import DQNAgent
@@ -9,6 +11,7 @@ import time
 import sys
 import getopt
 import json
+import util.plot as plot
 
 CONFIG_PATH = "./config/config.json"
 MAX_TIME = 150
@@ -160,6 +163,7 @@ class Exectutor():
                              "eval_reward": eval_reward_history}
                 self.__save_dict(save_data, "{}obs.txt".format(MODEL_ROOT_DIR))
         self.test("model_{}.pth".format(num_episodes-1))
+        self.__plot()
 
     def eval(self, agent: DQNAgent, env: TlEnv,
              num_episodes: int):
@@ -222,3 +226,24 @@ class Exectutor():
     def __write_json(self, data, path):
         with open(path, "w") as f:
             json.dump(data, f)
+
+    def __plot(self):
+        data = {}
+        with open(MODEL_ROOT_DIR + "obs.txt", "r", encoding="utf-8") as f:
+            data = eval(f.read())
+        episodes = []
+        rewards = []
+        for k, v in data["reward"].items():
+            episodes.append(int(k))
+            rewards.append(int(v))
+        plot.plot(
+            episodes, rewards, x_lable="episodes",
+            y_label="reward", title="rewards", img=MODEL_ROOT_DIR+"reward.png")
+        episodes = []
+        loss = []
+        for k, v in data["loss"].items():
+            episodes.append(int(k))
+            loss.append(int(v))
+        plot.plot(
+            episodes, loss, x_lable="episodes",
+            y_label="loss", title="loss", img=MODEL_ROOT_DIR+"loss.png")

@@ -9,32 +9,11 @@ def get_data(path: str):
         return dict
 
 
-def plot(ax, x: List, y: List, x_lable, y_label, title):
+def plot(x: List, y: List, x_lable, y_label, title, img=""):
+    fig, ax = plt.subplots()
     ax.plot(x, y, label='linear')
     ax.set_xlabel(x_lable)
     ax.set_ylabel(y_label)
-    out = ax.set_title(title)
-    return out
-
-
-if __name__ == "__main__":
-    data_path = "./obs.txt"
-    data = get_data(data_path)
-    episodes = []
-    rewards = []
-    for k, v in data["reward"].items():
-        episodes.append(int(k))
-        rewards.append(int(v))
-    fig1, ax = plt.subplots()
-    plot(ax, episodes, rewards, x_lable="episodes",
-         y_label="reward", title="rewards")
-    fig1.savefig("rewards.png")
-    fig2, ax2 = plt.subplots()
-    episodes = []
-    loss = []
-    for k, v in data["loss"].items():
-        episodes.append(int(k))
-        loss.append(int(v))
-    plot(ax2, episodes, loss, x_lable="episodes",
-         y_label="loss", title="loss")
-    fig2.savefig("loss.png")
+    ax.set_title(title)
+    if img != "":
+        fig.savefig(img)
