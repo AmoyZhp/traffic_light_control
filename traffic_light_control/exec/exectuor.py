@@ -8,6 +8,7 @@ import torch
 import time
 import sys
 import getopt
+import json
 
 CONFIG_PATH = "./config/config.json"
 MAX_TIME = 150
@@ -83,7 +84,18 @@ class Exectutor():
             update_count=UPDATE_COUNT, state_space=STATE_SPACE,
             action_space=ACTION_SPACE, device=device)
         agent = DQNAgent(intersection_id, config)
-
+        init_params = {
+            "learning_rate": LERNING_RATE,
+            "batch_size": BATCH_SIZE,
+            "capacity": CAPACITY,
+            "discount_facotr": DISCOUNT_FACTOR,
+            "eps_init": EPS_INIT,
+            "eps_min": EPS_MIN,
+            "eps_frame": EPS_FRAME,
+            "update_count": UPDATE_COUNT,
+        }
+        self.__write_json(
+            init_params, "{}init_params.json".format(MODEL_ROOT_DIR))
         reward_history = {}
         loss_history = {}
         for episode in range(num_episodes):
@@ -147,6 +159,7 @@ class Exectutor():
                              "loss": loss_history,
                              "eval_reward": eval_reward_history}
                 self.__save_dict(save_data, "{}obs.txt".format(MODEL_ROOT_DIR))
+        self.test("model_{}.pth".format(num_episodes-1))
 
     def eval(self, agent: DQNAgent, env: TlEnv,
              num_episodes: int):
@@ -205,3 +218,7 @@ class Exectutor():
     def __save_dict(self, data, path):
         with open(path, "w", encoding="utf-8") as f:
             f.write(str(data))
+
+    def __write_json(self, data, path):
+        with open(path, "w") as f:
+            json.dump(data, f)

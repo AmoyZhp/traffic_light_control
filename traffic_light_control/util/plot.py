@@ -25,11 +25,11 @@ if __name__ == "__main__":
     for k, v in data["reward"].items():
         episodes.append(int(k))
         rewards.append(int(v))
-    fig, ax = plt.subplots()
+    fig1, ax = plt.subplots()
     plot(ax, episodes, rewards, x_lable="episodes",
          y_label="reward", title="rewards")
-    ax
-    fig, ax2 = plt.subplots()
+    fig1.savefig("rewards.png")
+    fig2, ax2 = plt.subplots()
     episodes = []
     loss = []
     for k, v in data["loss"].items():
@@ -37,4 +37,4 @@ if __name__ == "__main__":
         loss.append(int(v))
     plot(ax2, episodes, loss, x_lable="episodes",
          y_label="loss", title="loss")
-    plt.show()
+    fig2.savefig("loss.png")

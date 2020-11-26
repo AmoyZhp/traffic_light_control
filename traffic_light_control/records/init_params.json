@@ -1,0 +1,1 @@
+{"learning_rate": 0.0005, "batch_size": 256, "capacity": 100000, "discount_facotr": 0.99, "eps_init": 1.0, "eps_min": 0.01, "eps_frame": 100000, "update_count": 500}
