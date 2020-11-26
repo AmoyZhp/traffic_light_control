@@ -13,6 +13,17 @@ CONFIG_PATH = "./config/config.json"
 MAX_TIME = 150
 INTERVAL = 5
 DATA_SAVE_PERIOD = 200
+CAPACITY = 100000
+LERNING_RATE = 5e-4
+BATCH_SIZE = 256
+DISCOUNT_FACTOR = 0.99
+EPS_INIT = 1.0
+EPS_MIN = 0.01
+EPS_FRAME = 100000
+UPDATE_COUNT = 500
+STATE_SPACE = 6*4 + 2*2
+ACTION_SPACE = 2
+MODEL_ROOT_DIR = "./records/"
 
 
 class Exectutor():
@@ -28,13 +39,14 @@ class Exectutor():
         opts = []
         try:
             opts, args = getopt.getopt(
-                argv, shortopts=["m:e:mf:th"],
+                argv, shortopts="hm:e:mf:th:",
                 longopts=["mode=",
                           "episode=", "model_file=", "thread="])
 
         except getopt.GetoptError:
-            print("python test.py --mode=train"
+            print("input error, template : python test.py --mode=train"
                   + " --episode=1 --path=model.pth --thread=1")
+            return
 
         for opt, arg in opts:
             if opt in ("-m", "--mode"):
@@ -60,26 +72,18 @@ class Exectutor():
         intersection_id = "intersection_mid"
         env = TlEnv(config_path, max_time=MAX_TIME, thread_num=thread_num)
         data_save_period = DATA_SAVE_PERIOD
-        capacity = 100000
-        learning_rate = 5e-4
-        batch_size = 256
-        discount_factor = 0.99
-        eps_init = 1.0
-        eps_min = 0.01
-        eps_frame = 100000
-        update_count = 500
-        state_space = 6*4 + 2*2
-        action_space = 2
+
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         if torch.cuda.is_available() is False:
             print(" cuda is not available")
-        config = DQNConfig(learning_rate=learning_rate, batch_size=batch_size,
-                           capacity=capacity,
-                           discount_factor=discount_factor, eps_init=eps_init,
-                           eps_min=eps_min, eps_frame=eps_frame,
-                           update_count=update_count, state_space=state_space,
-                           action_space=action_space, device=device)
+        config = DQNConfig(
+            learning_rate=LERNING_RATE, batch_size=BATCH_SIZE,
+            capacity=CAPACITY, discount_factor=DISCOUNT_FACTOR,
+            eps_init=EPS_INIT, eps_min=EPS_MIN, eps_frame=EPS_FRAME,
+            update_count=UPDATE_COUNT, state_space=STATE_SPACE,
+            action_space=ACTION_SPACE, device=device)
         agent = DQNAgent(intersection_id, config)
+
         reward_history = {}
         loss_history = {}
         for episode in range(num_episodes):
@@ -134,8 +138,7 @@ class Exectutor():
                     break
             if ((episode + 1) % data_save_period == 0
                     or episode == num_episodes - 1):
-                dir_path = "./params/"
-                full_path = dir_path + "model_{}.pth".format(episode)
+                full_path = MODEL_ROOT_DIR + "model_{}.pth".format(episode)
                 agent.save_model(path=full_path)
                 eval_reward_history = self.eval(
                     agent=agent, env=env,
@@ -143,7 +146,7 @@ class Exectutor():
                 save_data = {"reward": reward_history,
                              "loss": loss_history,
                              "eval_reward": eval_reward_history}
-                self.__save_dict(save_data, "./params/obs.txt")
+                self.__save_dict(save_data, "{}obs.txt".format(MODEL_ROOT_DIR))
 
     def eval(self, agent: DQNAgent, env: TlEnv,
              num_episodes: int):
@@ -168,26 +171,18 @@ class Exectutor():
         thread_num = 1
         intersection_id = "intersection_mid"
         env = TlEnv(config_path, max_time=MAX_TIME, thread_num=thread_num)
-        capacity = 100000
-        learning_rate = 1e-2
-        batch_size = 256
-        discount_factor = 0.99
-        eps_init = 0.99
-        eps_min = 0.01
-        eps_frame = 0.999
-        update_count = 100
-        state_space = 6*4 + 2*2
-        action_space = 2
-        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        config = DQNConfig(learning_rate=learning_rate, batch_size=batch_size,
-                           capacity=capacity,
-                           discount_factor=discount_factor, eps_init=eps_init,
-                           eps_min=eps_min, eps_frame=eps_frame,
-                           update_count=update_count, state_space=state_space,
-                           action_space=action_space, device=device)
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available() is False:
+            print(" cuda is not available")
+        config = DQNConfig(
+            learning_rate=LERNING_RATE, batch_size=BATCH_SIZE,
+            capacity=CAPACITY, discount_factor=DISCOUNT_FACTOR,
+            eps_init=EPS_INIT, eps_min=EPS_MIN, eps_frame=EPS_FRAME,
+            update_count=UPDATE_COUNT, state_space=STATE_SPACE,
+            action_space=ACTION_SPACE, device=device)
         agent = DQNAgent(intersection_id, config)
-        dir_path = "./params/"
-        full_path = dir_path + model_file
+
+        full_path = MODEL_ROOT_DIR + model_file
         agent.load_model(full_path)
         for i_ep in range(num_episodes):
             total_reward = 0.0

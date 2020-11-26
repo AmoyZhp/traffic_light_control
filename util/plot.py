@@ -28,6 +28,7 @@ if __name__ == "__main__":
     fig, ax = plt.subplots()
     plot(ax, episodes, rewards, x_lable="episodes",
          y_label="reward", title="rewards")
+    ax
     fig, ax2 = plt.subplots()
     episodes = []
     loss = []
