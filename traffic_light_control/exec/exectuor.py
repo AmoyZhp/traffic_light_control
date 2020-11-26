@@ -129,11 +129,11 @@ class Exectutor():
                     end = time.time()
                     reward_history[episode + 1] = total_reward
                     loss_history[episode + 1] = total_loss
-                    print("episodes: {}, eps: {}, time cost: {:.4f}s".format(
+                    print("episodes: {}, eps: {:.3f}, time: {:.3f}s,".format(
                         episode, agent.policy.eps, end - begin)
-                        + "sim time : {:.4f}s, net time : {:.4f} ".format(
+                        + " sim time : {:.3f}s, net time : {:.3f},".format(
                             total_sim_time, total_net_time)
-                        + " total reward : {} , avg loss : {:.4f} ".format(
+                        + " total reward : {:.3f}, avg loss : {:.3f} ".format(
                             total_reward, total_loss / t))
                     break
             if ((episode + 1) % data_save_period == 0

@@ -131,108 +131,117 @@ class TlEnv():
         return State(self.core_inter)
 
     def __get_reward(self) -> float:
-        reward = -self.__cal_pressure()
+        reward = -self.__cal_total_waiting_density()
         return reward
 
-    def __cal_waiting_lane(self) -> int:
+    def __cal_total_waiting_density(self) -> int:
         intersection = self.core_inter
         total = 0
         for loc in Location:
             for grapDir in GraphDirection:
                 for stream in TrafficStreamDirection:
-                    total += intersection.get_road_waiting_vehicles(
+                    capacity = intersection.get_road_capacity(
+                        loc, grapDir, stream
+                    )
+                    if capacity == 0:
+                        continue
+                    waiting_lane = intersection.get_road_waiting_vehicles(
                         loc, grapDir, stream)
+                    density = waiting_lane / capacity
+                    total += density
         return total
 
-    def __cal_pressure(self) -> float:
-        intersection = self.core_inter
-        current_phase = intersection.get_current_phase()
+    def __cal_total_pressure(self) -> float:
         pressure = 0.0
-        for mov in current_phase.get_movements():
-            out_capacity = 0
-            out_vehicles = 0
-            in_capacity = 0
-            in_vehicles = 0
-            if mov == Movement.WE:
-                out_capacity = intersection.get_road_capacity(
-                    Location.W, GraphDirection.OUT,
-                    TrafficStreamDirection.STRAIGHT,
-                )
-                out_vehicles = intersection.get_road_vehicles(
-                    Location.W,  GraphDirection.OUT,
-                    TrafficStreamDirection.STRAIGHT,
-                )
+        for mov in Movement:
+            pressure += self.__cal_pressure(mov)
+        return pressure
 
-                in_capacity = intersection.get_road_capacity(
-                    Location.E,  GraphDirection.IN,
-                    TrafficStreamDirection.STRAIGHT,
-                )
-                in_vehicles = intersection.get_road_vehicles(
-                    Location.E,  GraphDirection.IN,
-                    TrafficStreamDirection.STRAIGHT,
-                )
+    def __cal_pressure(self, mov: Movement):
 
-            if mov == Movement.EW:
-                out_capacity = intersection.get_road_capacity(
-                    Location.E, GraphDirection.OUT,
-                    TrafficStreamDirection.STRAIGHT
-                )
-                out_vehicles = intersection.get_road_vehicles(
-                    Location.E, GraphDirection.OUT,
-                    TrafficStreamDirection.STRAIGHT
-                )
+        intersection = self.core_inter
+        out_capacity = 0
+        out_vehicles = 0
+        in_capacity = 0
+        in_vehicles = 0
+        if mov == Movement.WE:
+            out_capacity = intersection.get_road_capacity(
+                Location.W, GraphDirection.OUT,
+                TrafficStreamDirection.STRAIGHT,
+            )
+            out_vehicles = intersection.get_road_vehicles(
+                Location.W,  GraphDirection.OUT,
+                TrafficStreamDirection.STRAIGHT,
+            )
 
-                in_capacity = intersection.get_road_capacity(
-                    Location.W, GraphDirection.IN,
-                    TrafficStreamDirection.STRAIGHT
-                )
-                in_vehicles = intersection.get_road_vehicles(
-                    Location.W, GraphDirection.IN,
-                    TrafficStreamDirection.STRAIGHT
-                )
-            if mov == Movement.NS:
-                out_capacity = intersection.get_road_capacity(
-                    Location.N, GraphDirection.OUT,
-                    TrafficStreamDirection.STRAIGHT
-                )
-                out_vehicles = intersection.get_road_vehicles(
-                    Location.N, GraphDirection.OUT,
-                    TrafficStreamDirection.STRAIGHT
-                )
+            in_capacity = intersection.get_road_capacity(
+                Location.E,  GraphDirection.IN,
+                TrafficStreamDirection.STRAIGHT,
+            )
+            in_vehicles = intersection.get_road_vehicles(
+                Location.E,  GraphDirection.IN,
+                TrafficStreamDirection.STRAIGHT,
+            )
 
-                in_capacity = intersection.get_road_capacity(
-                    Location.S, GraphDirection.IN,
-                    TrafficStreamDirection.STRAIGHT
-                )
-                in_vehicles = intersection.get_road_vehicles(
-                    Location.S, GraphDirection.IN,
-                    TrafficStreamDirection.STRAIGHT
-                )
-            if mov == Movement.SN:
-                out_capacity = intersection.get_road_capacity(
-                    Location.S, GraphDirection.OUT,
-                    TrafficStreamDirection.STRAIGHT
-                )
-                out_vehicles = intersection.get_road_vehicles(
-                    Location.S, GraphDirection.OUT,
-                    TrafficStreamDirection.STRAIGHT
-                )
+        if mov == Movement.EW:
+            out_capacity = intersection.get_road_capacity(
+                Location.E, GraphDirection.OUT,
+                TrafficStreamDirection.STRAIGHT
+            )
+            out_vehicles = intersection.get_road_vehicles(
+                Location.E, GraphDirection.OUT,
+                TrafficStreamDirection.STRAIGHT
+            )
 
-                in_capacity = intersection.get_road_capacity(
-                    Location.N, GraphDirection.IN,
-                    TrafficStreamDirection.STRAIGHT
-                )
-                in_vehicles = intersection.get_road_vehicles(
-                    Location.N, GraphDirection.IN,
-                    TrafficStreamDirection.STRAIGHT
-                )
+            in_capacity = intersection.get_road_capacity(
+                Location.W, GraphDirection.IN,
+                TrafficStreamDirection.STRAIGHT
+            )
+            in_vehicles = intersection.get_road_vehicles(
+                Location.W, GraphDirection.IN,
+                TrafficStreamDirection.STRAIGHT
+            )
+        if mov == Movement.NS:
+            out_capacity = intersection.get_road_capacity(
+                Location.N, GraphDirection.OUT,
+                TrafficStreamDirection.STRAIGHT
+            )
+            out_vehicles = intersection.get_road_vehicles(
+                Location.N, GraphDirection.OUT,
+                TrafficStreamDirection.STRAIGHT
+            )
 
-            out_density = out_vehicles / out_capacity
-            in_density = in_vehicles / in_capacity
-            # TO DO : 其他方向的判断
-            move_pressure = abs(out_density - in_density)
-            pressure += move_pressure
+            in_capacity = intersection.get_road_capacity(
+                Location.S, GraphDirection.IN,
+                TrafficStreamDirection.STRAIGHT
+            )
+            in_vehicles = intersection.get_road_vehicles(
+                Location.S, GraphDirection.IN,
+                TrafficStreamDirection.STRAIGHT
+            )
+        if mov == Movement.SN:
+            out_capacity = intersection.get_road_capacity(
+                Location.S, GraphDirection.OUT,
+                TrafficStreamDirection.STRAIGHT
+            )
+            out_vehicles = intersection.get_road_vehicles(
+                Location.S, GraphDirection.OUT,
+                TrafficStreamDirection.STRAIGHT
+            )
 
+            in_capacity = intersection.get_road_capacity(
+                Location.N, GraphDirection.IN,
+                TrafficStreamDirection.STRAIGHT
+            )
+            in_vehicles = intersection.get_road_vehicles(
+                Location.N, GraphDirection.IN,
+                TrafficStreamDirection.STRAIGHT
+            )
+
+        out_density = out_vehicles / out_capacity
+        in_density = in_vehicles / in_capacity
+
+        pressure = abs(out_density - in_density)
         return pressure
 
     def __is_stuck(self) -> bool:
