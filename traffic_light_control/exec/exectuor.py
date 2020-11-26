@@ -14,10 +14,10 @@ import json
 import util.plot as plot
 
 CONFIG_PATH = "./config/config.json"
-MAX_TIME = 150
+MAX_TIME = 300
 INTERVAL = 5
 DATA_SAVE_PERIOD = 500
-CAPACITY = 200000
+CAPACITY = 80000
 LERNING_RATE = 1e-3
 BATCH_SIZE = 512
 DISCOUNT_FACTOR = 0.99
@@ -143,13 +143,13 @@ class Exectutor():
                 if done:
                     end = time.time()
                     reward_history[episode + 1] = total_reward
-                    loss_history[episode + 1] = total_loss
+                    loss_history[episode + 1] = total_loss / (t / INTERVAL)
                     print("episodes: {}, eps: {:.3f}, time: {:.3f}s,".format(
                         episode, agent.policy.eps, end - begin)
                         + " sim time : {:.3f}s, net time : {:.3f},".format(
                             total_sim_time, total_net_time)
                         + " total reward : {:.3f}, avg loss : {:.3f} ".format(
-                            total_reward, total_loss / t))
+                            total_reward, total_loss / (t / INTERVAL)))
                     break
             if ((episode + 1) % data_save_period == 0
                     or episode == num_episodes - 1):

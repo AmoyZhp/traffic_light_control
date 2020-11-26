@@ -15,7 +15,7 @@
             "road_west_to_mid_1",
             "road_east_1"
         ],
-        "interval": 5,
+        "interval": 6,
         "startTime": 0,
         "endTime": -1
     },
@@ -75,7 +75,7 @@
             "road_east_2",
             "road_mid_to_west_1"
         ],
-        "interval": 5,
+        "interval": 6,
         "startTime": 0,
         "endTime": -1
     }
