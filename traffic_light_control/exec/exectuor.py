@@ -171,13 +171,17 @@ class Exectutor():
         for episode in range(num_episodes):
             total_reward = 0.0
             state = env.reset()
-            for t in range(MAX_TIME):
+            for t in range(MAX_TIME+1):
+                if t % INTERVAL != 0:
+                    action = Action(agent.intersection_id, True)
+                    env.step(action)
+                    continue
                 action = agent.eval_act(state)
                 next_state, reward, done, _ = env.step(action)
                 total_reward += reward
                 state = next_state
                 if done:
-                    print("eval mode ! episodes {}, reward is {}".format(
+                    print("eval mode ! episodes {}, reward is {:.3f}".format(
                         episode, total_reward))
                     reward_history[episode] = total_reward
                     break
@@ -216,8 +220,8 @@ class Exectutor():
                 if done:
 
                     break
-            print("episodes {}, reward is {}".format(i_ep,
-                                                     total_reward))
+            print("episodes {}, reward is {:.3f}".format(
+                i_ep, total_reward))
 
     def __save_dict(self, data, path):
         with open(path, "w", encoding="utf-8") as f:
