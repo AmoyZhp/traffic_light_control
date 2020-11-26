@@ -2,5 +2,5 @@ replay/*
 __pycache__/
 .vscode/
 .DS_Store
-params
+records/*
 *.txt
