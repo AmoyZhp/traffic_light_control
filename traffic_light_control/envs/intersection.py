@@ -53,7 +53,7 @@ class Intersection():
         road = self.roads[loc][graphDir]
         if road is None:
             return 0
-        vehicles = road.get_vehicles(streamDirection)
+        vehicles = road.get_waiting_vehicles(streamDirection)
         return vehicles
 
     def move_to_next_phase(self):

@@ -134,9 +134,9 @@ class TlEnv():
         reward = -self.__cal_total_waiting_density()
         return reward
 
-    def __cal_total_waiting_density(self) -> int:
+    def __cal_total_waiting_density(self) -> float:
         intersection = self.core_inter
-        total = 0
+        total = 0.0
         for loc in Location:
             for grapDir in GraphDirection:
                 for stream in TrafficStreamDirection:
