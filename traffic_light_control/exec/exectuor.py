@@ -6,12 +6,14 @@ from envs.tl_env import TlEnv
 from agent.dqn import DQNAgent
 from policy.dqn import DQN, DQNConfig
 from policy.buffer.replay_memory import Transition
+import os
 import torch
 import time
 import sys
 import getopt
 import json
 import util.plot as plot
+import datetime
 
 CONFIG_PATH = "./config/config.json"
 MAX_TIME = 300
@@ -97,8 +99,25 @@ class Exectutor():
             "eps_frame": EPS_FRAME,
             "update_count": UPDATE_COUNT,
         }
+
+        # 创建的目录
+        date = datetime.datetime.now()
+        sub_dir = "record_{}_{}_{}_{}_{}_{}".format(
+            date.year,
+            date.month,
+            date.day,
+            date.hour,
+            date.minute,
+            date.second
+        )
+        path = MODEL_ROOT_DIR + sub_dir
+        if not os.path.exists(path):
+            os.mkdir(path)
+        else:
+            print("create record folder error , path exist : ", path)
+        path += "/"
         self.__write_json(
-            init_params, "{}init_params.json".format(MODEL_ROOT_DIR))
+            init_params, "{}init_params.json".format(path))
         reward_history = {}
         loss_history = {}
         for episode in range(num_episodes):
@@ -153,7 +172,7 @@ class Exectutor():
                     break
             if ((episode + 1) % data_save_period == 0
                     or episode == num_episodes - 1):
-                full_path = MODEL_ROOT_DIR + "model_{}.pth".format(episode)
+                full_path = path + "model.pth"
                 agent.save_model(path=full_path)
                 eval_reward_history = self.eval(
                     agent=agent, env=env,
@@ -161,9 +180,12 @@ class Exectutor():
                 save_data = {"reward": reward_history,
                              "loss": loss_history,
                              "eval_reward": eval_reward_history}
-                self.__save_dict(save_data, "{}obs.txt".format(MODEL_ROOT_DIR))
-        self.test("model_{}.pth".format(num_episodes-1))
-        self.__plot()
+                self.__save_dict(save_data, "{}obs.txt".format(path))
+
+        full_path = path + "model.pth"
+        agent.save_model(full_path)
+        self.test(full_path)
+        self.__plot(path)
 
     def eval(self, agent: DQNAgent, env: TlEnv,
              num_episodes: int):
@@ -187,11 +209,10 @@ class Exectutor():
                     break
         return reward_history
 
-    def test(self, model_file, num_episodes=1):
+    def test(self, model_path, num_episodes=1):
         config_path = "./config/test_config.json"
-        thread_num = 1
         intersection_id = "intersection_mid"
-        env = TlEnv(config_path, max_time=MAX_TIME, thread_num=thread_num)
+        env = TlEnv(config_path, max_time=MAX_TIME, thread_num=1)
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         if torch.cuda.is_available() is False:
             print(" cuda is not available")
@@ -201,10 +222,11 @@ class Exectutor():
             eps_init=EPS_INIT, eps_min=EPS_MIN, eps_frame=EPS_FRAME,
             update_count=UPDATE_COUNT, state_space=STATE_SPACE,
             action_space=ACTION_SPACE, device=device)
-        agent = DQNAgent(intersection_id, config)
 
-        full_path = MODEL_ROOT_DIR + model_file
-        agent.load_model(full_path)
+        agent = DQNAgent(intersection_id, config)
+        # 读取网络参数
+        agent.load_model(model_path)
+
         for i_ep in range(num_episodes):
             total_reward = 0.0
             state = env.reset()
@@ -231,9 +253,9 @@ class Exectutor():
         with open(path, "w") as f:
             json.dump(data, f)
 
-    def __plot(self):
+    def __plot(self, record_dir):
         data = {}
-        with open(MODEL_ROOT_DIR + "obs.txt", "r", encoding="utf-8") as f:
+        with open(record_dir + "obs.txt", "r", encoding="utf-8") as f:
             data = eval(f.read())
         episodes = []
         rewards = []
@@ -242,7 +264,8 @@ class Exectutor():
             rewards.append(int(v))
         plot.plot(
             episodes, rewards, x_lable="episodes",
-            y_label="reward", title="rewards", img=MODEL_ROOT_DIR+"reward.png")
+            y_label="reward", title="rewards", 
+            img=record_dir+"reward.png")
         episodes = []
         loss = []
         for k, v in data["loss"].items():
@@ -250,4 +273,5 @@ class Exectutor():
             loss.append(int(v))
         plot.plot(
             episodes, loss, x_lable="episodes",
-            y_label="loss", title="loss", img=MODEL_ROOT_DIR+"loss.png")
+            y_label="loss", title="loss", 
+            img=record_dir+"loss.png")
