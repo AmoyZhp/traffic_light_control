@@ -4,4 +4,4 @@ __pycache__/
 .DS_Store
 records/
 *.txt
-.fetch_data.sh
+fetch_data.sh
