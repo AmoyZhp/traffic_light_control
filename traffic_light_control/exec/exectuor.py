@@ -21,8 +21,8 @@ MAX_TIME = 300
 INTERVAL = 5
 DATA_SAVE_PERIOD = 500
 CAPACITY = 80000
-LERNING_RATE = 1e-3
-BATCH_SIZE = 512
+LERNING_RATE = 5e-4
+BATCH_SIZE = 128
 DISCOUNT_FACTOR = 0.99
 EPS_INIT = 1.0
 EPS_MIN = 0.01
@@ -251,9 +251,10 @@ class Exectutor():
     def static_run(self):
         env = TlEnv(STATIC_CONFIG, MAX_TIME)
         total_reward = 0.0
-        for _ in range(MAX_TIME):
+        for t in range(MAX_TIME):
             _, reward, done, _ = env.step(Action("", True))
-            total_reward += reward
+            if t % INTERVAL == 0:
+                total_reward += reward
         print("static setting total reward is : {}".format(total_reward))
 
     def __save_dict(self, data, path):
