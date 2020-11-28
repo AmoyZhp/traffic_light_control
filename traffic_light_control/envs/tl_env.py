@@ -27,8 +27,8 @@ class TlEnv():
         west_out = Road(id="road_west_to_mid_1", lanes={
             TrafficStreamDirection.STRAIGHT: [
                 Lane("road_west_to_mid_1_0", 15),
-                Lane("road_west_to_mid_1_1", 15),
-                Lane("road_west_to_mid_1_2", 15)
+                # Lane("road_west_to_mid_1_1", 15),
+                # Lane("road_west_to_mid_1_2", 15)
             ]
         }, eng=self.eng)
         west_in = Road(id="road_mid_to_west_1", lanes={

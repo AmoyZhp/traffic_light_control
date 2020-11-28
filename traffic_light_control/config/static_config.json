@@ -4,9 +4,9 @@
     "dir": "./config/",
     "roadnetFile": "simplest_roadnet.json",
     "flowFile": "simplest_roadnet_flow.json",
-    "rlTrafficLight": true,
+    "rlTrafficLight": false,
     "laneChange": false,
-    "saveReplay": false,
-    "roadnetLogFile": "../../replay/replay_roadnet.json",
-    "replayLogFile": "../../replay/replay.txt"
+    "saveReplay": true,
+    "roadnetLogFile": "../../replay/static/replay_roadnet.json",
+    "replayLogFile": "../../replay/static/replay.txt"
 }

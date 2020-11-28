@@ -16,6 +16,7 @@ import util.plot as plot
 import datetime
 
 CONFIG_PATH = "./config/config.json"
+STATIC_CONFIG = "./config/static_config.json"
 MAX_TIME = 300
 INTERVAL = 5
 DATA_SAVE_PERIOD = 500
@@ -70,6 +71,8 @@ class Exectutor():
             self.test(model_file, num_episodes=episode)
         elif mode == "train":
             self.train(num_episodes=episode, thread_num=thread)
+        elif mode == "static":
+            self.static_run()
         else:
             print("please input mode")
 
@@ -245,6 +248,14 @@ class Exectutor():
             print("episodes {}, reward is {:.3f}".format(
                 i_ep, total_reward))
 
+    def static_run(self):
+        env = TlEnv(STATIC_CONFIG, MAX_TIME)
+        total_reward = 0.0
+        for _ in range(MAX_TIME):
+            _, reward, done, _ = env.step(Action("", True))
+            total_reward += reward
+        print("static setting total reward is : {}".format(total_reward))
+
     def __save_dict(self, data, path):
         with open(path, "w", encoding="utf-8") as f:
             f.write(str(data))
@@ -264,7 +275,7 @@ class Exectutor():
             rewards.append(int(v))
         plot.plot(
             episodes, rewards, x_lable="episodes",
-            y_label="reward", title="rewards", 
+            y_label="reward", title="rewards",
             img=record_dir+"reward.png")
         episodes = []
         loss = []
@@ -273,5 +284,5 @@ class Exectutor():
             loss.append(int(v))
         plot.plot(
             episodes, loss, x_lable="episodes",
-            y_label="loss", title="loss", 
+            y_label="loss", title="loss",
             img=record_dir+"loss.png")
