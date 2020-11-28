@@ -3,7 +3,7 @@
     "seed": 0,
     "dir": "./config/",
     "roadnetFile": "simplest_roadnet.json",
-    "flowFile": "simplest_roadnet.json",
+    "flowFile": "simplest_roadnet_flow.json",
     "rlTrafficLight": true,
     "laneChange": false,
     "saveReplay": true,

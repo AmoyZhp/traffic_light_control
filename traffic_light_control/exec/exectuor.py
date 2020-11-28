@@ -1,5 +1,3 @@
-from typing import Dict
-
 from numpy.lib.type_check import imag
 from basis.action import Action
 from envs.tl_env import TlEnv
@@ -14,20 +12,21 @@ import getopt
 import json
 import util.plot as plot
 import datetime
+import argparse
 
 CONFIG_PATH = "./config/config.json"
 STATIC_CONFIG = "./config/static_config.json"
 MAX_TIME = 300
 INTERVAL = 5
 DATA_SAVE_PERIOD = 500
-CAPACITY = 80000
-LERNING_RATE = 5e-4
-BATCH_SIZE = 128
+CAPACITY = 100000
+LERNING_RATE = 1e-4
+BATCH_SIZE = 256
 DISCOUNT_FACTOR = 0.99
 EPS_INIT = 1.0
 EPS_MIN = 0.01
 EPS_FRAME = 200000
-UPDATE_COUNT = 500
+UPDATE_COUNT = 1000
 STATE_SPACE = 6*4 + 2*2
 ACTION_SPACE = 2
 MODEL_ROOT_DIR = "./records/"
@@ -38,43 +37,23 @@ class Exectutor():
         pass
 
     def run(self):
-        argv = sys.argv[1:]
-        mode = ""
-        model_file = ""
-        thread = 1
-        episode = 1
-        opts = []
-        try:
-            opts, args = getopt.getopt(
-                argv, shortopts="hm:e:mf:th:",
-                longopts=["mode=",
-                          "episode=", "model_file=", "thread="])
+        args = self.__parase_args()
+        mode = args.mode
+        model_file = args.model_file
+        thread_num = args.thread_num
+        episodes = args.episodes
 
-        except getopt.GetoptError:
-            print("input error, template : python test.py --mode=train"
-                  + " --episode=1 --path=model.pth --thread=1")
-            return
-
-        for opt, arg in opts:
-            if opt in ("-m", "--mode"):
-                mode = arg
-            elif opt in ("-mf", "--model_file"):
-                model_file = arg
-            elif opt in ("-e", "--episode"):
-                episode = int(arg)
-            elif opt in ("-th", "--thread"):
-                thread = int(arg)
         print("mode : {}, model file :  {}, ep : {}, thread : {}".format(
-            mode, model_file, episode, thread
+            mode, model_file, episodes, thread_num
         ))
         if mode == "test":
-            self.test(model_file, num_episodes=episode)
+            self.test(model_file, num_episodes=episodes)
         elif mode == "train":
-            self.train(num_episodes=episode, thread_num=thread)
+            self.train(num_episodes=episodes, thread_num=thread_num)
         elif mode == "static":
             self.static_run()
         else:
-            print("please input mode")
+            print("mode is invalid : {}".format(mode))
 
     def train(self, num_episodes, thread_num=1):
         config_path = CONFIG_PATH
@@ -256,6 +235,25 @@ class Exectutor():
             if t % INTERVAL == 0:
                 total_reward += reward
         print("static setting total reward is : {}".format(total_reward))
+
+    def __parase_args(self):
+        parser = argparse.ArgumentParser()
+        parser.add_argument(
+            "-m", "--mode", type=str, default="", required=True,
+            help="mode of exec, include [train, test, static]")
+        parser.add_argument(
+            "-e", "--episodes", type=int, default=1,
+            help="episode of exec time"
+        )
+        parser.add_argument(
+            "-mf", "--model_file", type=str,
+            help="the path of model parameter file"
+        )
+        parser.add_argument(
+            "-th", "--thread_num", type=int, default=1,
+            help="thread number of simulator"
+        )
+        return parser.parse_args()
 
     def __save_dict(self, data, path):
         with open(path, "w", encoding="utf-8") as f:
