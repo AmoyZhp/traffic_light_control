@@ -101,6 +101,7 @@ class Exectutor():
         self.__write_json(
             init_params, "{}init_params.json".format(path))
         reward_history = {}
+        eval_reward_history = {}
         loss_history = {}
         for episode in range(num_episodes):
             total_reward = 0.0
@@ -156,9 +157,10 @@ class Exectutor():
                     or episode == num_episodes - 1):
                 full_path = path + "model.pth"
                 agent.save_model(path=full_path)
-                eval_reward_history = self.eval(
+                eval_rewards = self.eval(
                     agent=agent, env=env,
-                    num_episodes=10)
+                    num_episodes=50)
+                eval_reward_history[episode] = eval_rewards
                 save_data = {"reward": reward_history,
                              "loss": loss_history,
                              "eval_reward": eval_reward_history}
@@ -171,7 +173,7 @@ class Exectutor():
 
     def eval(self, agent: DQNAgent, env: TlEnv,
              num_episodes: int):
-        reward_history = {}
+        reward_history = []
         for episode in range(num_episodes):
             total_reward = 0.0
             state = env.reset()
@@ -185,9 +187,7 @@ class Exectutor():
                 total_reward += reward
                 state = next_state
                 if done:
-                    print("eval mode ! episodes {}, reward is {:.3f}".format(
-                        episode, total_reward))
-                    reward_history[episode] = total_reward
+                    reward_history.append(total_reward)
                     break
         return reward_history
 
@@ -276,6 +276,20 @@ class Exectutor():
             episodes, rewards, x_lable="episodes",
             y_label="reward", title="rewards",
             img=record_dir+"reward.png")
+
+        episodes = []
+        mean_eval_reward = []
+        for k, v in data["eval_reward"].items():
+            episodes.append(int(k))
+            eval_rewards = v
+            num = 0.0
+            for reward in eval_rewards:
+                num += reward
+            mean_eval_reward.append(int(num / len(eval_rewards)))
+        plot.plot(
+            episodes, mean_eval_reward, x_lable="episodes",
+            y_label="reward", title="rewards",
+            img=record_dir+"eval_reward.png")
         episodes = []
         loss = []
         for k, v in data["loss"].items():
