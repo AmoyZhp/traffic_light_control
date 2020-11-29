@@ -18,7 +18,7 @@ CITYFLOW_CONFIG_PATH = "./config/config.json"
 STATIC_CONFIG = "./config/static_config.json"
 MAX_TIME = 300
 INTERVAL = 5
-DATA_SAVE_PERIOD = 5
+DATA_SAVE_PERIOD = 500
 CAPACITY = 100000
 LERNING_RATE = 1e-4
 BATCH_SIZE = 256
@@ -44,6 +44,8 @@ class Exectutor():
         model_file = args.model_file
         thread_num = args.thread_num
         episodes = args.episodes
+        save = False if args.save == 0 else True
+        print(save)
 
         print("mode : {}, model file :  {}, ep : {}, thread : {}".format(
             mode, model_file, episodes, thread_num
@@ -51,17 +53,19 @@ class Exectutor():
         if mode == "test":
             self.test(model_file, num_episodes=episodes)
         elif mode == "train":
-            self.train(num_episodes=episodes, thread_num=thread_num)
+            self.train(num_episodes=episodes, thread_num=thread_num, save=save)
         elif mode == "static":
             self.static_run()
         else:
             print("mode is invalid : {}".format(mode))
 
-    def train(self, num_episodes, thread_num=1):
+    def train(self, num_episodes, thread_num=1, save=True):
         env = self.__init_env(CITYFLOW_CONFIG_PATH, thread_num)
         agent = self.__init_agent()
         exec_params = self.__init_exec_params()
-        record_dir = self.__init_record()
+        record_dir = ""
+        if save:
+            record_dir = self.__init_record()
 
         reward_history = {}
         eval_reward_history = {}
@@ -130,8 +134,9 @@ class Exectutor():
                         + " total reward : {:.3f}, avg loss : {:.3f} ".format(
                             total_reward, total_loss / (t / INTERVAL)))
                     break
-            if ((episode + 1) % exec_params.data_saved_period == 0
-                    or episode == num_episodes):
+            if (save
+                and ((episode + 1) % exec_params.data_saved_period == 0
+                     or episode + 1 == num_episodes)):
                 # 评估当前的效果
                 eval_rewards, mean_reward = self.eval(
                     agent=agent, env=env,
@@ -152,7 +157,6 @@ class Exectutor():
                 self.__plot(record_dir, result_file)
                 print("episode {}, mean eval reward is {:.3f}".format(
                     episode, mean_reward))
-                print(mean_reward)
                 if mean_reward > -30.0:
                     break
 
@@ -236,6 +240,10 @@ class Exectutor():
         parser.add_argument(
             "-th", "--thread_num", type=int, default=1,
             help="thread number of simulator"
+        )
+        parser.add_argument(
+            "-s", "--save", type=int, default=1,
+            help="save paramse or not"
         )
         return parser.parse_args()
 
