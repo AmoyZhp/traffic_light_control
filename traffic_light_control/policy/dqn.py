@@ -55,7 +55,7 @@ class DQN():
         self.step = 0
 
     def select_action(self, state):
-        self.step += 1
+        self.step = min(self.step + 1, self.eps_frame)
         self.eps = max(self.eps_init - self.step /
                        self.eps_frame, self.eps_min)
         if np.random.rand() < self.eps:

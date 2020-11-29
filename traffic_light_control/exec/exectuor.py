@@ -1,16 +1,14 @@
-from numpy.core.fromnumeric import mean
-from numpy.lib.type_check import imag
-from torch.serialization import save
+from os import EX_CANTCREAT
+from pickle import DICT
 from basis.action import Action
 from envs.tl_env import TlEnv
 from agent.dqn import DQNAgent
 from policy.dqn import DQN, DQNConfig
 from policy.buffer.replay_memory import Transition
+from collections import namedtuple
 import os
 import torch
 import time
-import sys
-import getopt
 import json
 import util.plot as plot
 import datetime
@@ -32,6 +30,8 @@ UPDATE_COUNT = 1000
 STATE_SPACE = 6*4 + 2*2
 ACTION_SPACE = 2
 MODEL_ROOT_DIR = "./records/"
+ExecParams = namedtuple('ExecParams',
+                        ('interval',  'data_saved_period'))
 
 
 class Exectutor():
@@ -60,7 +60,7 @@ class Exectutor():
     def train(self, num_episodes, thread_num=1):
         env = self.__init_env(CITYFLOW_CONFIG_PATH, thread_num)
         agent = self.__init_agent()
-
+        exec_params = self.__init_exec_params()
         record_dir = self.__init_record()
 
         reward_history = {}
@@ -73,11 +73,12 @@ class Exectutor():
             total_loss = 0.0
             total_sim_time = 0.0
             total_net_time = 0.0
+            t = 0
             begin = time.time()
-
-            for t in range(MAX_TIME + 1):
+            while True:
+                t = t + 1
                 # 手动控制决策的时间间隔
-                if t % INTERVAL != 0:
+                if t % exec_params.interval != 0:
                     action = Action(agent.intersection_id, True)
                     step_time = time.time()
                     env.step(action)
@@ -129,7 +130,7 @@ class Exectutor():
                         + " total reward : {:.3f}, avg loss : {:.3f} ".format(
                             total_reward, total_loss / (t / INTERVAL)))
                     break
-            if ((episode + 1) % DATA_SAVE_PERIOD == 0
+            if ((episode + 1) % exec_params.data_saved_period == 0
                     or episode == num_episodes - 1):
                 # 评估当前的效果
                 eval_rewards, mean_reward = self.eval(
@@ -160,7 +161,9 @@ class Exectutor():
         for _ in range(num_episodes):
             total_reward = 0.0
             state = env.reset()
-            for t in range(MAX_TIME+1):
+            t = 0
+            while True:
+                t = t + 1
                 if t % INTERVAL != 0:
                     action = Action(agent.intersection_id, True)
                     env.step(action)
@@ -187,7 +190,9 @@ class Exectutor():
         for episode in range(num_episodes):
             total_reward = 0.0
             state = env.reset()
-            for t in range(MAX_TIME):
+            t = 0
+            while True:
+                t = t + 1
                 if t % INTERVAL != 0:
                     action = Action(agent.intersection_id, True)
                     env.step(action)
@@ -204,10 +209,14 @@ class Exectutor():
     def static_run(self):
         env = TlEnv(STATIC_CONFIG, MAX_TIME)
         total_reward = 0.0
-        for t in range(MAX_TIME):
+        t = 0
+        while True:
+            t = t + 1
             _, reward, done, _ = env.step(Action("", True))
             if t % INTERVAL == 0:
                 total_reward += reward
+            if done:
+                break
         print("static setting total reward is : {}".format(total_reward))
 
     def __parase_args(self):
@@ -250,6 +259,9 @@ class Exectutor():
         agent = DQNAgent(intersection_id, config)
         return agent
 
+    def __init_exec_params(self) -> ExecParams:
+        return ExecParams(INTERVAL, DATA_SAVE_PERIOD)
+
     def __init_record(self) -> str:
         init_params = {
             "learning_rate": LERNING_RATE,
@@ -282,7 +294,8 @@ class Exectutor():
 
         return path
 
-    def __save_params(self, agent: DQNAgent, env: TlEnv):
+    def __save_params(self, saved_path: str,
+                      agent: DQNAgent, env: TlEnv, exec_params: ExecParams):
 
         agent_config = {
             "learning_rate": agent.policy.learning_rate,
@@ -299,7 +312,19 @@ class Exectutor():
             "net": agent.policy.acting_net.state_dict(),
             "optimizer": agent.policy.optimizer.state_dict(),
             "memory": agent.policy.memory.memory,
+            "config": agent_config
         }
+
+        env_params = {
+            "max_time": env.max_time
+        }
+
+        params = {
+            "agent": agent_params,
+            "env": env_params,
+            "exec": exec_params
+        }
+        torch.save(params, saved_path)
 
     def __plot(self, record_dir, data_file):
         data = {}
