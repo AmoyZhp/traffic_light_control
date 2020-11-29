@@ -1,4 +1,6 @@
+from numpy.core.fromnumeric import mean
 from numpy.lib.type_check import imag
+from torch.serialization import save
 from basis.action import Action
 from envs.tl_env import TlEnv
 from agent.dqn import DQNAgent
@@ -14,7 +16,7 @@ import util.plot as plot
 import datetime
 import argparse
 
-CONFIG_PATH = "./config/config.json"
+CITYFLOW_CONFIG_PATH = "./config/config.json"
 STATIC_CONFIG = "./config/static_config.json"
 MAX_TIME = 300
 INTERVAL = 5
@@ -56,73 +58,43 @@ class Exectutor():
             print("mode is invalid : {}".format(mode))
 
     def train(self, num_episodes, thread_num=1):
-        config_path = CONFIG_PATH
-        intersection_id = "intersection_mid"
-        env = TlEnv(config_path, max_time=MAX_TIME, thread_num=thread_num)
-        data_save_period = DATA_SAVE_PERIOD
+        env = self.__init_env(CITYFLOW_CONFIG_PATH, thread_num)
+        agent = self.__init_agent()
 
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        if torch.cuda.is_available() is False:
-            print(" cuda is not available")
-        config = DQNConfig(
-            learning_rate=LERNING_RATE, batch_size=BATCH_SIZE,
-            capacity=CAPACITY, discount_factor=DISCOUNT_FACTOR,
-            eps_init=EPS_INIT, eps_min=EPS_MIN, eps_frame=EPS_FRAME,
-            update_count=UPDATE_COUNT, state_space=STATE_SPACE,
-            action_space=ACTION_SPACE, device=device)
-        agent = DQNAgent(intersection_id, config)
-        init_params = {
-            "learning_rate": LERNING_RATE,
-            "batch_size": BATCH_SIZE,
-            "capacity": CAPACITY,
-            "discount_facotr": DISCOUNT_FACTOR,
-            "eps_init": EPS_INIT,
-            "eps_min": EPS_MIN,
-            "eps_frame": EPS_FRAME,
-            "update_count": UPDATE_COUNT,
-        }
+        record_dir = self.__init_record()
 
-        # 创建的目录
-        date = datetime.datetime.now()
-        sub_dir = "record_{}_{}_{}_{}_{}_{}".format(
-            date.year,
-            date.month,
-            date.day,
-            date.hour,
-            date.minute,
-            date.second
-        )
-        path = MODEL_ROOT_DIR + sub_dir
-        if not os.path.exists(path):
-            os.mkdir(path)
-        else:
-            print("create record folder error , path exist : ", path)
-        path += "/"
-        self.__write_json(
-            init_params, "{}init_params.json".format(path))
         reward_history = {}
         eval_reward_history = {}
         loss_history = {}
         for episode in range(num_episodes):
+            state = env.reset()
+
             total_reward = 0.0
             total_loss = 0.0
             total_sim_time = 0.0
             total_net_time = 0.0
-            state = env.reset()
             begin = time.time()
+
             for t in range(MAX_TIME + 1):
+                # 手动控制决策的时间间隔
                 if t % INTERVAL != 0:
                     action = Action(agent.intersection_id, True)
+                    step_time = time.time()
                     env.step(action)
+                    total_sim_time += (time.time() - step_time)
                     continue
+
+                # agent 选择行动
                 step_time = time.time()
                 action = agent.act(state)
                 total_net_time += (time.time() - step_time)
 
+                # 仿真器执行
                 step_time = time.time()
                 next_state, reward, done, _ = env.step(action)
                 total_sim_time += (time.time() - step_time)
 
+                # 将数据转化为 pytorch 的 tensor
                 t_state = torch.tensor(state.to_tensor()).float().unsqueeze(0)
                 t_action = torch.tensor(action.to_tensor()).long().view(1, 1)
                 t_reward = torch.tensor(reward).float().view(1, 1)
@@ -133,9 +105,13 @@ class Exectutor():
                     t_next_state = None
                 transition = Transition(
                     t_state, t_action, t_reward, t_next_state)
+
+                # 将数据存进 replay buffer
                 agent.store(transition)
+
                 state = next_state
 
+                # 更新参数
                 step_time = time.time()
                 loss = agent.update_policy()
                 total_net_time += (time.time() - step_time)
@@ -153,28 +129,35 @@ class Exectutor():
                         + " total reward : {:.3f}, avg loss : {:.3f} ".format(
                             total_reward, total_loss / (t / INTERVAL)))
                     break
-            if ((episode + 1) % data_save_period == 0
+            if ((episode + 1) % DATA_SAVE_PERIOD == 0
                     or episode == num_episodes - 1):
-                full_path = path + "model.pth"
-                agent.save_model(path=full_path)
-                eval_rewards = self.eval(
+                # 评估当前的效果
+                eval_rewards, mean_reward = self.eval(
                     agent=agent, env=env,
                     num_episodes=50)
                 eval_reward_history[episode] = eval_rewards
-                save_data = {"reward": reward_history,
-                             "loss": loss_history,
-                             "eval_reward": eval_reward_history}
-                self.__save_dict(save_data, "{}obs.txt".format(path))
 
-        full_path = path + "model.pth"
-        agent.save_model(full_path)
-        self.test(full_path)
-        self.__plot(path)
+                model_path = record_dir + "model.pth"
+                agent.save_model(path=model_path)
+
+                saved_data = {"reward": reward_history,
+                              "loss": loss_history,
+                              "eval_reward": eval_reward_history}
+                result_file = record_dir + "exp_result.txt"
+                with open(result_file, "w", encoding="utf-8") as f:
+                    f.write(str(saved_data))
+
+                self.test(model_path)
+                self.__plot(record_dir, result_file)
+                print("episode {}, mean eval reward is {:.3f}".format(
+                    episode, mean_reward))
+                if mean_reward < 30:
+                    break
 
     def eval(self, agent: DQNAgent, env: TlEnv,
              num_episodes: int):
         reward_history = []
-        for episode in range(num_episodes):
+        for _ in range(num_episodes):
             total_reward = 0.0
             state = env.reset()
             for t in range(MAX_TIME+1):
@@ -189,27 +172,19 @@ class Exectutor():
                 if done:
                     reward_history.append(total_reward)
                     break
-        return reward_history
+        mean_reward = sum(reward_history) / num_episodes
+        return reward_history, mean_reward
 
     def test(self, model_path, num_episodes=1):
+
         config_path = "./config/test_config.json"
-        intersection_id = "intersection_mid"
-        env = TlEnv(config_path, max_time=MAX_TIME, thread_num=1)
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        if torch.cuda.is_available() is False:
-            print(" cuda is not available")
-        config = DQNConfig(
-            learning_rate=LERNING_RATE, batch_size=BATCH_SIZE,
-            capacity=CAPACITY, discount_factor=DISCOUNT_FACTOR,
-            eps_init=EPS_INIT, eps_min=EPS_MIN, eps_frame=EPS_FRAME,
-            update_count=UPDATE_COUNT, state_space=STATE_SPACE,
-            action_space=ACTION_SPACE, device=device)
+        env = self.__init_env(config_path)
+        agent = self.__init_agent()
 
-        agent = DQNAgent(intersection_id, config)
         # 读取网络参数
-        agent.load_model(model_path)
+        agent.load_model(model_path, True)
 
-        for i_ep in range(num_episodes):
+        for episode in range(num_episodes):
             total_reward = 0.0
             state = env.reset()
             for t in range(MAX_TIME):
@@ -222,10 +197,9 @@ class Exectutor():
                 total_reward += reward
                 state = next_state
                 if done:
-
                     break
             print("episodes {}, reward is {:.3f}".format(
-                i_ep, total_reward))
+                episode, total_reward))
 
     def static_run(self):
         env = TlEnv(STATIC_CONFIG, MAX_TIME)
@@ -255,17 +229,81 @@ class Exectutor():
         )
         return parser.parse_args()
 
-    def __save_dict(self, data, path):
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(str(data))
+    def __init_env(self, env_config_path: str, thread_num: int = 1) -> TlEnv:
+        env = TlEnv(
+            config_path=env_config_path, max_time=MAX_TIME,
+            thread_num=thread_num)
+        return env
 
-    def __write_json(self, data, path):
-        with open(path, "w") as f:
-            json.dump(data, f)
+    def __init_agent(self) -> DQNAgent:
 
-    def __plot(self, record_dir):
+        intersection_id = "intersection_mid"
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available() is False:
+            print(" cuda is not available")
+        config = DQNConfig(
+            learning_rate=LERNING_RATE, batch_size=BATCH_SIZE,
+            capacity=CAPACITY, discount_factor=DISCOUNT_FACTOR,
+            eps_init=EPS_INIT, eps_min=EPS_MIN, eps_frame=EPS_FRAME,
+            update_count=UPDATE_COUNT, state_space=STATE_SPACE,
+            action_space=ACTION_SPACE, device=device)
+        agent = DQNAgent(intersection_id, config)
+        return agent
+
+    def __init_record(self) -> str:
+        init_params = {
+            "learning_rate": LERNING_RATE,
+            "batch_size": BATCH_SIZE,
+            "capacity": CAPACITY,
+            "discount_facotr": DISCOUNT_FACTOR,
+            "eps_init": EPS_INIT,
+            "eps_min": EPS_MIN,
+            "eps_frame": EPS_FRAME,
+            "update_count": UPDATE_COUNT,
+        }
+        # 创建的目录
+        date = datetime.datetime.now()
+        sub_dir = "record_{}_{}_{}_{}_{}_{}/".format(
+            date.year,
+            date.month,
+            date.day,
+            date.hour,
+            date.minute,
+            date.second
+        )
+        path = MODEL_ROOT_DIR + sub_dir
+        if not os.path.exists(path):
+            os.mkdir(path)
+        else:
+            print("create record folder error , path exist : ", path)
+        params_path = path + "init_params.json"
+        with open(params_path, "w") as f:
+            json.dump(init_params, f)
+
+        return path
+
+    def __save_params(self, agent: DQNAgent, env: TlEnv):
+
+        agent_config = {
+            "learning_rate": agent.policy.learning_rate,
+            "batch_size": agent.policy.batch_size,
+            "capacity": agent.policy.memory.capacity,
+            "discount_facotr": agent.policy.discount_factor,
+            "eps_init": agent.policy.eps_init,
+            "eps_min": agent.policy.eps_min,
+            "eps_frame": agent.policy.eps_frame,
+            "step": agent.policy.step
+        }
+
+        agent_params = {
+            "net": agent.policy.acting_net.state_dict(),
+            "optimizer": agent.policy.optimizer.state_dict(),
+            "memory": agent.policy.memory.memory,
+        }
+
+    def __plot(self, record_dir, data_file):
         data = {}
-        with open(record_dir + "obs.txt", "r", encoding="utf-8") as f:
+        with open(data_file, "r", encoding="utf-8") as f:
             data = eval(f.read())
         episodes = []
         rewards = []

@@ -35,8 +35,8 @@ class DQNAgent():
     def update_policy(self):
         return self.policy.update()
 
-    def load_model(self, path: str):
-        self.policy.load_model(path)
+    def load_model(self, path: str, test_mode: bool = True):
+        self.policy.load_model(path, test_mode)
 
     def save_model(self, path: str):
         self.policy.save_model(path)

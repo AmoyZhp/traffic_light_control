@@ -9,6 +9,7 @@ Transition = namedtuple('Transition',
 class ReplayMemory(object):
 
     def __init__(self, capacity: int):
+        self.capacity = capacity
         self.memory = deque(maxlen=capacity)
 
     def sotre(self, transition: Transition):
