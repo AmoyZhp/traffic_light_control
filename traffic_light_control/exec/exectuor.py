@@ -18,7 +18,7 @@ CITYFLOW_CONFIG_PATH = "./config/config.json"
 STATIC_CONFIG = "./config/static_config.json"
 MAX_TIME = 300
 INTERVAL = 5
-DATA_SAVE_PERIOD = 500
+DATA_SAVE_PERIOD = 5
 CAPACITY = 100000
 LERNING_RATE = 1e-4
 BATCH_SIZE = 256
@@ -131,7 +131,7 @@ class Exectutor():
                             total_reward, total_loss / (t / INTERVAL)))
                     break
             if ((episode + 1) % exec_params.data_saved_period == 0
-                    or episode == num_episodes - 1):
+                    or episode == num_episodes):
                 # 评估当前的效果
                 eval_rewards, mean_reward = self.eval(
                     agent=agent, env=env,
@@ -152,7 +152,8 @@ class Exectutor():
                 self.__plot(record_dir, result_file)
                 print("episode {}, mean eval reward is {:.3f}".format(
                     episode, mean_reward))
-                if mean_reward < 30:
+                print(mean_reward)
+                if mean_reward > -30.0:
                     break
 
     def eval(self, agent: DQNAgent, env: TlEnv,
