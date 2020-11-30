@@ -50,7 +50,16 @@ class Road():
 
     def to_tensor(self) -> np.ndarray:
         tensor = np.zeros(3)
-        tensor[0] = self.get_vehicles(TrafficStreamDirection.LEFT)
-        tensor[1] = self.get_vehicles(TrafficStreamDirection.STRAIGHT)
-        tensor[2] = self.get_vehicles(TrafficStreamDirection.RIGHT)
+        dire = TrafficStreamDirection.LEFT
+        tensor[0] = (0 if self.get_capacity(dire) == 0 else
+                     self.get_vehicles(dire) / self.get_capacity(dire))
+
+        dire = TrafficStreamDirection.STRAIGHT
+        tensor[1] = (0 if self.get_capacity(dire) == 0 else
+                     self.get_vehicles(dire) / self.get_capacity(dire))
+
+        dire = TrafficStreamDirection.RIGHT
+        tensor[2] = (0 if self.get_capacity(dire) == 0 else
+                     self.get_vehicles(dire) / self.get_capacity(dire))
+
         return tensor

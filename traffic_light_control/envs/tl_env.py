@@ -15,7 +15,8 @@ class TlEnv():
     """encapsulate cityflow by gym api
     """
 
-    def __init__(self, config_path: str, max_time: int, thread_num=1):
+    def __init__(self, config_path: str, max_time: int, interval: int,
+                 thread_num=1):
         self.eng = cityflow.Engine(config_path, thread_num)
 
         id_core = "intersection_mid"
@@ -96,12 +97,14 @@ class TlEnv():
         self.history: List[Intersection] = []
         self.time = 0
         self.max_time = max_time
+        self.interval = interval
 
     def step(self, action: Action):
-        if action.keep_phase is False:
-            self.core_inter.move_to_next_phase()
-            self.eng.set_tl_phase(self.core_inter.id,
-                                  self.core_inter.current_phase_index)
+        if self.time % self.interval == 0:
+            if action.keep_phase is False:
+                self.core_inter.move_to_next_phase()
+                self.eng.set_tl_phase(self.core_inter.id,
+                                      self.core_inter.current_phase_index)
 
         for inter in self.static_inter.values():
             static_plan = self.static_plan[inter.id]
@@ -111,12 +114,12 @@ class TlEnv():
                 self.eng.set_tl_phase(inter.id, inter.current_phase_index)
 
         self.eng.next_step()
-        self.time += 1
 
         state = self.__get_state()
         reward = self.__get_reward()
         done = False if self.time < self.max_time else True
         info = []
+        self.time += 1
 
         return state, reward, done, info
 

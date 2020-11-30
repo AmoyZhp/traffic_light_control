@@ -16,9 +16,13 @@ import argparse
 
 CITYFLOW_CONFIG_PATH = "./config/config.json"
 STATIC_CONFIG = "./config/static_config.json"
+MODEL_ROOT_DIR = "./records/"
+
+# env setting
 MAX_TIME = 300
 INTERVAL = 5
-DATA_SAVE_PERIOD = 500
+
+# agent setting
 CAPACITY = 100000
 LERNING_RATE = 1e-4
 BATCH_SIZE = 256
@@ -29,9 +33,9 @@ EPS_FRAME = 200000
 UPDATE_COUNT = 1000
 STATE_SPACE = 6*4 + 2*2
 ACTION_SPACE = 2
-MODEL_ROOT_DIR = "./records/"
-ExecParams = namedtuple('ExecParams',
-                        ('interval',  'data_saved_period'))
+
+# exec setting
+DATA_SAVE_PERIOD = 500
 
 
 class Exectutor():
@@ -45,11 +49,10 @@ class Exectutor():
         thread_num = args.thread_num
         episodes = args.episodes
         save = False if args.save == 0 else True
-        print(save)
 
-        print("mode : {}, model file :  {}, ep : {}, thread : {}".format(
+        print("mode : {}, model file :  {}, ep : {}, thread : {} ".format(
             mode, model_file, episodes, thread_num
-        ))
+        ) + "save : {}".format(save))
         if mode == "test":
             self.test(model_file, num_episodes=episodes)
         elif mode == "train":
@@ -60,9 +63,10 @@ class Exectutor():
             print("mode is invalid : {}".format(mode))
 
     def train(self, num_episodes, thread_num=1, save=True):
-        env = self.__init_env(CITYFLOW_CONFIG_PATH, thread_num)
+        env = self.__init_env(CITYFLOW_CONFIG_PATH,
+                              MAX_TIME, INTERVAL, thread_num)
         agent = self.__init_agent()
-        exec_params = self.__init_exec_params()
+
         record_dir = ""
         if save:
             record_dir = self.__init_record()
@@ -77,12 +81,10 @@ class Exectutor():
             total_loss = 0.0
             total_sim_time = 0.0
             total_net_time = 0.0
-            t = 0
             begin = time.time()
             while True:
-                t = t + 1
                 # 手动控制决策的时间间隔
-                if t % exec_params.interval != 0:
+                if env.time % env.interval != 0:
                     action = Action(agent.intersection_id, True)
                     step_time = time.time()
                     env.step(action)
@@ -126,16 +128,18 @@ class Exectutor():
                 if done:
                     end = time.time()
                     reward_history[episode + 1] = total_reward
-                    loss_history[episode + 1] = total_loss / (t / INTERVAL)
+                    loss_history[episode + 1] = total_loss / \
+                        (env.max_time / env.interval)
                     print("episodes: {}, eps: {:.3f}, time: {:.3f}s,".format(
                         episode, agent.policy.eps, end - begin)
                         + " sim time : {:.3f}s, net time : {:.3f},".format(
                             total_sim_time, total_net_time)
                         + " total reward : {:.3f}, avg loss : {:.3f} ".format(
-                            total_reward, total_loss / (t / INTERVAL)))
+                            total_reward,
+                            total_loss / (env.max_time / env.interval)))
                     break
             if (save
-                and ((episode + 1) % exec_params.data_saved_period == 0
+                and ((episode + 1) % DATA_SAVE_PERIOD == 0
                      or episode + 1 == num_episodes)):
                 # 评估当前的效果
                 eval_rewards, mean_reward = self.eval(
@@ -166,10 +170,8 @@ class Exectutor():
         for _ in range(num_episodes):
             total_reward = 0.0
             state = env.reset()
-            t = 0
             while True:
-                t = t + 1
-                if t % INTERVAL != 0:
+                if env.time % env.interval != 0:
                     action = Action(agent.intersection_id, True)
                     env.step(action)
                     continue
@@ -177,6 +179,7 @@ class Exectutor():
                 next_state, reward, done, _ = env.step(action)
                 total_reward += reward
                 state = next_state
+
                 if done:
                     reward_history.append(total_reward)
                     break
@@ -186,7 +189,8 @@ class Exectutor():
     def test(self, model_path, num_episodes=1):
 
         config_path = "./config/test_config.json"
-        env = self.__init_env(config_path)
+        env = self.__init_env(config_path,
+                              MAX_TIME, INTERVAL)
         agent = self.__init_agent()
 
         # 读取网络参数
@@ -195,10 +199,8 @@ class Exectutor():
         for episode in range(num_episodes):
             total_reward = 0.0
             state = env.reset()
-            t = 0
             while True:
-                t = t + 1
-                if t % INTERVAL != 0:
+                if env.time % env.interval != 0:
                     action = Action(agent.intersection_id, True)
                     env.step(action)
                     continue
@@ -206,6 +208,7 @@ class Exectutor():
                 next_state, reward, done, _ = env.step(action)
                 total_reward += reward
                 state = next_state
+
                 if done:
                     break
             print("episodes {}, reward is {:.3f}".format(
@@ -214,11 +217,9 @@ class Exectutor():
     def static_run(self):
         env = TlEnv(STATIC_CONFIG, MAX_TIME)
         total_reward = 0.0
-        t = 0
         while True:
-            t = t + 1
             _, reward, done, _ = env.step(Action("", True))
-            if t % INTERVAL == 0:
+            if env.time % env.interval == 0:
                 total_reward += reward
             if done:
                 break
@@ -247,9 +248,11 @@ class Exectutor():
         )
         return parser.parse_args()
 
-    def __init_env(self, env_config_path: str, thread_num: int = 1) -> TlEnv:
+    def __init_env(self, env_config_path: str,
+                   max_time: int, interval: int,
+                   thread_num: int = 1) -> TlEnv:
         env = TlEnv(
-            config_path=env_config_path, max_time=MAX_TIME,
+            config_path=env_config_path, max_time=max_time, interval=interval,
             thread_num=thread_num)
         return env
 
@@ -267,9 +270,6 @@ class Exectutor():
             action_space=ACTION_SPACE, device=device)
         agent = DQNAgent(intersection_id, config)
         return agent
-
-    def __init_exec_params(self) -> ExecParams:
-        return ExecParams(INTERVAL, DATA_SAVE_PERIOD)
 
     def __init_record(self) -> str:
         init_params = {
@@ -304,7 +304,7 @@ class Exectutor():
         return path
 
     def __save_params(self, saved_path: str,
-                      agent: DQNAgent, env: TlEnv, exec_params: ExecParams):
+                      agent: DQNAgent, env: TlEnv):
 
         agent_config = {
             "learning_rate": agent.policy.learning_rate,
@@ -325,13 +325,13 @@ class Exectutor():
         }
 
         env_params = {
-            "max_time": env.max_time
+            "max_time": env.max_time,
+            "interval": env.interval,
         }
 
         params = {
             "agent": agent_params,
             "env": env_params,
-            "exec": exec_params
         }
         torch.save(params, saved_path)
 
@@ -343,7 +343,7 @@ class Exectutor():
         rewards = []
         for k, v in data["reward"].items():
             episodes.append(int(k))
-            rewards.append(int(v))
+            rewards.append(float(v))
         plot.plot(
             episodes, rewards, x_lable="episodes",
             y_label="reward", title="rewards",
@@ -356,7 +356,7 @@ class Exectutor():
             eval_rewards = v
             num = 0.0
             for reward in eval_rewards:
-                num += reward
+                num += float(reward)
             mean_eval_reward.append(int(num / len(eval_rewards)))
         plot.plot(
             episodes, mean_eval_reward, x_lable="episodes",
@@ -366,7 +366,7 @@ class Exectutor():
         loss = []
         for k, v in data["loss"].items():
             episodes.append(int(k))
-            loss.append(int(v))
+            loss.append(float(v))
         plot.plot(
             episodes, loss, x_lable="episodes",
             y_label="loss", title="loss",
