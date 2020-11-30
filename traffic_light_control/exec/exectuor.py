@@ -14,9 +14,9 @@ import util.plot as plot
 import datetime
 import argparse
 
-CITYFLOW_CONFIG_PATH = "./config/config.json"
-STATIC_CONFIG = "./config/static_config.json"
-MODEL_ROOT_DIR = "./records/"
+CITYFLOW_CONFIG_PATH = "config/config.json"
+STATIC_CONFIG = "config/static_config.json"
+MODEL_ROOT_DIR = "records/"
 
 # env setting
 MAX_TIME = 300
@@ -36,6 +36,7 @@ ACTION_SPACE = 2
 
 # exec setting
 DATA_SAVE_PERIOD = 500
+SAVED_THRESHOLD = -30.0
 
 
 class Exectutor():
@@ -147,22 +148,30 @@ class Exectutor():
                     num_episodes=50)
                 eval_reward_history[episode] = eval_rewards
 
-                model_path = record_dir + "model.pth"
-                agent.save_model(path=model_path)
-
+                # 记录参数
                 saved_data = {"reward": reward_history,
                               "loss": loss_history,
                               "eval_reward": eval_reward_history}
                 result_file = record_dir + "exp_result.txt"
                 with open(result_file, "w", encoding="utf-8") as f:
                     f.write(str(saved_data))
-
-                self.test(model_path)
                 self.__plot(record_dir, result_file)
+
+                model_path = record_dir + "model.pth"
+                replay_path = ""
+                if mean_reward > SAVED_THRESHOLD:
+                    # 如果当前的评估达到了预期，则将它保存到 well_model 文件夹下
+                    well_record_path = record_dir + \
+                        "episode_{}/".format(episode)
+                    os.mkdir(well_record_path)
+                    model_path = well_record_path + "model.pth"
+                    replay_path = "../" + well_record_path + "replay.txt"
+
+                agent.save_model(path=model_path)
+                self.test(model_path, replay_path)
+
                 print("episode {}, mean eval reward is {:.3f}".format(
                     episode, mean_reward))
-                if mean_reward > -30.0:
-                    break
 
     def eval(self, agent: DQNAgent, env: TlEnv,
              num_episodes: int):
@@ -186,11 +195,14 @@ class Exectutor():
         mean_reward = sum(reward_history) / num_episodes
         return reward_history, mean_reward
 
-    def test(self, model_path, num_episodes=1):
+    def test(self, model_path, replay_path="", num_episodes=1):
 
         config_path = "./config/test_config.json"
         env = self.__init_env(config_path,
                               MAX_TIME, INTERVAL)
+        if replay_path != "":
+            print(replay_path)
+            env.set_replay_file(replay_path)
         agent = self.__init_agent()
 
         # 读取网络参数
@@ -211,7 +223,7 @@ class Exectutor():
 
                 if done:
                     break
-            print("episodes {}, reward is {:.3f}".format(
+            print("In test mode, episodes {}, reward is {:.3f}".format(
                 episode, total_reward))
 
     def static_run(self):

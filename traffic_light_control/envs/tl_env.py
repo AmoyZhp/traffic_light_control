@@ -130,6 +130,9 @@ class TlEnv():
         state = State(self.core_inter)
         return state
 
+    def set_replay_file(self, path):
+        self.eng.set_replay_file(path)
+
     def __get_state(self) -> State:
         return State(self.core_inter)
 
