@@ -10,7 +10,7 @@ import policy.net.single_intersection as net
 class DQNConfig():
     def __init__(self, learning_rate: float, batch_size: float, capacity: int,
                  discount_factor: float, eps_init: float, eps_min: float,
-                 eps_frame: int, update_count: int,
+                 eps_frame: int, update_period: int,
                  action_space, state_space, device) -> None:
         self.capacity = capacity
         self.learning_rate = learning_rate
@@ -19,7 +19,7 @@ class DQNConfig():
         self.eps_init = eps_init
         self.eps_min = eps_min
         self.eps_frame = eps_frame
-        self.update_count = update_count
+        self.update_period = update_period
         self.device = device
         self.action_space = action_space
         self.state_space = state_space
@@ -28,7 +28,8 @@ class DQNConfig():
 class DQN():
     def __init__(self, memory: ReplayMemory,
                  target_net: net.SingleIntesection,
-                 acting_net: net.SingleIntesection, config: DQNConfig) -> None:
+                 acting_net: net.SingleIntesection,
+                 config: DQNConfig) -> None:
         super(DQN, self).__init__()
         self.device = config.device
         self.learning_rate = config.learning_rate
@@ -38,7 +39,9 @@ class DQN():
         self.eps_min = config.eps_min
         self.eps_frame = config.eps_frame
         self.eps = self.eps_init
-        self.update_count = config.update_count
+
+        self.update_count = 0
+        self.update_period = config.update_period
         self.action_space = config.action_space
         self.state_space = config.state_space
 
@@ -119,8 +122,9 @@ class DQN():
         loss.backward()
         self.optimizer.step()
         self.update_count += 1
-        if self.update_count % self.update_count == 0:
+        if self.update_count % self.update_period == 0:
             self.target_net.load_state_dict(self.acting_net.state_dict())
+            self.update_count = 0
         return loss.item()
 
     def save_model(self, path: str):

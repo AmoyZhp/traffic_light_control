@@ -30,7 +30,7 @@ DISCOUNT_FACTOR = 0.99
 EPS_INIT = 1.0
 EPS_MIN = 0.01
 EPS_FRAME = 200000
-UPDATE_COUNT = 1000
+UPDATE_PERIOD = 1000
 STATE_SPACE = 6*4 + 2*2
 ACTION_SPACE = 2
 
@@ -278,7 +278,7 @@ class Exectutor():
             learning_rate=LERNING_RATE, batch_size=BATCH_SIZE,
             capacity=CAPACITY, discount_factor=DISCOUNT_FACTOR,
             eps_init=EPS_INIT, eps_min=EPS_MIN, eps_frame=EPS_FRAME,
-            update_count=UPDATE_COUNT, state_space=STATE_SPACE,
+            update_period=UPDATE_PERIOD, state_space=STATE_SPACE,
             action_space=ACTION_SPACE, device=device)
         agent = DQNAgent(intersection_id, config)
         return agent
@@ -292,7 +292,7 @@ class Exectutor():
             "eps_init": EPS_INIT,
             "eps_min": EPS_MIN,
             "eps_frame": EPS_FRAME,
-            "update_count": UPDATE_COUNT,
+            "update_period": UPDATE_PERIOD,
         }
         # 创建的目录
         date = datetime.datetime.now()
@@ -322,7 +322,7 @@ class Exectutor():
             "learning_rate": agent.policy.learning_rate,
             "batch_size": agent.policy.batch_size,
             "capacity": agent.policy.memory.capacity,
-            "discount_facotr": agent.policy.discount_factor,
+            "discount_factor": agent.policy.discount_factor,
             "eps_init": agent.policy.eps_init,
             "eps_min": agent.policy.eps_min,
             "eps_frame": agent.policy.eps_frame,
@@ -346,6 +346,32 @@ class Exectutor():
             "env": env_params,
         }
         torch.save(params, saved_path)
+
+    def __load_params(self, saved_path: str):
+        data = torch.load(saved_path)
+        agent_params = data["agent"]
+        env_params = data["env"]
+        env = TlEnv(CITYFLOW_CONFIG_PATH,
+                    env_params["max_time"], env_params["interval"])
+        intersection_id = "intersection_mid"
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available() is False:
+            print(" cuda is not available")
+        config_json = agent_params["config"]
+        config = DQNConfig(
+            learning_rate=config_json["learning_rate"],
+            batch_size=config_json["batch_size"],
+            capacity=config_json["capacity"],
+            discount_factor=config_json["discount_factor"],
+            eps_init=config_json["eps_init"],
+            eps_min=config_json["eps_min"],
+            eps_frame=config_json["eps_frame"],
+            update_period=UPDATE_PERIOD,
+            state_space=STATE_SPACE,
+            action_space=ACTION_SPACE,
+            device=device)
+        agent = DQNAgent(intersection_id, config)
+        config = DQNConfig()
 
     def __plot(self, record_dir, data_file):
         data = {}
