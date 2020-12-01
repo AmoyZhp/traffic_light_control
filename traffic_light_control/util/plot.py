@@ -17,3 +17,4 @@ def plot(x: List, y: List, x_lable, y_label, title, img=""):
     ax.set_title(title)
     if img != "":
         fig.savefig(img)
+    plt.clf()
