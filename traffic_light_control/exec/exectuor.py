@@ -1,5 +1,5 @@
 from os import EX_CANTCREAT
-from pickle import DICT
+from pickle import DICT, FALSE, NONE
 from basis.action import Action
 from envs.tl_env import TlEnv
 from agent.dqn import DQNAgent
@@ -50,6 +50,8 @@ class Exectutor():
         thread_num = args.thread_num
         episodes = args.episodes
         save = False if args.save == 0 else True
+        resume = True if args.resume == 1 else False
+        record_dir = args.record_dir
 
         print("mode : {}, model file :  {}, ep : {}, thread : {} ".format(
             mode, model_file, episodes, thread_num
@@ -57,25 +59,77 @@ class Exectutor():
         if mode == "test":
             self.test(model_file, num_episodes=episodes)
         elif mode == "train":
-            self.train(num_episodes=episodes, thread_num=thread_num, save=save)
+            if resume and (model_file == "" or record_dir == ""):
+                print("please input model file and record dir if want resume")
+            self.train(num_episodes=episodes, thread_num=thread_num, save=save,
+                       resume=resume, record_dir=record_dir, model_file=model_file)
         elif mode == "static":
             self.static_run()
         else:
             print("mode is invalid : {}".format(mode))
 
-    def train(self, num_episodes, thread_num=1, save=True):
-        env = self.__init_env(CITYFLOW_CONFIG_PATH,
-                              MAX_TIME, INTERVAL, thread_num)
-        agent = self.__init_agent()
+    def train(self, num_episodes, thread_num=1,
+              save=True, resume: bool = False,
+              record_dir: str = "", model_file: str = ""):
 
-        record_dir = ""
-        if save:
-            record_dir = self.__init_record()
-
+        eps = 0
+        env = None
+        agent = None
         reward_history = {}
         eval_reward_history = {}
         loss_history = {}
-        for episode in range(num_episodes):
+
+        if resume:
+            env_params, agent_params, eps, info = self.__load_params(
+                model_file)
+            reward_history = info["rewards"]
+            eval_reward_history = info["eval_rewards"]
+            loss_history = info["loss"]
+            env = self.__init_env(CITYFLOW_CONFIG_PATH,
+                                  env_params["max_time"],
+                                  env_params["interval"])
+            device = torch.device(
+                "cuda:0" if torch.cuda.is_available() else "cpu")
+            if torch.cuda.is_available() is False:
+                print(" cuda is not available")
+            config_json = agent_params["config"]
+            config = DQNConfig(
+                learning_rate=config_json["learning_rate"],
+                batch_size=config_json["batch_size"],
+                capacity=config_json["capacity"],
+                discount_factor=config_json["discount_factor"],
+                eps_init=config_json["eps_init"],
+                eps_min=config_json["eps_min"],
+                eps_frame=config_json["eps_frame"],
+                update_period=config_json["update_period"],
+                state_space=STATE_SPACE,
+                action_space=ACTION_SPACE,
+                device=device)
+            agent = self.__init_agent(config)
+            agent.policy.step = config_json["step"]
+            agent.policy.acting_net.load_state_dict(agent_params["net"])
+            agent.policy.target_net.load_state_dict(agent_params["net"])
+            agent.policy.optimizer.load_state_dict(agent_params["optimizer"])
+            agent.policy.memory.memory = agent_params["memory"]
+
+        else:
+            env = self.__init_env(CITYFLOW_CONFIG_PATH,
+                                  MAX_TIME, INTERVAL, thread_num)
+            device = torch.device(
+                "cuda:0" if torch.cuda.is_available() else "cpu")
+            if torch.cuda.is_available() is False:
+                print(" cuda is not available")
+            config = DQNConfig(
+                learning_rate=LERNING_RATE, batch_size=BATCH_SIZE,
+                capacity=CAPACITY, discount_factor=DISCOUNT_FACTOR,
+                eps_init=EPS_INIT, eps_min=EPS_MIN, eps_frame=EPS_FRAME,
+                update_period=UPDATE_PERIOD, state_space=STATE_SPACE,
+                action_space=ACTION_SPACE, device=device)
+            agent = self.__init_agent(config)
+        if save:
+            record_dir = self.__init_record(record_dir)
+
+        for episode in range(eps, num_episodes + eps):
             state = env.reset()
 
             total_reward = 0.0
@@ -141,7 +195,7 @@ class Exectutor():
                     break
             if (save
                 and ((episode + 1) % DATA_SAVE_PERIOD == 0
-                     or episode + 1 == num_episodes)):
+                     or episode + 1 == num_episodes + eps)):
                 # 评估当前的效果
                 eval_rewards, mean_reward = self.eval(
                     agent=agent, env=env,
@@ -166,8 +220,10 @@ class Exectutor():
                     os.mkdir(well_record_path)
                     model_path = well_record_path + "model.pth"
                     replay_path = "../" + well_record_path + "replay.txt"
-
-                agent.save_model(path=model_path)
+                self.__save_params(
+                    model_path, agent=agent, env=env,
+                    episode=episode, rewards=reward_history,
+                    eval_rewards=eval_reward_history, loss=loss_history)
                 self.test(model_path, replay_path)
 
                 print("episode {}, mean eval reward is {:.3f}".format(
@@ -198,15 +254,39 @@ class Exectutor():
     def test(self, model_path, replay_path="", num_episodes=1):
 
         config_path = "./config/test_config.json"
+        env_params, agent_params, _, _ = self.__load_params(
+            model_path)
         env = self.__init_env(config_path,
-                              MAX_TIME, INTERVAL)
+                              env_params["max_time"],
+                              env_params["interval"])
+
         if replay_path != "":
             print(replay_path)
             env.set_replay_file(replay_path)
-        agent = self.__init_agent()
 
-        # 读取网络参数
-        agent.load_model(model_path, True)
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        if torch.cuda.is_available() is False:
+            print(" cuda is not available")
+
+        config_json = agent_params["config"]
+        config = DQNConfig(
+            learning_rate=config_json["learning_rate"],
+            batch_size=config_json["batch_size"],
+            capacity=config_json["capacity"],
+            discount_factor=config_json["discount_factor"],
+            eps_init=config_json["eps_init"],
+            eps_min=config_json["eps_min"],
+            eps_frame=config_json["eps_frame"],
+            update_period=config_json["update_period"],
+            state_space=STATE_SPACE,
+            action_space=ACTION_SPACE,
+            device=device)
+        agent = self.__init_agent(config)
+        agent.policy.step = config_json["step"]
+        agent.policy.acting_net.load_state_dict(agent_params["net"])
+        agent.policy.target_net.load_state_dict(agent_params["net"])
+        agent.policy.optimizer.load_state_dict(agent_params["optimizer"])
+        agent.policy.memory.memory = agent_params["memory"]
 
         for episode in range(num_episodes):
             total_reward = 0.0
@@ -258,6 +338,14 @@ class Exectutor():
             "-s", "--save", type=int, default=1,
             help="save paramse or not"
         )
+        parser.add_argument(
+            "-r", "--resume", type=int, default=0,
+            help="resume training or not"
+        )
+        parser.add_argument(
+            "-rd", "--record_dir", type=str, default="",
+            help="resume dir if set resume with true"
+        )
         return parser.parse_args()
 
     def __init_env(self, env_config_path: str,
@@ -268,22 +356,12 @@ class Exectutor():
             thread_num=thread_num)
         return env
 
-    def __init_agent(self) -> DQNAgent:
-
+    def __init_agent(self, dqnConfig: DQNConfig) -> DQNAgent:
         intersection_id = "intersection_mid"
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        if torch.cuda.is_available() is False:
-            print(" cuda is not available")
-        config = DQNConfig(
-            learning_rate=LERNING_RATE, batch_size=BATCH_SIZE,
-            capacity=CAPACITY, discount_factor=DISCOUNT_FACTOR,
-            eps_init=EPS_INIT, eps_min=EPS_MIN, eps_frame=EPS_FRAME,
-            update_period=UPDATE_PERIOD, state_space=STATE_SPACE,
-            action_space=ACTION_SPACE, device=device)
-        agent = DQNAgent(intersection_id, config)
+        agent = DQNAgent(intersection_id, dqnConfig)
         return agent
 
-    def __init_record(self) -> str:
+    def __init_record(self, last_record="") -> str:
         init_params = {
             "learning_rate": LERNING_RATE,
             "batch_size": BATCH_SIZE,
@@ -293,6 +371,7 @@ class Exectutor():
             "eps_min": EPS_MIN,
             "eps_frame": EPS_FRAME,
             "update_period": UPDATE_PERIOD,
+            "last_record": last_record
         }
         # 创建的目录
         date = datetime.datetime.now()
@@ -316,7 +395,9 @@ class Exectutor():
         return path
 
     def __save_params(self, saved_path: str,
-                      agent: DQNAgent, env: TlEnv):
+                      agent: DQNAgent, env: TlEnv,
+                      episode: int,
+                      rewards, eval_rewards, loss):
 
         agent_config = {
             "learning_rate": agent.policy.learning_rate,
@@ -326,6 +407,7 @@ class Exectutor():
             "eps_init": agent.policy.eps_init,
             "eps_min": agent.policy.eps_min,
             "eps_frame": agent.policy.eps_frame,
+            "update_period": agent.policy.update_period,
             "step": agent.policy.step
         }
 
@@ -344,6 +426,11 @@ class Exectutor():
         params = {
             "agent": agent_params,
             "env": env_params,
+            "episode": episode,
+            "rewards": rewards,
+            "eval_rewards": eval_rewards,
+            "loss": loss,
+
         }
         torch.save(params, saved_path)
 
@@ -351,27 +438,14 @@ class Exectutor():
         data = torch.load(saved_path)
         agent_params = data["agent"]
         env_params = data["env"]
-        env = TlEnv(CITYFLOW_CONFIG_PATH,
-                    env_params["max_time"], env_params["interval"])
-        intersection_id = "intersection_mid"
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        if torch.cuda.is_available() is False:
-            print(" cuda is not available")
-        config_json = agent_params["config"]
-        config = DQNConfig(
-            learning_rate=config_json["learning_rate"],
-            batch_size=config_json["batch_size"],
-            capacity=config_json["capacity"],
-            discount_factor=config_json["discount_factor"],
-            eps_init=config_json["eps_init"],
-            eps_min=config_json["eps_min"],
-            eps_frame=config_json["eps_frame"],
-            update_period=UPDATE_PERIOD,
-            state_space=STATE_SPACE,
-            action_space=ACTION_SPACE,
-            device=device)
-        agent = DQNAgent(intersection_id, config)
-        config = DQNConfig()
+        episode = data["episode"]
+        extraInfo = {
+            "rewards": data["rewards"],
+            "eval_rewards": data["eval_rewards"],
+            "loss": data["loss"],
+        }
+
+        return env_params, agent_params, episode, extraInfo
 
     def __plot(self, record_dir, data_file):
         data = {}
