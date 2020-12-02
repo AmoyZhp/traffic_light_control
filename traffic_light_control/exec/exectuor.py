@@ -62,7 +62,8 @@ class Exectutor():
             if resume and (model_file == "" or record_dir == ""):
                 print("please input model file and record dir if want resume")
             self.train(num_episodes=episodes, thread_num=thread_num, save=save,
-                       resume=resume, record_dir=record_dir, model_file=model_file)
+                       resume=resume, record_dir=record_dir,
+                       model_file=model_file)
         elif mode == "static":
             self.static_run()
         else:
@@ -129,7 +130,7 @@ class Exectutor():
         if save:
             record_dir = self.__init_record(record_dir)
 
-        for episode in range(eps, num_episodes + eps):
+        for episode in range(eps + 1, num_episodes + eps + 1):
             state = env.reset()
 
             total_reward = 0.0
@@ -194,8 +195,8 @@ class Exectutor():
                             total_loss / (env.max_time / env.interval)))
                     break
             if (save
-                and ((episode + 1) % DATA_SAVE_PERIOD == 0
-                     or episode + 1 == num_episodes + eps)):
+                and (episode % DATA_SAVE_PERIOD == 0
+                     or episode == num_episodes + eps)):
                 # 评估当前的效果
                 eval_rewards, mean_reward = self.eval(
                     agent=agent, env=env,
@@ -265,9 +266,6 @@ class Exectutor():
             env.set_replay_file(replay_path)
 
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        if torch.cuda.is_available() is False:
-            print(" cuda is not available")
-
         config_json = agent_params["config"]
         config = DQNConfig(
             learning_rate=config_json["learning_rate"],
@@ -284,11 +282,8 @@ class Exectutor():
         agent = self.__init_agent(config)
         agent.policy.step = config_json["step"]
         agent.policy.acting_net.load_state_dict(agent_params["net"])
-        agent.policy.target_net.load_state_dict(agent_params["net"])
-        agent.policy.optimizer.load_state_dict(agent_params["optimizer"])
-        agent.policy.memory.memory = agent_params["memory"]
 
-        for episode in range(num_episodes):
+        for episode in range(1, num_episodes + 1):
             total_reward = 0.0
             state = env.reset()
             while True:
