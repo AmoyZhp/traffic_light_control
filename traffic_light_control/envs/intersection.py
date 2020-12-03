@@ -89,8 +89,8 @@ class Intersection():
             (tensor, self.roads[Location.S][GraphDirection.OUT].to_tensor())
         )
 
-        current_phase_one_hot = np.zeros(len(self.phase_plan))
-        current_phase_one_hot[self.current_phase_index] = 1
+        current_phase_one_hot = self.phase_plan[
+            self.current_phase_index].to_tensor()
 
         tensor = np.hstack(
             (tensor, current_phase_one_hot)
@@ -98,8 +98,7 @@ class Intersection():
 
         next_phase_index = (self.current_phase_index +
                             1) % len(self.phase_plan)
-        next_phase_one_hot = np.zeros(len(self.phase_plan))
-        next_phase_one_hot[next_phase_index] = 1
+        next_phase_one_hot = self.phase_plan[next_phase_index].to_tensor()
 
         tensor = np.hstack(
             (tensor, next_phase_one_hot)

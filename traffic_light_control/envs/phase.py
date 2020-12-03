@@ -1,12 +1,24 @@
 from enum import Enum, auto
 from typing import List
+import numpy as np
 
 
 class Movement(Enum):
+    # straight
     WE = auto()
     EW = auto()
     NS = auto()
     SN = auto()
+    # right
+    WS = auto()
+    EN = auto()
+    NW = auto()
+    SE = auto()
+    # left
+    WN = auto()
+    ES = auto()
+    SW = auto()
+    NE = auto()
 
 
 class Location(Enum):
@@ -53,3 +65,32 @@ class Phase():
             if s != t:
                 return False
         return True
+
+    def to_tensor(self) -> np.ndarray:
+        tensor = np.zeros(12)
+        for mov in self.movements:
+            if mov == Movement.WE:
+                tensor[0] = 1
+            elif mov == Movement.WS:
+                tensor[1] = 1
+            elif mov == Movement.WN:
+                tensor[2] = 1
+            elif mov == Movement.EW:
+                tensor[3] = 1
+            elif mov == Movement.EN:
+                tensor[4] = 1
+            elif mov == Movement.ES:
+                tensor[5] = 1
+            elif mov == Movement.NS:
+                tensor[6] = 1
+            elif mov == Movement.NW:
+                tensor[7] = 1
+            elif mov == Movement.NE:
+                tensor[8] = 1
+            elif mov == Movement.SN:
+                tensor[9] = 1
+            elif mov == Movement.SE:
+                tensor[10] = 1
+            elif mov == Movement.SW:
+                tensor[11] = 1
+        return tensor

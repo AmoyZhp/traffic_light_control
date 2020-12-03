@@ -31,12 +31,12 @@ EPS_INIT = 1.0
 EPS_MIN = 0.01
 EPS_FRAME = 200000
 UPDATE_PERIOD = 1000
-STATE_SPACE = 6*4 + 2*2
+STATE_SPACE = 6*4 + 12*2
 ACTION_SPACE = 2
 
 # exec setting
 DATA_SAVE_PERIOD = 500
-SAVED_THRESHOLD = -30.0
+SAVED_THRESHOLD = -160.0
 
 
 class Exectutor():
@@ -280,7 +280,6 @@ class Exectutor():
             action_space=ACTION_SPACE,
             device=device)
         agent = self.__init_agent(config)
-        agent.policy.step = config_json["step"]
         agent.policy.acting_net.load_state_dict(agent_params["net"])
 
         for episode in range(1, num_episodes + 1):
@@ -302,7 +301,7 @@ class Exectutor():
                 episode, total_reward))
 
     def static_run(self):
-        env = TlEnv(STATIC_CONFIG, MAX_TIME)
+        env = TlEnv(STATIC_CONFIG, MAX_TIME, INTERVAL)
         total_reward = 0.0
         while True:
             _, reward, done, _ = env.step(Action("", True))

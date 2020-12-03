@@ -23,53 +23,110 @@ class TlEnv():
         # 应该跟 config 中的 light phase 一致
         # 先按照 config 里先手工写好 Phase
         phase_plan: List[Phase] = []
-        phase_plan.append(Phase(movements=[Movement.WE, Movement.EW]))
-        phase_plan.append(Phase(movements=[Movement.SN, Movement.NS]))
+        phase_plan.append(Phase(movements=[
+            Movement.WS, Movement.EN, Movement.NW, Movement.SE,
+            Movement.WE, Movement.EW, ]))
+        phase_plan.append(Phase(movements=[
+            Movement.WS, Movement.EN, Movement.NW, Movement.SE,
+            Movement.WN, Movement.ES, ]))
+        phase_plan.append(Phase(movements=[
+            Movement.WS, Movement.EN, Movement.NW, Movement.SE,
+            Movement.SN, Movement.NS]))
+        phase_plan.append(Phase(movements=[
+            Movement.WS, Movement.EN, Movement.NW, Movement.SE,
+            Movement.SW, Movement.NE]))
         west_out = Road(id="road_west_to_mid_1", lanes={
             TrafficStreamDirection.STRAIGHT: [
                 Lane("road_west_to_mid_1_0", 15),
-                # Lane("road_west_to_mid_1_1", 15),
-                # Lane("road_west_to_mid_1_2", 15)
+            ],
+            TrafficStreamDirection.RIGHT: [
+                Lane("road_west_to_mid_1_1", 15),
+            ],
+            TrafficStreamDirection.LEFT: [
+                Lane("road_west_to_mid_1_2", 15),
             ]
         }, eng=self.eng)
         west_in = Road(id="road_mid_to_west_1", lanes={
             TrafficStreamDirection.STRAIGHT: [
                 Lane("road_mid_to_west_1_0", 15),
+            ],
+            TrafficStreamDirection.RIGHT: [
+                Lane("road_mid_to_west_1_1", 15),
+            ],
+            TrafficStreamDirection.LEFT: [
+                Lane("road_mid_to_west_1_2", 15),
             ]
         }, eng=self.eng)
 
         east_in = Road(id="road_mid_to_east_1", lanes={
             TrafficStreamDirection.STRAIGHT: [
                 Lane("road_mid_to_east_1_0", 15)
+            ],
+            TrafficStreamDirection.RIGHT: [
+                Lane("road_mid_to_east_1_1", 15)
+            ],
+            TrafficStreamDirection.LEFT: [
+                Lane("road_mid_to_east_1_2", 15)
             ]
         }, eng=self.eng)
+
         east_out = Road(id="road_east_to_mid_1", lanes={
             TrafficStreamDirection.STRAIGHT: [
                 Lane("road_east_to_mid_1_0", 15),
+            ],
+            TrafficStreamDirection.RIGHT: [
+                Lane("road_east_to_mid_1_1", 15),
+            ],
+            TrafficStreamDirection.LEFT: [
+                Lane("road_east_to_mid_1_2", 15),
             ]
         }, eng=self.eng)
 
         north_out = Road(id="road_north_to_mid_1", lanes={
             TrafficStreamDirection.STRAIGHT: [
                 Lane("road_north_to_mid_1_0", 15)
+            ],
+            TrafficStreamDirection.RIGHT: [
+                Lane("road_north_to_mid_1_1", 15)
+            ],
+            TrafficStreamDirection.LEFT: [
+                Lane("road_north_to_mid_1_2", 15)
             ]
         }, eng=self.eng)
 
         north_in = Road(id="road_mid_to_north_1", lanes={
             TrafficStreamDirection.STRAIGHT: [
                 Lane("road_mid_to_north_1_0", 15)
+            ],
+            TrafficStreamDirection.RIGHT: [
+                Lane("road_mid_to_north_1_1", 15)
+            ],
+            TrafficStreamDirection.LEFT: [
+                Lane("road_mid_to_north_1_2", 15)
             ]
         }, eng=self.eng)
 
         south_in = Road(id="road_mid_to_south_1", lanes={
             TrafficStreamDirection.STRAIGHT: [
                 Lane("road_mid_to_south_1_0", 15)
+            ],
+            TrafficStreamDirection.RIGHT: [
+                Lane("road_mid_to_south_1_1", 15)
+            ],
+            TrafficStreamDirection.LEFT: [
+                Lane("road_mid_to_south_1_2", 15)
             ]
         }, eng=self.eng)
 
         south_out = Road(id="road_south_to_mid_1", lanes={
             TrafficStreamDirection.STRAIGHT: [
                 Lane("road_south_to_mid_1_0", 15)
+            ],
+            TrafficStreamDirection.RIGHT: [
+                Lane("road_south_to_mid_1_1", 15)
+            ],
+            TrafficStreamDirection.LEFT: [
+                Lane("road_south_to_mid_1_2", 15)
             ]
         }, eng=self.eng)
 

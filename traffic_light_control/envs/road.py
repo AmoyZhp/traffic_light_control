@@ -45,7 +45,8 @@ class Road():
         vehicles = 0
         vehicles_dict = self.eng.get_lane_waiting_vehicle_count()
         for lane in directed_lanes:
-            vehicles += vehicles_dict[lane.get_id()]
+            if lane.get_id() in vehicles_dict.keys():
+                vehicles += vehicles_dict[lane.get_id()]
         return vehicles
 
     def to_tensor(self) -> np.ndarray:

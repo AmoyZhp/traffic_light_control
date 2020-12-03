@@ -126,19 +126,3 @@ class DQN():
             self.target_net.load_state_dict(self.acting_net.state_dict())
             self.update_count = 0
         return loss.item()
-
-    def save_model(self, path: str):
-        state = {"net": self.acting_net.state_dict(),
-                 "optimizer": self.optimizer.state_dict(),
-                 "memory": self.memory.memory}
-        torch.save(state, path)
-
-    def load_model(self, path: str, test_mode: bool = True):
-        checkpoint = torch.load(path)
-        self.acting_net.load_state_dict(checkpoint["net"])
-        if test_mode:
-            # 测试模式只需要 acting net 的参数即可
-            return
-        self.target_net.load_state_dict(checkpoint["net"])
-        self.optimizer.load_state_dict(checkpoint["optimizer"])
-        self.memory.memory = checkpoint["memory"]
