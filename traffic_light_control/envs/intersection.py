@@ -61,7 +61,7 @@ class Intersection():
             self.current_phase_index + 1) % len(self.phase_plan)
 
     def to_tensor(self) -> np.ndarray:
-        tensor = np.array([])
+        tensor = np.array([], dtype=np.float)
 
         tensor = np.hstack(
             (tensor,
@@ -103,4 +103,5 @@ class Intersection():
         tensor = np.hstack(
             (tensor, next_phase_one_hot)
         )
+        tensor = np.expand_dims(tensor, axis=0)
         return tensor

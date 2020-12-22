@@ -1,7 +1,6 @@
-from exec.exectuor import Exectutor
-import sys
-import getopt
+import trainer
 
 if __name__ == "__main__":
-    executor = Exectutor()
-    executor.run()
+    id_ = "independent"
+    tr = trainer.get_trainer(id_, {})
+    tr.run()
