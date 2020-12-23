@@ -13,8 +13,8 @@ def make(config):
     id_ = config["id"]
     if id_ == "multi_agent_independent":
         return __get_multi_agent_independent(config)
-    elif id_ == "single_agent_complete":
-        return __get_single_agent_complete(config)
+    elif id_ == "single_complete_1x1":
+        return __get_single_complete_1x1(config)
     elif id_ == "single_agent_simplest":
         return __get_single_agent_simplest(config)
     else:
@@ -25,9 +25,10 @@ def __get_multi_agent_independent(config):
     pass
 
 
-def __get_single_agent_complete(config):
-    cityflow_config_path = "config/config.json"
-    eng = cityflow.Engine(cityflow_config_path, config["thread_num"])
+def __get_single_complete_1x1(config):
+    cityflow_config_dir = config["cityflow_config_dir"]
+    cityflow_config_file = cityflow_config_dir + "config.json"
+    eng = cityflow.Engine(cityflow_config_file, config["thread_num"])
     eng.set_save_replay(config["save_replay"])
     # 应该跟 config 中的 light phase 一致
     # 先按照 config 里先手工写好 Phase

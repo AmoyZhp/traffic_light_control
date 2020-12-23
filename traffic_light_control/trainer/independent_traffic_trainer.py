@@ -19,6 +19,7 @@ from util.type import Transition
 CITYFLOW_CONFIG_PATH = "config/config.json"
 STATIC_CONFIG = "config/static_config.json"
 RECORDS_ROOT_DIR = "records/"
+CITYFLOW_CONFIG_ROOT_DIR = "config/"
 
 # env setting
 MAX_TIME = 360
@@ -27,7 +28,7 @@ INTERVAL = 5
 # agent setting
 CAPACITY = 100000
 LERNING_RATE = 1e-4
-BATCH_SIZE = 2
+BATCH_SIZE = 64
 DISCOUNT_FACTOR = 0.99
 EPS_INIT = 1.0
 EPS_MIN = 0.01
@@ -37,7 +38,7 @@ STATE_SPACE = 6*4 + 12*2
 ACTION_SPACE = 2
 
 # exec setting
-DATA_SAVE_PERIOD = 500
+DATA_SAVE_PERIOD = 20
 EVAL_NUM_EPISODE = 10
 
 
@@ -57,21 +58,25 @@ class IndependentTrainer():
         resume = True if args.resume == 1 else False
         record_dir = args.record_dir
 
-        print("mode : {}, model file :  {}, ep : {}, thread : {} ".format(
+        env_id = "single_complete_1x1"
+        cityflow_config_dir = CITYFLOW_CONFIG_ROOT_DIR + env_id + "/"
+
+        print(" mode : {}, model file :  {}, ep : {}, thread : {} ".format(
             mode, model_file, episodes, thread_num
         ) + "save : {}".format(save))
 
         if mode == "train":
-
             if resume and (model_file == "" or record_dir == ""):
                 print("please input model file and record dir if want resume")
 
             env_config = {
-                "id": "single_agent_simplest",
+                "id": env_id,
+                "cityflow_config_dir": cityflow_config_dir,
                 "max_time": MAX_TIME,
                 "interval": INTERVAL,
                 "thread_num": thread_num,
-                "save_replay": False}
+                "save_replay": False,
+            }
 
             buffer_config = {"capacity": CAPACITY}
 
@@ -124,10 +129,12 @@ class IndependentTrainer():
         # 初始化策略
         policies = {}
         buffers = {}
+        local_loss = {}
         ids = env.intersection_ids()
         for id_ in ids:
             policies[id_] = self.__init_policy(dqn_config)
             buffers[id_] = self.__init_buffer(buffer_config)
+            local_loss[id_] = 0.0
 
         # 创建和本次训练相应的保存目录
         record_dir = self.__create_record_dir(RECORDS_ROOT_DIR)
@@ -146,6 +153,8 @@ class IndependentTrainer():
         for episode in range(ep_begin, num_episodes + ep_begin):
             states = env.reset()
             central_cumulative_reward = 0.0
+            for k in local_loss.keys():
+                local_loss[k] = 0.0
             while True:
                 actions = {}
                 for id_ in ids:
@@ -169,14 +178,21 @@ class IndependentTrainer():
                     buff = buffers[id_]
                     batch_data = buff.sample(batch_size)
                     policy = policies[id_]
-                    policy.learn_on_batch(
+                    local_loss[id_] += policy.learn_on_batch(
                         batch_data)
 
                 for r in rewards.values():
                     central_cumulative_reward += r
                 if done:
-                    print(" episode : {}, central reward : {}".format(
-                        episode, central_cumulative_reward))
+                    print(" ====== episode {} ======".format(episode))
+                    print(" central reward : {:.3f}".format(
+                        central_cumulative_reward))
+                    print(" loss :")
+                    for id_, loss in local_loss.items():
+                        print("      id {}, loss {:.3f}".format(
+                            id_, loss / len(local_loss)
+                        ))
+                    print("=========================")
                     central_reward_record[episode] = central_cumulative_reward
                     break
             if (saved and (episode % data_saved_period == 0)):
@@ -187,8 +203,11 @@ class IndependentTrainer():
                 )
                 eval_reward_recrod["all"][episode] = eval_rewards["all"]
                 eval_reward_recrod["mean"][episode] = eval_rewards["mean"]
+                print(" episode : {}, eval mean reward is {:.3f}".format(
+                    episode, eval_rewards["mean"]
+                ))
                 param_file_name = "params_{}.pth".format(episode)
-                param_file = record_dir + param_file_name
+                param_file = record_dir + "params/" + param_file_name
                 exec_params = {
                     "batch_size": batch_size,
                     "episode": episode,
@@ -214,12 +233,24 @@ class IndependentTrainer():
             self.__snapshot_training(
                 record_dir, central_reward_record, eval_reward_recrod)
 
+            test_config = self.__load_test_config(
+                param_file_name,
+                record_dir)
+            self.test(test_config)
+            os.system("cp ../replay/replay_roadnet.json {}".format(
+                record_dir
+            ))
+            os.system("cp ../replay/replay.txt {}".format(
+                record_dir
+            ))
+
     def eval_(self, policies, env, num_episodes):
-        states = env.reset()
-        cumulative_reward = 0.0
+
         ids = env.intersection_ids()
         reward_history = []
         for _ in range(num_episodes):
+            states = env.reset()
+            cumulative_reward = 0.0
             while True:
                 actions = {}
                 for id_ in ids:
@@ -261,10 +292,11 @@ class IndependentTrainer():
             policies[id_].set_weight(policy_weight)
 
         reward_history = {}
+        ids = env.intersection_ids()
+
         for eps in range(num_episodes):
             states = env.reset()
             cumulative_reward = 0.0
-            ids = env.intersection_ids()
             while True:
                 actions = {}
                 for id_ in ids:
@@ -366,6 +398,11 @@ class IndependentTrainer():
             os.mkdir(path)
         else:
             print("create record folder error , path exist : ", path)
+        param_path = path + "params/"
+        if not os.path.exists(param_path):
+            os.mkdir(param_path)
+        else:
+            print("create record folder error , path exist : ", param_path)
         return path
 
     def __parase_args(self):
@@ -416,13 +453,10 @@ class IndependentTrainer():
 
         episodes = []
         mean_eval_reward = []
+
         for ep, r in data["eval_reward_mean"].items():
             episodes.append(int(ep))
-            eval_rewards = r
-            num = 0.0
-            for reward in eval_rewards:
-                num += float(reward)
-            mean_eval_reward.append(int(num / len(eval_rewards)))
+            mean_eval_reward.append(r)
         util.savefig(
             episodes, mean_eval_reward, x_lable="episodes",
             y_label="reward", title="rewards",
@@ -442,8 +476,10 @@ class IndependentTrainer():
     def __load_test_config(self, model_file, record_dir):
         params = torch.load(record_dir + model_file)
         env_params = params["env"]
+        cityflow_config_dir = CITYFLOW_CONFIG_ROOT_DIR + env_params["id"] + "/"
         env_config = {
-            "id": "single_agent_simplest",
+            "id": env_params["id"],
+            "cityflow_config_dir": cityflow_config_dir,
             "max_time": env_params["max_time"],
             "interval": env_params["interval"],
             "thread_num": 1,
