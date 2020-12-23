@@ -164,7 +164,6 @@ def __get_single_agent_complete(config):
 def __get_single_agent_simplest(config):
     cityflow_config_path = "config/config_single_simple.json"
     eng = cityflow.Engine(cityflow_config_path, config["thread_num"])
-    print(config["save_replay"])
     eng.set_save_replay(config["save_replay"])
 
     phase_plan: List[Phase] = []

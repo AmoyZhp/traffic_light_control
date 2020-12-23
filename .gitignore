@@ -5,3 +5,4 @@ __pycache__/
 records/
 *.txt
 fetch_data.sh
+test_result/

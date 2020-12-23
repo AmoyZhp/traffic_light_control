@@ -17,6 +17,7 @@ class DQNNew():
                  update_period: int,
                  device,
                  action_space,
+                 state_space,
                  ) -> None:
         super().__init__()
 
@@ -37,6 +38,7 @@ class DQNNew():
         self.update_period = update_period
         self.device = device
         self.action_space = action_space
+        self.state_space = state_space
         self.q_value_record = []
 
     def compute_single_action(self, obs, explore: bool):
@@ -119,7 +121,7 @@ class DQNNew():
         net_w = weight["net"]
         optimizer_w = weight["optimizer"]
         self.acting_net.load_state_dict(net_w)
-        self.target_net.load_state_dict[net_w]
+        self.target_net.load_state_dict(net_w)
         self.optimizer.load_state_dict(optimizer_w)
 
     def get_config(self):
@@ -130,6 +132,8 @@ class DQNNew():
             "eps_min": self.eps_min,
             "eps_frame": self.eps_frame,
             "update_period": self.update_period,
-            "step": self.step
+            "step": self.step,
+            "input_space": self.state_space,
+            "output_space": self.action_space,
         }
         return config
