@@ -24,6 +24,7 @@ class Road():
     def get_capacity(self, streamDir: TrafficStreamDirection) -> int:
         if streamDir not in self.lanes.keys():
             return 0
+
         return self.stream_capacity[streamDir]
 
     def get_vehicles(self, streamDir: TrafficStreamDirection) -> int:
@@ -62,5 +63,4 @@ class Road():
         dire = TrafficStreamDirection.RIGHT
         tensor[2] = (0 if self.get_capacity(dire) == 0 else
                      self.get_vehicles(dire) / self.get_capacity(dire))
-
         return tensor

@@ -43,7 +43,7 @@ ACTION_SPACE = 2
 # exec setting
 DATA_SAVE_PERIOD = 20
 EVAL_NUM_EPISODE = 50
-SAVED_THRESHOLD = -30.0
+SAVED_THRESHOLD = -100.0
 
 
 class IndependentTrainer():
@@ -196,7 +196,7 @@ class IndependentTrainer():
                     policy = policies[id_]
                     local_loss[id_] += policy.learn_on_batch(
                         batch_data)
-
+                states = next_states
                 for r in rewards.values():
                     central_cumulative_reward += r
                 if done:
