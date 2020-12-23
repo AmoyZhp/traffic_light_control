@@ -278,7 +278,7 @@ class IndependentTrainer():
                         print("intersection id is not exit {}".format(id_))
                     action = policy.compute_single_action(obs, False)
                     actions[id_] = action
-                _, rewards, done, _ = env.step(actions)
+                states, rewards, done, _ = env.step(actions)
                 for r in rewards.values():
                     cumulative_reward += r
                 if done:
@@ -324,7 +324,7 @@ class IndependentTrainer():
                         print("intersection id is not exit {}".format(id_))
                     action = policy.compute_single_action(obs, False)
                     actions[id_] = action
-                _, rewards, done, _ = env.step(actions)
+                states, rewards, done, _ = env.step(actions)
                 for r in rewards.values():
                     cumulative_reward += r
                 if done:
