@@ -125,7 +125,6 @@ class DQNNew():
     def get_config(self):
         config = {
             "learning_rate": self.learning_rate,
-            "batch_size": self.batch_size,
             "discount_factor": self.discount_factor,
             "eps_init": self.eps_init,
             "eps_min": self.eps_min,

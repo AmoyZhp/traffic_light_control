@@ -9,7 +9,8 @@ from envs.road import Road
 import cityflow
 
 
-def make(id_: str, config):
+def make(config):
+    id_ = config["id"]
     if id_ == "multi_agent_independent":
         return __get_multi_agent_independent(config)
     elif id_ == "single_agent_complete":
@@ -154,6 +155,7 @@ def __get_single_agent_complete(config):
         id_, phase_plan=phase_plan, roads=roads)
 
     env = IndependentTrafficEnv(
+        id_=config["id"],
         eng=eng, max_time=config["max_time"],
         interval=config["interval"], intersections=intersections)
     return env
@@ -230,6 +232,7 @@ def __get_single_agent_simplest(config):
         id_, phase_plan=phase_plan, roads=roads)
 
     env = IndependentTrafficEnv(
+        id_=config["id"],
         eng=eng, max_time=config["max_time"],
         interval=config["interval"], intersections=intersections)
     return env

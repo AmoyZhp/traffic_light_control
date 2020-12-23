@@ -16,5 +16,20 @@ class ReplayBuffer(object):
         batch_size = min(batch_size, len(self.buffer))
         return random.sample(self.buffer, batch_size)
 
+    def get_weight(self):
+        weight = {
+            "buffer": self.buffer
+        }
+        return weight
+
+    def set_weigth(self, weight):
+        self.buffer = weight["buffer"]
+
+    def get_config(self):
+        config = {
+            "capacity": self.capacity,
+        }
+        return config
+
     def __len__(self):
         return len(self.buffer)

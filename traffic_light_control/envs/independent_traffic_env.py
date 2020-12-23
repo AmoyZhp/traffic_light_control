@@ -8,10 +8,11 @@ from envs.phase import Movement, Phase, TrafficStreamDirection
 
 
 class IndependentTrafficEnv(gym.Env):
-    def __init__(self, eng, max_time: int, interval: int,
+    def __init__(self, eng, id_: str, max_time: int, interval: int,
                  intersections: Dict[str, Intersection]):
         super().__init__()
         self.eng = eng
+        self.id_ = id_
         self.intersections = intersections
         self.interval = interval
         self.max_time = max_time

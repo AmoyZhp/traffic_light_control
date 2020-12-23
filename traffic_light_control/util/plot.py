@@ -1,4 +1,3 @@
-from os import lseek
 from typing import List
 import matplotlib.pyplot as plt
 
@@ -9,7 +8,7 @@ def get_data(path: str):
         return dict
 
 
-def plot(x: List, y: List, x_lable, y_label, title, img=""):
+def savefig(x: List, y: List, x_lable, y_label, title, img=""):
     fig, ax = plt.subplots()
     ax.plot(x, y, label='linear')
     ax.set_xlabel(x_lable)
