@@ -1,10 +1,12 @@
 import argparse
 import datetime
 import os
+import cityflow
 from typing import Any, Dict, List
 
 from numpy.core.records import record
 from agent import dqn
+from basis.action import Action
 import buffer
 from envs.intersection import Intersection
 import envs
@@ -26,20 +28,22 @@ MAX_TIME = 360
 INTERVAL = 5
 
 # agent setting
-CAPACITY = 100000
+CAPACITY = 200000
 LERNING_RATE = 1e-4
-BATCH_SIZE = 64
+BATCH_SIZE = 256
 DISCOUNT_FACTOR = 0.99
 EPS_INIT = 1.0
 EPS_MIN = 0.01
-EPS_FRAME = 200000
+EPS_FRAME = 300000
 UPDATE_PERIOD = 1000
 STATE_SPACE = 6*4 + 12*2
 ACTION_SPACE = 2
 
+
 # exec setting
 DATA_SAVE_PERIOD = 20
-EVAL_NUM_EPISODE = 10
+EVAL_NUM_EPISODE = 50
+SAVED_THRESHOLD = -30.0
 
 
 class IndependentTrainer():
@@ -111,6 +115,18 @@ class IndependentTrainer():
                 model_file,
                 RECORDS_ROOT_DIR + record_dir + "/")
             self.test(test_config)
+        elif mode == "static":
+            env_config = {
+                "id": env_id,
+                "cityflow_config_dir": cityflow_config_dir,
+                "max_time": MAX_TIME,
+                "interval": INTERVAL,
+                "thread_num": thread_num,
+                "save_replay": True,
+            }
+            self.static_test(env_config)
+        else:
+            print(" invalid mode {} !!!".format(mode))
 
     def train(self, train_config):
 
@@ -195,29 +211,31 @@ class IndependentTrainer():
                     print("=========================")
                     central_reward_record[episode] = central_cumulative_reward
                     break
-            if (saved and (episode % data_saved_period == 0)):
+            if (episode % data_saved_period == 0):
                 eval_rewards = self.eval_(
                     policies=policies,
                     env=env,
                     num_episodes=eval_num_episodes,
                 )
-                eval_reward_recrod["all"][episode] = eval_rewards["all"]
-                eval_reward_recrod["mean"][episode] = eval_rewards["mean"]
+                eval_reward_mean = eval_rewards["mean"]
                 print(" episode : {}, eval mean reward is {:.3f}".format(
-                    episode, eval_rewards["mean"]
+                    episode, eval_reward_mean
                 ))
-                param_file_name = "params_{}.pth".format(episode)
-                param_file = record_dir + "params/" + param_file_name
-                exec_params = {
-                    "batch_size": batch_size,
-                    "episode": episode,
-                }
-                self.__snapshot_params(
-                    env, policies, buffers, exec_params,
-                    param_file
-                )
-                self.__snapshot_training(
-                    record_dir, central_reward_record, eval_reward_recrod)
+                if saved and eval_reward_mean > SAVED_THRESHOLD:
+                    eval_reward_recrod["all"][episode] = eval_rewards["all"]
+                    eval_reward_recrod["mean"][episode] = eval_rewards["mean"]
+                    param_file_name = "params_{}.pth".format(episode)
+                    param_file = record_dir + "params/" + param_file_name
+                    exec_params = {
+                        "batch_size": batch_size,
+                        "episode": episode,
+                    }
+                    self.__snapshot_params(
+                        env, policies, buffers, exec_params,
+                        param_file
+                    )
+                    self.__snapshot_training(
+                        record_dir, central_reward_record, eval_reward_recrod)
         if saved:
             param_file_name = "params_final.pth"
             param_file = record_dir + param_file_name
@@ -314,6 +332,19 @@ class IndependentTrainer():
                         eps, cumulative_reward))
                     reward_history[eps] = cumulative_reward
                     break
+
+    def static_test(self, env_config):
+        # 初始化环境
+        env = envs.make(env_config)
+        cumulative_reward = 0.0
+        while True:
+            actions = {}
+            _, rewards, done, _ = env.step(actions)
+            for r in rewards.values():
+                cumulative_reward += r
+            if done:
+                break
+        print("total reward is {}".format(cumulative_reward))
 
     def __init_policy(self, dqn_config: Dict) -> DQNNew:
         net_id = "single_intersection"

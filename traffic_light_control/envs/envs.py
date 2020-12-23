@@ -13,7 +13,7 @@ def make(config):
     id_ = config["id"]
     if id_ == "multi_agent_independent":
         return __get_multi_agent_independent(config)
-    elif id_ == "single_complete_1x1":
+    elif id_ == "single_complete_1x1" or id_ == "single_complete_1x1_static":
         return __get_single_complete_1x1(config)
     elif id_ == "single_agent_simplest":
         return __get_single_agent_simplest(config)
