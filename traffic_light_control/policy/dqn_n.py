@@ -20,10 +20,15 @@ class DQNNew():
                  state_space,
                  ) -> None:
         super().__init__()
+        self.device = device
 
         self.acting_net = acting_net
         self.target_net = target_net
         self.target_net.load_state_dict(self.acting_net.state_dict())
+
+        self.target_net.to(self.device)
+        self.acting_net.to(self.device)
+
         self.optimizer = optim.Adam(
             self.acting_net.parameters(), learning_rate)
         self.loss_func = nn.MSELoss()
@@ -36,7 +41,6 @@ class DQNNew():
         self.eps_min = eps_min
         self.eps_frame = eps_frame
         self.update_period = update_period
-        self.device = device
         self.action_space = action_space
         self.state_space = state_space
         self.q_value_record = []
