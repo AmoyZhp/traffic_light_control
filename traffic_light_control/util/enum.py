@@ -27,9 +27,9 @@ class Location(Enum):
 
 
 class TrafficStreamDirection(Enum):
-    STRAIGHT = auto()
-    LEFT = auto()
-    RIGHT = auto()
+    STRAIGHT = "go_straight"
+    LEFT = "turn_left"
+    RIGHT = "turn_right"
 
 
 class GraphDirection(Enum):

@@ -1,56 +1,63 @@
-import cityflow
 import numpy as np
-from numpy.core.defchararray import greater
 from envs.road import Road
 from typing import Dict, List
-
-
-from envs.phase import GraphDirection
-from envs.phase import Location, Phase, TrafficStreamDirection
+from util.enum import GraphDirection, TrafficStreamDirection
 
 
 class Intersection():
-    def __init__(self, id: str, phase_plan: List[Phase],
-                 roads: Dict[Location, Dict[GraphDirection, Road]],
+    def __init__(self, id: str, phase_plan: List[List[int]],
+                 roadlinks: List[Dict[GraphDirection, Road]],
                  init_phase_index: int = 0) -> None:
         self.id = id
         self.phase_plan = phase_plan
         self.current_phase_index = init_phase_index
-        self.roads = roads
+        self.roadlinks = roadlinks
+        self.roads = {}
+        for rlink in self.roadlinks:
+            for road in rlink.values():
+                if road.id not in self.roads:
+                    self.roads[road.id] = road
+        print(len(self.roadlinks))
+        print(len(self.roads))
 
     def get_id(self) -> str:
         return self.id
 
+    def get_roadlinks_len(self) -> str:
+        return len(self.roadlinks)
+
+    def get_roads_ids(self):
+        return self.roads.keys()
+
     def get_current_phase_index(self) -> int:
         return self.current_phase_index
 
-    def get_current_phase(self) -> Phase:
+    def get_current_phase(self) -> List[int]:
         return self.phase_plan[self.current_phase_index]
 
-    def get_road_capacity(self, loc: Location, graphDir: GraphDirection,
+    def get_road_capacity(self, index: int, graphDir: GraphDirection,
                           streamDirection: TrafficStreamDirection,
                           ) -> int:
-        road = self.roads[loc][graphDir]
+        road = self.roadlinks[index][graphDir]
         if road is None:
             return 0
         capacity = road.get_capacity(streamDirection)
         return capacity
 
-    def get_road_vehicles(self, loc: Location, graphDir: GraphDirection,
+    def get_road_vehicles(self, index: int, graphDir: GraphDirection,
                           streamDirection: TrafficStreamDirection
                           ) -> int:
-        road = self.roads[loc][graphDir]
+        road = self.roadlinks[index][graphDir]
         if road is None:
             return 0
         vehicles = road.get_vehicles(streamDirection)
         return vehicles
 
-    def get_road_waiting_vehicles(self, loc: Location,
+    def get_road_waiting_vehicles(self, index: int,
                                   graphDir: GraphDirection,
                                   streamDirection: TrafficStreamDirection
                                   ) -> int:
-
-        road = self.roads[loc][graphDir]
+        road = self.roadlinks[index][graphDir]
         if road is None:
             return 0
         vehicles = road.get_waiting_vehicles(streamDirection)
@@ -62,46 +69,34 @@ class Intersection():
 
     def to_tensor(self) -> np.ndarray:
         tensor = np.array([], dtype=np.float)
+        for id_ in sorted(self.roads.keys()):
+            road = self.roads[id_]
+            tensor = np.hstack(
+                (tensor,
+                 road.to_tensor())
+            )
+
+        current_phase = self.phase_plan[
+            self.current_phase_index]
+
+        current_phase_tensor = np.zeros(12)
+        for i in current_phase:
+            current_phase_tensor[i] = 1
 
         tensor = np.hstack(
-            (tensor,
-             self.roads[Location.W][GraphDirection.IN].to_tensor()))
-        tensor = np.hstack(
-            (tensor,
-             self.roads[Location.W][GraphDirection.OUT].to_tensor()))
-
-        tensor = np.hstack(
-            (tensor, self.roads[Location.E][GraphDirection.IN].to_tensor()))
-        tensor = np.hstack(
-            (tensor, self.roads[Location.E][GraphDirection.OUT].to_tensor()))
-
-        tensor = np.hstack(
-            (tensor, self.roads[Location.N][GraphDirection.IN].to_tensor())
-        )
-        tensor = np.hstack(
-            (tensor, self.roads[Location.N][GraphDirection.OUT].to_tensor())
+            (tensor, current_phase_tensor)
         )
 
-        tensor = np.hstack(
-            (tensor, self.roads[Location.S][GraphDirection.IN].to_tensor())
-        )
-        tensor = np.hstack(
-            (tensor, self.roads[Location.S][GraphDirection.OUT].to_tensor())
-        )
+        next_phase_index = (
+            self.current_phase_index + 1) % len(self.phase_plan)
 
-        current_phase_one_hot = self.phase_plan[
-            self.current_phase_index].to_tensor()
+        next_phase = self.phase_plan[next_phase_index]
+        next_phase_tensor = np.zeros(12)
+        for i in next_phase:
+            next_phase_tensor[i] = 1
 
         tensor = np.hstack(
-            (tensor, current_phase_one_hot)
-        )
-
-        next_phase_index = (self.current_phase_index +
-                            1) % len(self.phase_plan)
-        next_phase_one_hot = self.phase_plan[next_phase_index].to_tensor()
-
-        tensor = np.hstack(
-            (tensor, next_phase_one_hot)
+            (tensor, next_phase_tensor)
         )
         tensor = np.expand_dims(tensor, axis=0)
         return tensor

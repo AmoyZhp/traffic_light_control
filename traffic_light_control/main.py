@@ -10,7 +10,6 @@ def static_test():
         eng.next_step()
         print("====== time {} ======".format(t))
         print(eng.get_lane_vehicle_count())
-        print("=====================")
 
 
 def rl_train():

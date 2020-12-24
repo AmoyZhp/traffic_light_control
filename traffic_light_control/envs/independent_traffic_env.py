@@ -2,9 +2,8 @@ from typing import Dict
 import gym
 from envs.intersection import Intersection
 import numpy as np
-import cityflow
-from envs.phase import GraphDirection, Location
-from envs.phase import Movement, Phase, TrafficStreamDirection
+
+from util.enum import GraphDirection, TrafficStreamDirection
 
 
 class IndependentTrafficEnv(gym.Env):
@@ -60,16 +59,17 @@ class IndependentTrafficEnv(gym.Env):
     def __cal_intersection_waiting_density(self, id_) -> float:
         intersection = self.intersections[id_]
         total = 0.0
-        for loc in Location:
+        roadlink_len = intersection.get_roadlinks_len()
+        for i in range(roadlink_len):
             for grapDir in GraphDirection:
                 for stream in TrafficStreamDirection:
                     capacity = intersection.get_road_capacity(
-                        loc, grapDir, stream
+                        i, grapDir, stream
                     )
                     if capacity == 0:
                         continue
                     waiting_lane = intersection.get_road_waiting_vehicles(
-                        loc, grapDir, stream)
+                        i, grapDir, stream)
                     density = waiting_lane / capacity
                     total += density
         return total

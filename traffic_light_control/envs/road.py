@@ -2,7 +2,7 @@ from typing import Dict, List
 import cityflow
 import numpy as np
 from envs.lane import Lane
-from envs.phase import TrafficStreamDirection
+from util.enum import TrafficStreamDirection
 
 
 class Road():
@@ -64,3 +64,12 @@ class Road():
         tensor[2] = (0 if self.get_capacity(dire) == 0 else
                      self.get_vehicles(dire) / self.get_capacity(dire))
         return tensor
+
+    def __repr__(self) -> str:
+        str_ = "Road[ \n"
+        for dir_, lane in self.lanes.items():
+            str_ += " {} [{}] \n".format(
+                dir_, lane
+            )
+        str_ += "]"
+        return str_
