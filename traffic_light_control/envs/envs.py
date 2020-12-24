@@ -1,5 +1,5 @@
 
-from typing import List
+from typing import Dict, List
 from envs.independent_traffic_env import IndependentTrafficEnv
 from envs.intersection import Intersection
 from envs.lane import Lane

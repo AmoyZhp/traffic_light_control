@@ -2,12 +2,7 @@ import argparse
 import datetime
 import os
 from typing import Any, Dict, List
-
-from numpy.core.records import record
-from agent import dqn
-from basis.action import Action
 import buffer
-from envs.intersection import Intersection
 import envs
 import torch
 import net
@@ -264,12 +259,6 @@ class IndependentTrainer():
                 param_file_name,
                 record_dir)
             self.test(test_config)
-            os.system("cp ../replay/replay_roadnet.json {}".format(
-                record_dir
-            ))
-            os.system("cp ../replay/replay.txt {}".format(
-                record_dir
-            ))
 
     def eval_(self, policies, env, num_episodes):
 
@@ -303,6 +292,7 @@ class IndependentTrainer():
         env_config = test_config["env"]
         policy_params = test_config["policy"]
         num_episodes = test_config["num_episodes"]
+        record_dir = test_config["record_dir"]
 
         # 初始化环境
         env = envs.make(env_config)
@@ -341,6 +331,12 @@ class IndependentTrainer():
                         eps, cumulative_reward))
                     reward_history[eps] = cumulative_reward
                     break
+        os.system("cp ../replay/replay_roadnet.json {}".format(
+            record_dir
+        ))
+        os.system("cp ../replay/replay.txt {}".format(
+            record_dir
+        ))
 
     def static_test(self, env_config):
         # 初始化环境
