@@ -3,8 +3,6 @@ import gym
 from envs.intersection import Intersection
 import numpy as np
 
-from util.enum import GraphDirection, TrafficStreamDirection
-
 
 class IndependentTrafficEnv(gym.Env):
     def __init__(self, eng, id_: str, max_time: int, interval: int,
@@ -25,7 +23,7 @@ class IndependentTrafficEnv(gym.Env):
                 intersection.move_to_next_phase()
                 self.eng.set_tl_phase(
                     id_, intersection.current_phase_index)
-        for i in range(self.interval):
+        for _ in range(self.interval):
             self.eng.next_step()
         self.time += self.interval
         next_state = self.__compute_state()
@@ -51,25 +49,7 @@ class IndependentTrafficEnv(gym.Env):
 
     def __compute_reward(self) -> Dict[str, float]:
         reward = {}
-        for id_ in self.intersections.keys():
-            r = -self.__cal_intersection_waiting_density(id_)
+        for id_, inter in self.intersections.items():
+            r = - inter.get_waiting_rate()
             reward[id_] = r
         return reward
-
-    def __cal_intersection_waiting_density(self, id_) -> float:
-        intersection = self.intersections[id_]
-        total = 0.0
-        roadlink_len = intersection.get_roadlinks_len()
-        for i in range(roadlink_len):
-            for grapDir in GraphDirection:
-                for stream in TrafficStreamDirection:
-                    capacity = intersection.get_road_capacity(
-                        i, grapDir, stream
-                    )
-                    if capacity == 0:
-                        continue
-                    waiting_lane = intersection.get_road_waiting_vehicles(
-                        i, grapDir, stream)
-                    density = waiting_lane / capacity
-                    total += density
-        return total

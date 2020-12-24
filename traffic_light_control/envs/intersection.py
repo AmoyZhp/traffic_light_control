@@ -17,8 +17,6 @@ class Intersection():
             for road in rlink.values():
                 if road.id not in self.roads:
                     self.roads[road.id] = road
-        print(len(self.roadlinks))
-        print(len(self.roads))
 
     def get_id(self) -> str:
         return self.id
@@ -35,33 +33,17 @@ class Intersection():
     def get_current_phase(self) -> List[int]:
         return self.phase_plan[self.current_phase_index]
 
-    def get_road_capacity(self, index: int, graphDir: GraphDirection,
-                          streamDirection: TrafficStreamDirection,
-                          ) -> int:
-        road = self.roadlinks[index][graphDir]
-        if road is None:
-            return 0
-        capacity = road.get_capacity(streamDirection)
-        return capacity
-
-    def get_road_vehicles(self, index: int, graphDir: GraphDirection,
-                          streamDirection: TrafficStreamDirection
-                          ) -> int:
-        road = self.roadlinks[index][graphDir]
-        if road is None:
-            return 0
-        vehicles = road.get_vehicles(streamDirection)
-        return vehicles
-
-    def get_road_waiting_vehicles(self, index: int,
-                                  graphDir: GraphDirection,
-                                  streamDirection: TrafficStreamDirection
-                                  ) -> int:
-        road = self.roadlinks[index][graphDir]
-        if road is None:
-            return 0
-        vehicles = road.get_waiting_vehicles(streamDirection)
-        return vehicles
+    def get_waiting_rate(self) -> float:
+        waiting_rate = 0.0
+        for road in self.roads.values():
+            for stream in TrafficStreamDirection:
+                capacity = road.get_capacity(stream)
+                if capacity == 0:
+                    continue
+                waiting_lane = road.get_waiting_vehicles(stream)
+                density = waiting_lane / capacity
+                waiting_rate += density
+        return waiting_rate
 
     def move_to_next_phase(self):
         self.current_phase_index = (
