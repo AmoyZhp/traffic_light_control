@@ -7,7 +7,7 @@ import envs
 import torch
 import net
 import numpy as np
-from policy.dqn_n import DQNNew
+import policy
 import util
 from util.type import Transition
 
@@ -37,7 +37,7 @@ ACTION_SPACE = 2
 # exec setting
 DATA_SAVE_PERIOD = 20
 EVAL_NUM_EPISODE = 50
-SAVED_THRESHOLD = -100.0
+SAVED_THRESHOLD = -30.0
 
 
 class IndependentTrainer():
@@ -76,11 +76,15 @@ class IndependentTrainer():
                 "save_replay": False,
             }
 
-            buffer_config = {"capacity": CAPACITY}
+            buffer_config = {
+                "id": "basis",
+                "capacity": CAPACITY}
 
-            dqn_config = {
+            policy_config = {
+                "id": "DQN",
                 "learning_rate": LERNING_RATE,
                 "discount_factor": DISCOUNT_FACTOR,
+                "net_id": "single_intersection",
                 "eps_init": EPS_INIT,
                 "eps_min": EPS_MIN,
                 "eps_frame": EPS_FRAME,
@@ -93,7 +97,7 @@ class IndependentTrainer():
             train_config = {
                 "env": env_config,
                 "buffer": buffer_config,
-                "policy": dqn_config,
+                "policy": policy_config,
                 "num_episodes": episodes,
                 "saved": save,
                 "batch_size": BATCH_SIZE,
@@ -126,7 +130,7 @@ class IndependentTrainer():
 
         env_config = train_config["env"]
         buffer_config = train_config["buffer"]
-        dqn_config = train_config["policy"]
+        policy_config = train_config["policy"]
         num_episodes = train_config["num_episodes"]
         eval_num_episodes = train_config["eval_num_episodes"]
         batch_size = train_config["batch_size"]
@@ -142,8 +146,10 @@ class IndependentTrainer():
         local_loss = {}
         ids = env.intersection_ids()
         for id_ in ids:
-            policies[id_] = self.__init_policy(dqn_config)
-            buffers[id_] = self.__init_buffer(buffer_config)
+            policies[id_] = policy.get_policy(
+                policy_config["id"], policy_config)
+            buffers[id_] = buffer.get_buffer(
+                buffer_config["id"],  buffer_config)
             local_loss[id_] = 0.0
 
         # 创建和本次训练相应的保存目录
@@ -169,10 +175,10 @@ class IndependentTrainer():
                 actions = {}
                 for id_ in ids:
                     obs = states[id_]
-                    policy = policies[id_]
-                    if obs is None or policy is None:
+                    policy_ = policies[id_]
+                    if obs is None or policy_ is None:
                         print("intersection id is not exit {}".format(id_))
-                    action = policy.compute_single_action(obs, True)
+                    action = policy_.compute_single_action(obs, True)
                     actions[id_] = action
                 next_states, rewards, done, info = env.step(actions)
 
@@ -187,8 +193,8 @@ class IndependentTrainer():
                 for id_ in ids:
                     buff = buffers[id_]
                     batch_data = buff.sample(batch_size)
-                    policy = policies[id_]
-                    local_loss[id_] += policy.learn_on_batch(
+                    policy_ = policies[id_]
+                    local_loss[id_] += policy_.learn_on_batch(
                         batch_data)
                 states = next_states
                 for r in rewards.values():
@@ -222,13 +228,12 @@ class IndependentTrainer():
                     record_dir, central_reward_record, eval_reward_recrod)
                 if saved:
                     exec_params = {
-                        "batch_size": batch_size,
                         "episode": episode,
                     }
                     param_file_name = "params_latest.pth"
                     param_file = record_dir + param_file_name
                     self.__snapshot_params(
-                        env, policies, buffers, exec_params,
+                        env, policies, buffers, exec_params, train_config,
                         param_file
                     )
                     if eval_reward_mean > SAVED_THRESHOLD:
@@ -236,7 +241,7 @@ class IndependentTrainer():
                         param_file_name = "params_{}.pth".format(episode)
                         param_file = record_dir + "params/" + param_file_name
                         self.__snapshot_params(
-                            env, policies, buffers, exec_params,
+                            env, policies, buffers, exec_params, train_config,
                             param_file
                         )
 
@@ -250,6 +255,7 @@ class IndependentTrainer():
             self.__snapshot_params(
                 env, policies, buffers,
                 exec_params,
+                train_config,
                 param_file
             )
             self.__snapshot_training(
@@ -271,10 +277,10 @@ class IndependentTrainer():
                 actions = {}
                 for id_ in ids:
                     obs = states[id_]
-                    policy = policies[id_]
-                    if obs is None or policy is None:
+                    policy_ = policies[id_]
+                    if obs is None or policy_ is None:
                         print("intersection id is not exit {}".format(id_))
-                    action = policy.compute_single_action(obs, False)
+                    action = policy_.compute_single_action(obs, False)
                     actions[id_] = action
                 states, rewards, done, _ = env.step(actions)
                 for r in rewards.values():
@@ -290,7 +296,10 @@ class IndependentTrainer():
     def test(self, test_config):
 
         env_config = test_config["env"]
-        policy_params = test_config["policy"]
+        policy_config = test_config["policy"]
+        policy_config["device"] = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu")
+        weight = test_config["weight"]
         num_episodes = test_config["num_episodes"]
         record_dir = test_config["record_dir"]
 
@@ -301,11 +310,9 @@ class IndependentTrainer():
         policies = {}
         ids = env.intersection_ids()
         for id_ in ids:
-            policy_config = policy_params[id_]["config"]
-            policy_weight = policy_params[id_]["weight"]
-            policy_config["device"] = torch.device(
-                "cuda" if torch.cuda.is_available() else "cpu")
-            policies[id_] = self.__init_policy(policy_config)
+            policy_weight = weight["policy"][id_]
+            policies[id_] = policy.get_policy(
+                policy_config["id"], policy_config)
             policies[id_].set_weight(policy_weight)
 
         reward_history = {}
@@ -318,10 +325,10 @@ class IndependentTrainer():
                 actions = {}
                 for id_ in ids:
                     obs = states[id_]
-                    policy = policies[id_]
-                    if obs is None or policy is None:
+                    policy_ = policies[id_]
+                    if obs is None or policy_ is None:
                         print("intersection id is not exit {}".format(id_))
-                    action = policy.compute_single_action(obs, False)
+                    action = policy_.compute_single_action(obs, False)
                     actions[id_] = action
                 states, rewards, done, _ = env.step(actions)
                 for r in rewards.values():
@@ -351,53 +358,25 @@ class IndependentTrainer():
                 break
         print("total reward is {}".format(cumulative_reward))
 
-    def __init_policy(self, dqn_config: Dict) -> DQNNew:
-        net_id = "single_intersection"
-        acting_net = net.get_net(net_id, dqn_config)
-        target_net = net.get_net(net_id, dqn_config)
-        return DQNNew(
-            acting_net=acting_net,
-            target_net=target_net,
-            learning_rate=dqn_config["learning_rate"],
-            discount_factor=dqn_config["discount_factor"],
-            eps_init=dqn_config["eps_init"],
-            eps_min=dqn_config["eps_min"],
-            eps_frame=dqn_config["eps_frame"],
-            update_period=dqn_config["update_period"],
-            device=dqn_config["device"],
-            action_space=dqn_config["output_space"],
-            state_space=dqn_config["input_space"]
-        )
+    def __snapshot_params(self, env, polices, buffer, exec_params,
+                          train_config, params_file):
 
-    def __init_buffer(self, buffer_config: Dict) -> buffer.ReplayBuffer:
-        return buffer.ReplayBuffer(buffer_config["capacity"])
+        polices_weight = {}
+        for id_, p in polices.items():
+            polices_weight[id_] = p.get_weight()
 
-    def __snapshot_params(self, env, polices, buffer,
-                          exec_params, params_file):
-        env_params = {
-            "max_time": env.max_time,
-            "interval": env.interval,
-            "id": env.id_
+        buffer_weight = {}
+        for id_, b in buffer.items():
+            buffer_weight[id_] = b.get_weight()
+
+        weight = {
+            "policy": polices_weight,
+            "buffer": buffer_weight,
         }
 
-        polices_params = {}
-        for id_, p in polices.items():
-            polices_params[id_] = {
-                "weight": p.get_weight(),
-                "config": p.get_config()
-            }
-
-        buffer_params = {}
-        for id_, b in buffer.items():
-            buffer_params[id_] = {
-                "weight": b.get_weight(),
-                "config": b.get_config(),
-            }
-
         params = {
-            "env": env_params,
-            "policy": polices_params,
-            "buffer": buffer_params,
+            "config": train_config,
+            "weight": weight,
             "exec": exec_params,
         }
 
@@ -511,21 +490,17 @@ class IndependentTrainer():
 
     def __load_test_config(self, model_file, record_dir):
         params = torch.load(record_dir + model_file)
-        env_params = params["env"]
-        cityflow_config_dir = CITYFLOW_CONFIG_ROOT_DIR + env_params["id"] + "/"
-        env_config = {
-            "id": env_params["id"],
-            "cityflow_config_dir": cityflow_config_dir,
-            "max_time": env_params["max_time"],
-            "interval": env_params["interval"],
-            "thread_num": 1,
-            "save_replay": True
-        }
+        saved_config = params["config"]
 
-        policy_params = params["policy"]
+        env_config = saved_config["env"]
+        env_config["save_replay"] = True
+        env_config["thread_num"] = 1
+
+        policy_config = saved_config["policy"]
         test_config = {
             "env": env_config,
-            "policy": policy_params,
+            "policy": policy_config,
+            "weight": params["weight"],
             "record_dir": record_dir,
             "num_episodes": 1,
         }

@@ -6,3 +6,4 @@ records/
 *.txt
 fetch_data.sh
 experiment_result/
+expired_file/

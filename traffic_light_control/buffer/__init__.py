@@ -1,3 +1,3 @@
-from buffer.replay_buffer import ReplayBuffer
+from buffer.buffer import get_buffer
 
-__all__ = ["ReplayBuffer"]
+__all__ = ["get_buffer"]

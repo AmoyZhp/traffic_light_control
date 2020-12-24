@@ -1,5 +1,5 @@
 
-from policy.net.single_intersection import SingleIntesection
+from net.single_intersection import SingleIntesection
 
 
 def get_net(id_: str, config):
