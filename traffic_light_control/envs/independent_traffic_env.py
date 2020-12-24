@@ -53,7 +53,7 @@ class IndependentTrafficEnv(gym.Env):
     def __compute_reward(self) -> Dict[str, float]:
         reward = {}
         for id_ in self.intersections.keys():
-            r = self.__cal_intersection_waiting_density(id_)
+            r = -self.__cal_intersection_waiting_density(id_)
             reward[id_] = r
         return reward
 

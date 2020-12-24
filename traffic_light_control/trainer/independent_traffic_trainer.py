@@ -1,7 +1,6 @@
 import argparse
 import datetime
 import os
-import cityflow
 from typing import Any, Dict, List
 
 from numpy.core.records import record
@@ -221,23 +220,33 @@ class IndependentTrainer():
                 print(" episode : {}, eval mean reward is {:.3f}".format(
                     episode, eval_reward_mean
                 ))
-                if saved and eval_reward_mean > SAVED_THRESHOLD:
-                    eval_reward_recrod["all"][episode] = eval_rewards["all"]
-                    eval_reward_recrod["mean"][episode] = eval_rewards["mean"]
-                    param_file_name = "params_{}.pth".format(episode)
-                    param_file = record_dir + "params/" + param_file_name
+                eval_reward_recrod["all"][episode] = eval_rewards["all"]
+                eval_reward_recrod["mean"][episode] = eval_rewards["mean"]
+
+                self.__snapshot_training(
+                    record_dir, central_reward_record, eval_reward_recrod)
+                if saved:
                     exec_params = {
                         "batch_size": batch_size,
                         "episode": episode,
                     }
+                    param_file_name = "params_latest.pth"
+                    param_file = record_dir + param_file_name
                     self.__snapshot_params(
                         env, policies, buffers, exec_params,
                         param_file
                     )
-                    self.__snapshot_training(
-                        record_dir, central_reward_record, eval_reward_recrod)
+                    if eval_reward_mean > SAVED_THRESHOLD:
+                        # 如果当前模型效果达到期望的阈值，就保存模型
+                        param_file_name = "params_{}.pth".format(episode)
+                        param_file = record_dir + "params/" + param_file_name
+                        self.__snapshot_params(
+                            env, policies, buffers, exec_params,
+                            param_file
+                        )
+
         if saved:
-            param_file_name = "params_final.pth"
+            param_file_name = "params_latest.pth"
             param_file = record_dir + param_file_name
             exec_params = {
                 "batch_size": batch_size,
