@@ -1,11 +1,11 @@
 import argparse
 import datetime
 import os
+import time
 from typing import Any, Dict, List
 import buffer
 import envs
 import torch
-import net
 import numpy as np
 import policy
 import util
@@ -145,6 +145,8 @@ class IndependentTrainer():
         policies = {}
         buffers = {}
         local_loss = {}
+        local_reward = {}
+        local_record = {}
         ids = env.intersection_ids()
         for id_ in ids:
             policies[id_] = policy.get_policy(
@@ -152,12 +154,18 @@ class IndependentTrainer():
             buffers[id_] = buffer.get_buffer(
                 buffer_config["id"],  buffer_config)
             local_loss[id_] = 0.0
+            local_reward[id_] = {}
+            local_record[id_] = {
+                "loss": {},
+                "reward": {},
+            }
 
         # 创建和本次训练相应的保存目录
         record_dir = self.__create_record_dir(RECORDS_ROOT_DIR)
 
         # 保存每轮 episode 完成后的 reward 奖励
         central_reward_record = {}
+        central_record = {}
 
         # 保存每次评估时的评估奖励，和评估奖励的平均值
         eval_reward_recrod = {
@@ -168,10 +176,12 @@ class IndependentTrainer():
         ep_begin = 1
 
         for episode in range(ep_begin, num_episodes + ep_begin):
+            ep_begin_time = time.time()
             states = env.reset()
             central_cumulative_reward = 0.0
-            for k in local_loss.keys():
+            for k in ids:
                 local_loss[k] = 0.0
+                local_reward[k] = 0.0
             while True:
                 actions = {}
                 for id_ in ids:
@@ -198,10 +208,14 @@ class IndependentTrainer():
                     local_loss[id_] += policy_.learn_on_batch(
                         batch_data)
                 states = next_states
-                for r in rewards.values():
+                for id_, r in rewards.items():
                     central_cumulative_reward += r
+                    local_reward[id_] += r
                 if done:
+                    ep_end_time = time.time()
                     print(" ====== episode {} ======".format(episode))
+                    print(" time cost {:.3f}s".format(
+                        ep_end_time - ep_begin_time))
                     print(" central reward : {:.3f}".format(
                         central_cumulative_reward))
                     print(" loss :")
@@ -209,8 +223,12 @@ class IndependentTrainer():
                         print("      id {}, loss {:.3f}".format(
                             id_, loss / len(local_loss)
                         ))
+
                     print("=========================")
                     central_reward_record[episode] = central_cumulative_reward
+                    for i in ids:
+                        local_record[i]["loss"][episode] = local_loss[i]
+                        local_record[i]["reward"][episode] = local_reward[i]
                     break
             if (episode % data_saved_period == 0):
                 eval_rewards = self.eval_(
@@ -224,9 +242,12 @@ class IndependentTrainer():
                 ))
                 eval_reward_recrod["all"][episode] = eval_rewards["all"]
                 eval_reward_recrod["mean"][episode] = eval_rewards["mean"]
-
+                central_record = {
+                    "reward": central_reward_record,
+                    "eval_reward": eval_reward_recrod,
+                }
                 self.__snapshot_training(
-                    record_dir, central_reward_record, eval_reward_recrod)
+                    record_dir, central_record, local_record)
                 if saved:
                     exec_params = {
                         "episode": episode,
@@ -259,8 +280,12 @@ class IndependentTrainer():
                 train_config,
                 param_file
             )
+            central_record = {
+                "reward": central_reward_record,
+                "eval_reward": eval_reward_recrod,
+            }
             self.__snapshot_training(
-                record_dir, central_reward_record, eval_reward_recrod)
+                record_dir, central_record, local_record)
 
             test_config = self.__load_test_config(
                 param_file_name,
@@ -384,13 +409,10 @@ class IndependentTrainer():
         torch.save(params, params_file)
 
     def __snapshot_training(self, record_dir,
-                            reward_record, eval_reward_record):
-        eval_mean_recrod = eval_reward_record["mean"]
-        eval_reward_record = eval_reward_record["all"]
+                            central_record, local_record):
         saved_data = {
-            "reward": reward_record,
-            "eval_reward_mean": eval_mean_recrod,
-            "eval_reward_all": eval_reward_record,
+            "central": central_record,
+            "local": local_record,
         }
         saved_data_file_name = "exp_result.txt"
         result_file = record_dir + saved_data_file_name
@@ -457,37 +479,52 @@ class IndependentTrainer():
         data = {}
         with open(data_file, "r", encoding="utf-8") as f:
             data = eval(f.read())
+
+        central_data = data["central"]
+        local_data = data["local"]
+
         episodes = []
         rewards = []
-        for ep, r in data["reward"].items():
+        for ep, r in central_data["reward"].items():
             episodes.append(int(ep))
             rewards.append(float(r))
         util.savefig(
             episodes, rewards, x_lable="episodes",
             y_label="reward", title="rewards",
-            img=record_dir+"reward.png")
+            img=record_dir+"central_reward.png")
 
         episodes = []
         mean_eval_reward = []
-
-        for ep, r in data["eval_reward_mean"].items():
+        eval_reward_mean = central_data["eval_reward"]["mean"]
+        for ep, r in eval_reward_mean.items():
             episodes.append(int(ep))
             mean_eval_reward.append(r)
         util.savefig(
             episodes, mean_eval_reward, x_lable="episodes",
             y_label="reward", title="rewards",
             img=record_dir+"eval_reward_mean.png")
-        """
-        episodes = []
-        loss = []
-        for ep, r in data["loss"].items():
-            episodes.append(int(ep))
-            loss.append(float(r))
-        util.savefig(
-            episodes, loss, x_lable="episodes",
-            y_label="loss", title="loss",
-            img=record_dir+"loss.png")
-        """
+
+        for id_, val in local_data.items():
+
+            episodes = []
+            rewards = []
+            for ep, r in val["reward"].items():
+                episodes.append(int(ep))
+                rewards.append(float(r))
+            util.savefig(
+                episodes, rewards, x_lable="episodes",
+                y_label="reward", title="rewards",
+                img=record_dir+"local_reward_{}.png".format(id_))
+
+            episodes = []
+            loss = []
+            for ep, r in val["loss"].items():
+                episodes.append(int(ep))
+                loss.append(float(r))
+            util.savefig(
+                episodes, loss, x_lable="episodes",
+                y_label="loss", title="loss",
+                img=record_dir+"local_loss_{}.png".format(id_))
 
     def __load_test_config(self, model_file, record_dir):
         params = torch.load(record_dir + model_file)

@@ -17,3 +17,4 @@ def savefig(x: List, y: List, x_lable, y_label, title, img=""):
     if img != "":
         fig.savefig(img)
     plt.clf()
+    plt.close(fig)

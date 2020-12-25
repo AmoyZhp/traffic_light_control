@@ -41,11 +41,9 @@ def __parse_cityflow_file(roadnet_file,
 
     flow_json = json.load(open(flow_file))
     flow_info = __parase_flow_info(flow_json)
-    print(flow_info)
 
     roadnet_json = json.load(open(roadnet_file))
     roads_info = __parase_roads_info(roadnet_json["roads"])
-    print(roads_info)
     for r in roads_info.values():
         r["capacity"] = int(r["length"] / flow_info["vehicle"]["proportion"])
 
