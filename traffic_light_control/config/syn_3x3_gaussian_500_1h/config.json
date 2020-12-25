@@ -1,0 +1,12 @@
+{
+    "interval": 1,
+    "seed": 0,
+    "dir": "./config/syn_3x3_gaussian_500_1h/",
+    "roadnetFile": "roadnet.json",
+    "flowFile": "flow.json",
+    "rlTrafficLight": true,
+    "laneChange": false,
+    "saveReplay": true,
+    "roadnetLogFile": "../../../replay/replay_roadnet.json",
+    "replayLogFile": "../../../replay/replay.txt"
+}

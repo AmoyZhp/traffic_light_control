@@ -39,7 +39,7 @@ DATA_SAVE_PERIOD = 20
 EVAL_NUM_EPISODE = 50
 SAVED_THRESHOLD = -30.0
 
-ENV_ID = "syn_1x3_gaussian_500_1h"
+ENV_ID = "syn_4x4_gaussian_500_1h"
 
 
 class IndependentTrainer():
