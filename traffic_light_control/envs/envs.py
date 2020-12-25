@@ -6,31 +6,28 @@ from envs.lane import Lane
 from envs.road import Road
 import cityflow
 import json
+import math
 from util.enum import *
 
 
 def make(config):
-    id_ = config["id"]
-    if id_ == "multi_agent_independent":
-        return __get_multi_agent_independent(config)
-    elif id_ == "single_complete_1x1" or id_ == "single_complete_1x1_static":
-        return __get_single_complete_1x1(config)
-    else:
-        print("invalid environment id {}".format(id_))
+    return __get_env_by_roadnet(config)
 
 
-def __get_multi_agent_independent(config):
-    pass
-
-
-def __get_single_complete_1x1(config):
+def __get_env_by_roadnet(config):
     cityflow_config_dir = config["cityflow_config_dir"]
     cityflow_config_file = cityflow_config_dir + "config.json"
 
     eng = cityflow.Engine(cityflow_config_file, config["thread_num"])
     eng.set_save_replay(config["save_replay"])
 
-    intersections = __parse_roadnet(cityflow_config_dir + "roadnet.json", eng)
+    roadnet_file = cityflow_config_dir + "roadnet.json"
+    flow_file = cityflow_config_dir + "flow.json"
+
+    intersections = __parse_cityflow_file(
+        roadnet_file=roadnet_file,
+        flow_file=flow_file, config_file=cityflow_config_dir, eng=eng)
+
     env = IndependentTrafficEnv(
         id_=config["id"],
         eng=eng, max_time=config["max_time"],
@@ -38,14 +35,26 @@ def __get_single_complete_1x1(config):
     return env
 
 
-def __parse_roadnet(roadnet_file, eng) -> Dict[str, Intersection]:
-    roadnet = json.load(open(roadnet_file))
+def __parse_cityflow_file(roadnet_file,
+                          flow_file,
+                          config_file, eng) -> Dict[str, Intersection]:
+
+    flow_json = json.load(open(flow_file))
+    flow_info = __parase_flow_info(flow_json)
+    print(flow_info)
+
+    roadnet_json = json.load(open(roadnet_file))
+    roads_info = __parase_roads_info(roadnet_json["roads"])
+    print(roads_info)
+    for r in roads_info.values():
+        r["capacity"] = int(r["length"] / flow_info["vehicle"]["proportion"])
+
     inters = {}
-    for inter_json in roadnet["intersections"]:
+    for inter_json in roadnet_json["intersections"]:
         if inter_json['virtual']:
             continue
 
-        roadlinks = __parase_roadlink(inter_json["roadLinks"], eng)
+        roadlinks = __parase_roadlink(inter_json["roadLinks"], roads_info, eng)
 
         phase_plan = __parase_phase_plan(
             inter_json["trafficLight"]["lightphases"])
@@ -57,7 +66,39 @@ def __parse_roadnet(roadnet_file, eng) -> Dict[str, Intersection]:
     return inters
 
 
-def __parase_roadlink(roadlinks_json, eng):
+def __parase_flow_info(flow_json):
+    flow = {}
+    vehicle_json = flow_json[0]["vehicle"]
+    vehicle_proportion = float(
+        vehicle_json["length"]) + float(vehicle_json["minGap"])
+    flow["vehicle"] = {
+        "proportion": vehicle_proportion
+    }
+
+    return flow
+
+
+def __parase_roads_info(roads_json):
+    roads_info = {}
+    for r_json in roads_json:
+        id_ = r_json["id"]
+        points = r_json["points"]
+        x1 = float(points[0]["x"])
+        y1 = float(points[0]["y"])
+        x2 = float(points[1]["x"])
+        y2 = float(points[1]["y"])
+        length = math.sqrt(
+            math.pow((x1-x2), 2) + math.pow((y1-y2), 2)
+        )
+
+        roads_info[id_] = {
+            "length": length
+        }
+
+    return roads_info
+
+
+def __parase_roadlink(roadlinks_json, roads_info, eng):
 
     # 以下两个字典作为中间变量，用来得到最后 roadlinks
     # roadlinks temp 记录每条 roadlink 的 road id
@@ -83,8 +124,10 @@ def __parase_roadlink(roadlinks_json, eng):
             end_index = lane_json["endLaneIndex"]
             out_lane_id = "{}_{}".format(out_road_id, start_index)
             in_lane_id = "{}_{}".format(in_road_id, end_index)
-            out_lanes.append(Lane(out_lane_id, 15))
-            in_lanes.append(Lane(in_lane_id, 15))
+            out_lanes.append(
+                Lane(out_lane_id, roads_info[out_road_id]["capacity"]))
+            in_lanes.append(
+                Lane(in_lane_id, roads_info[in_road_id]["capacity"]))
 
         if out_road_id not in roads_lanes_temp.keys():
             roads_lanes_temp[out_road_id] = {}

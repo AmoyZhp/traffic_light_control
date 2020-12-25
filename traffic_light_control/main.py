@@ -3,13 +3,11 @@ import cityflow
 
 
 def static_test():
-    path = "config/single_complete_1x1_static/config.json"
-    max_time = 60
+    path = "config/syn_1x3_gaussian_500_1h/config.json"
+    max_time = 360
     eng = cityflow.Engine(path, thread_num=1)
     for t in range(max_time):
         eng.next_step()
-        print("====== time {} ======".format(t))
-        print(eng.get_lane_vehicle_count())
 
 
 def rl_train():

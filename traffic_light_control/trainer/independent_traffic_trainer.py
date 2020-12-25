@@ -39,6 +39,8 @@ DATA_SAVE_PERIOD = 20
 EVAL_NUM_EPISODE = 50
 SAVED_THRESHOLD = -30.0
 
+ENV_ID = "syn_1x3_gaussian_500_1h"
+
 
 class IndependentTrainer():
     def __init__(self) -> None:
@@ -56,8 +58,7 @@ class IndependentTrainer():
         resume = True if args.resume == 1 else False
         record_dir = args.record_dir
 
-        env_id = "single_complete_1x1"
-        cityflow_config_dir = CITYFLOW_CONFIG_ROOT_DIR + env_id + "/"
+        cityflow_config_dir = CITYFLOW_CONFIG_ROOT_DIR + ENV_ID + "/"
 
         print(" mode : {}, model file :  {}, ep : {}, thread : {} ".format(
             mode, model_file, episodes, thread_num
@@ -68,7 +69,7 @@ class IndependentTrainer():
                 print("please input model file and record dir if want resume")
 
             env_config = {
-                "id": env_id,
+                "id": ENV_ID,
                 "cityflow_config_dir": cityflow_config_dir,
                 "max_time": MAX_TIME,
                 "interval": INTERVAL,
@@ -115,7 +116,7 @@ class IndependentTrainer():
             self.test(test_config)
         elif mode == "static":
             env_config = {
-                "id": env_id,
+                "id": ENV_ID,
                 "cityflow_config_dir": cityflow_config_dir,
                 "max_time": MAX_TIME,
                 "interval": INTERVAL,
