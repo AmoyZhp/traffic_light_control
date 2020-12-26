@@ -45,6 +45,7 @@ ENV_ID = "hangzhou_1x1_bc-tyc_18041607_1h"
 
 
 class IndependentTrainer():
+
     def __init__(self) -> None:
         super().__init__()
 
@@ -60,53 +61,29 @@ class IndependentTrainer():
         resume = True if args.resume == 1 else False
         record_dir = args.record_dir
 
-        cityflow_config_dir = CITYFLOW_CONFIG_ROOT_DIR + ENV_ID + "/"
-
-        print(" mode : {}, model file :  {}, ep : {}, thread : {} ".format(
+        print("mode : {}, model file :  {}, ep : {}, thread : {} ".format(
             mode, model_file, episodes, thread_num
         ) + "save : {}".format(save))
 
         if mode == "train":
-            if resume and (model_file == "" or record_dir == ""):
-                print("please input model file and record dir if want resume")
+            train_config = {}
+            if resume:
+                if (model_file == "" or record_dir == ""):
+                    print("please input model file and record dir if resume")
+                    return
+                train_config = self.__resume_train_config(
+                    record_dir, model_file)
+            else:
+                train_config = self.__get_default_config()
 
-            env_config = {
-                "id": ENV_ID,
-                "cityflow_config_dir": cityflow_config_dir,
-                "max_time": MAX_TIME,
-                "interval": INTERVAL,
-                "thread_num": thread_num,
-                "save_replay": False,
-            }
+            train_config["env"]["thread_num"] = thread_num
+            train_config["env"]["save_replay"] = False
+            train_config["policy"]["device"] = torch.device(
+                "cuda" if torch.cuda.is_available() else "cpu")
+            train_config["exec"]["num_episodes"] = episodes
+            train_config["exec"]["saved"] = save
+            train_config["exec"]["resume"] = resume
 
-            buffer_config = {
-                "id": "basis",
-                "capacity": CAPACITY}
-
-            policy_config = {
-                "id": "DQN",
-                "learning_rate": LERNING_RATE,
-                "discount_factor": DISCOUNT_FACTOR,
-                "net_id": "single_intersection",
-                "eps_init": EPS_INIT,
-                "eps_min": EPS_MIN,
-                "eps_frame": EPS_FRAME,
-                "update_period": UPDATE_PERIOD,
-                "input_space": STATE_SPACE,
-                "output_space": ACTION_SPACE,
-                "device": torch.device(
-                    "cuda" if torch.cuda.is_available() else "cpu")}
-
-            train_config = {
-                "env": env_config,
-                "buffer": buffer_config,
-                "policy": policy_config,
-                "num_episodes": episodes,
-                "saved": save,
-                "batch_size": BATCH_SIZE,
-                "data_saved_period": DATA_SAVE_PERIOD,
-                "eval_num_episodes": EVAL_NUM_EPISODE,
-            }
             self.train(train_config)
         elif mode == "test":
             if model_file == "" or record_dir == "":
@@ -117,6 +94,7 @@ class IndependentTrainer():
                 RECORDS_ROOT_DIR + record_dir + "/")
             self.test(test_config)
         elif mode == "static":
+            cityflow_config_dir = CITYFLOW_CONFIG_ROOT_DIR + ENV_ID + "/"
             env_config = {
                 "id": ENV_ID,
                 "cityflow_config_dir": cityflow_config_dir,
@@ -134,11 +112,14 @@ class IndependentTrainer():
         env_config = train_config["env"]
         buffer_config = train_config["buffer"]
         policy_config = train_config["policy"]
-        num_episodes = train_config["num_episodes"]
-        eval_num_episodes = train_config["eval_num_episodes"]
-        batch_size = train_config["batch_size"]
-        saved = train_config["saved"]
-        data_saved_period = train_config["data_saved_period"]
+        exec_config = train_config["exec"]
+
+        num_episodes = exec_config["num_episodes"]
+        eval_num_episodes = exec_config["eval_num_episodes"]
+        saved = exec_config["saved"]
+        data_saved_period = exec_config["data_saved_period"]
+
+        batch_size = policy_config["batch_size"]
 
         # 初始化环境
         env = envs.make(env_config)
@@ -179,6 +160,18 @@ class IndependentTrainer():
         }
 
         ep_begin = 1
+        if exec_config["resume"]:
+            ep_begin = exec_config["ep_begin"]
+            weight = train_config["weight"]
+            for id_ in ids:
+                policies[id_].set_weight(weight["policy"][id_])
+                buffer[id_].set_weight(weight["buffer"][id_])
+            data = train_config["data"]
+            central_data = data["central"]
+            local_data = data["local"]
+            central_reward_record = central_data["reward"]
+            eval_reward_recrod = central_data["eval_reward"]
+            local_record = local_data["record"]
 
         for episode in range(ep_begin, num_episodes + ep_begin):
             ep_begin_time = time.time()
@@ -287,7 +280,6 @@ class IndependentTrainer():
             param_file_name = "params_latest.pth"
             param_file = params_dir + param_file_name
             exec_params = {
-                "batch_size": batch_size,
                 "episode": num_episodes,
             }
             self.__snapshot_params(
@@ -580,3 +572,49 @@ class IndependentTrainer():
         params_path = record_dir + "init_params.json"
         with open(params_path, "w") as f:
             json.dump(config, f)
+
+    def __get_default_config(self):
+
+        cityflow_config_dir = CITYFLOW_CONFIG_ROOT_DIR + ENV_ID + "/"
+
+        env_config = {
+            "id": ENV_ID,
+            "cityflow_config_dir": cityflow_config_dir,
+            "max_time": MAX_TIME,
+            "interval": INTERVAL,
+        }
+
+        buffer_config = {
+            "id": "basis",
+            "capacity": CAPACITY}
+
+        policy_config = {
+            "id": "DQN",
+            "learning_rate": LERNING_RATE,
+            "discount_factor": DISCOUNT_FACTOR,
+            "net_id": "single_intersection",
+            "eps_init": EPS_INIT,
+            "eps_min": EPS_MIN,
+            "eps_frame": EPS_FRAME,
+            "update_period": UPDATE_PERIOD,
+            "input_space": STATE_SPACE,
+            "output_space": ACTION_SPACE,
+            "batch_size": BATCH_SIZE,
+        }
+
+        exec_config = {
+            "data_saved_period": DATA_SAVE_PERIOD,
+            "eval_num_episodes": EVAL_NUM_EPISODE,
+        }
+
+        train_config = {
+            "env": env_config,
+            "buffer": buffer_config,
+            "policy": policy_config,
+            "exec": exec_config,
+        }
+
+        return train_config
+
+    def __resume_train_config(self, record_dir, model_file):
+        pass
