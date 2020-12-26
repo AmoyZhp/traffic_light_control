@@ -83,8 +83,8 @@ def snapshot_exp_result(record_dir,
     save_exp_result(record_dir + "figs/", result_file)
 
     train_info_file = record_dir + "data/" + "train_info.json"
-    with open(result_file, "w", encoding="utf-8") as f:
-        json.dump(train_info_file, f)
+    with open(train_info_file, "w", encoding="utf-8") as f:
+        json.dump(train_info, f)
 
 
 def save_exp_result(record_dir, data_file):

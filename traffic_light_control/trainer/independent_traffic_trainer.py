@@ -287,12 +287,13 @@ class IndependentTrainer():
                 param_file
             )
 
+            train_info["training_time"] = time.time() - train_begin_time
             util.snapshot_exp_result(
                 record_dir, central_record, local_record, train_info)
 
             test_config = self.__load_test_config(
-                param_file_name,
-                params_dir)
+                "params/" + param_file_name,
+                record_dir)
             self.test(test_config)
 
     def eval_(self, policies, env, num_episodes):
@@ -368,10 +369,10 @@ class IndependentTrainer():
                     reward_history[eps] = cumulative_reward
                     break
         os.system("cp ../replay/replay_roadnet.json {}".format(
-            record_dir
+            record_dir + "data/"
         ))
         os.system("cp ../replay/replay.txt {}".format(
-            record_dir
+            record_dir + "data/"
         ))
 
     def static_test(self, env_config):
