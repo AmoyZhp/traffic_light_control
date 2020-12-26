@@ -38,6 +38,7 @@ ACTION_SPACE = 2
 DATA_SAVE_PERIOD = 20
 EVAL_NUM_EPISODE = 50
 SAVED_THRESHOLD = -30.0
+INTERATION_UPPER_BOUND = 1000000
 
 ENV_ID = "hangzhou_1x1_bc-tyc_18041607_1h"
 
@@ -50,7 +51,6 @@ class IndependentTrainer():
     def run(self):
 
         args = util.parase_args()
-
         mode = args.mode
         model_file = args.model_file
         thread_num = args.thread_num
@@ -139,18 +139,21 @@ class IndependentTrainer():
         self.__record_init_config(data_dir, train_config)
 
         # 保存每轮 episode 完成后的 reward 奖励
-        central_reward_record = {}
-        central_record = {}
+        central_record = {
+            "reward": {},
+            "eval_reward": {
+                "all": {},
+                "mean": {},
+            },
+            "average_travel_time": {}
+        }
         local_record = {}
         for id_ in ids:
             local_record[id_] = {
                 "loss": {},
                 "reward": {},
             }
-        eval_reward_recrod = {
-            "all": {},
-            "mean": {}
-        }
+        train_info = {}
 
         ep_begin = 1
         if exec_config["resume"]:
@@ -159,13 +162,8 @@ class IndependentTrainer():
             for id_ in ids:
                 policies[id_].set_weight(weight["policy"][id_])
                 buffer[id_].set_weight(weight["buffer"][id_])
-            data = train_config["data"]
-            central_data = data["central"]
-            local_data = data["local"]
-            central_reward_record = central_data["reward"]
-            eval_reward_recrod = central_data["eval_reward"]
-            local_record = local_data["record"]
 
+        train_begin_time = time.time()
         for episode in range(ep_begin, num_episodes + ep_begin):
             ep_begin_time = time.time()
             states = env.reset()
@@ -177,7 +175,7 @@ class IndependentTrainer():
             for k in ids:
                 local_loss[k] = 0.0
                 local_reward[k] = 0.0
-            while True:
+            for cnt in range(INTERATION_UPPER_BOUND):
                 actions = {}
                 for id_ in ids:
                     obs = states[id_]
@@ -220,16 +218,23 @@ class IndependentTrainer():
                         sim_time_cost))
                     print(" learning time cost {:.3f}s".format(
                         learn_time_cost))
+                    print(" average travel time : {:.3f}".format(
+                        info["average_travel_time"]))
                     print(" central reward : {:.3f}".format(
                         central_cumulative_reward))
-                    print(" loss :")
-                    for id_, loss in local_loss.items():
-                        print("      id {}, loss {:.3f}".format(
-                            id_, loss / len(local_loss)
+                    print(" local info : ")
+                    for id_ in ids:
+                        print("  id {}, reward {:.3f}, avg loss {:.3f}".format(
+                            id_, local_reward[id_], local_loss[id_] / cnt
                         ))
-
+                    print(" training time pass {:.1f} min ".format(
+                        (time.time() - train_begin_time) / 60
+                    ))
                     print("=========================")
-                    central_reward_record[episode] = central_cumulative_reward
+                    central_record["reward"][
+                        episode] = central_cumulative_reward
+                    central_record["average_travel_time"][
+                        episode] = info["average_travel_time"]
                     for i in ids:
                         local_record[i]["loss"][episode] = local_loss[i]
                         local_record[i]["reward"][episode] = local_reward[i]
@@ -242,16 +247,14 @@ class IndependentTrainer():
                 )
                 eval_reward_mean = eval_rewards["mean"]
                 print(" episode : {}, eval mean reward is {:.3f}".format(
-                    episode, eval_reward_mean
+                    episode, eval_rewards["mean"]
                 ))
+                eval_reward_recrod = central_record["eval_reward"]
                 eval_reward_recrod["all"][episode] = eval_rewards["all"]
                 eval_reward_recrod["mean"][episode] = eval_rewards["mean"]
-                central_record = {
-                    "reward": central_reward_record,
-                    "eval_reward": eval_reward_recrod,
-                }
+                train_info["training_time"] = time.time() - train_begin_time
                 util.snapshot_exp_result(
-                    record_dir, central_record, local_record)
+                    record_dir, central_record, local_record, train_info)
                 if saved:
                     exec_params = {
                         "episode": episode,
@@ -283,12 +286,9 @@ class IndependentTrainer():
                 train_config,
                 param_file
             )
-            central_record = {
-                "reward": central_reward_record,
-                "eval_reward": eval_reward_recrod,
-            }
+
             util.snapshot_exp_result(
-                record_dir, central_record, local_record)
+                record_dir, central_record, local_record, train_info)
 
             test_config = self.__load_test_config(
                 param_file_name,

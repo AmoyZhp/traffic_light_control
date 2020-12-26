@@ -29,7 +29,9 @@ class IndependentTrafficEnv(gym.Env):
         next_state = self.__compute_state()
         reward = self.__compute_reward()
         done = False if self.time < self.max_time else True
-        info = []
+        info = {
+            "average_travel_time": self.eng.get_average_travel_time()
+        }
         return next_state, reward, done, info
 
     def reset(self) -> np.ndarray:
@@ -51,5 +53,6 @@ class IndependentTrafficEnv(gym.Env):
         reward = {}
         for id_, inter in self.intersections.items():
             r = - inter.get_waiting_rate()
+            # r = - inter.get_pressure()
             reward[id_] = r
         return reward

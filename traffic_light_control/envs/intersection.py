@@ -1,3 +1,5 @@
+import math
+from pickle import INST
 import numpy as np
 from envs.road import Road
 from typing import Dict, List
@@ -44,6 +46,22 @@ class Intersection():
                 density = waiting_lane / capacity
                 waiting_rate += density
         return waiting_rate
+
+    def get_pressure(self) -> float:
+        pressure = 0.0
+        for rlink in self.roadlinks:
+            r_pressure = 0.0
+            out_road = rlink[GraphDirection.OUT]
+            in_road = rlink[GraphDirection.IN]
+            for dir_ in TrafficStreamDirection:
+                in_density = in_road.get_vehicles(
+                    dir_) / in_road.get_capacity(dir_)
+                out_density = out_road.get_vehicles(
+                    dir_) / out_road.get_capacity(dir_)
+                r_pressure += abs(in_density - out_density)
+
+            pressure += r_pressure
+        return pressure
 
     def move_to_next_phase(self):
         self.current_phase_index = (

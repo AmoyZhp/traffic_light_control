@@ -1,4 +1,5 @@
 import datetime
+import json
 import os
 import torch
 from typing import List
@@ -69,7 +70,8 @@ def snapshot_params(env, polices, buffer, exec_params,
 
 
 def snapshot_exp_result(record_dir,
-                        central_record, local_record):
+                        central_record, local_record,
+                        train_info):
     saved_data = {
         "central": central_record,
         "local": local_record,
@@ -79,6 +81,10 @@ def snapshot_exp_result(record_dir,
     with open(result_file, "w", encoding="utf-8") as f:
         f.write(str(saved_data))
     save_exp_result(record_dir + "figs/", result_file)
+
+    train_info_file = record_dir + "data/" + "train_info.json"
+    with open(result_file, "w", encoding="utf-8") as f:
+        json.dump(train_info_file, f)
 
 
 def save_exp_result(record_dir, data_file):
@@ -96,7 +102,7 @@ def save_exp_result(record_dir, data_file):
         rewards.append(float(r))
     savefig(
         episodes, rewards, x_lable="episodes",
-        y_label="reward", title="rewards",
+        y_label="reward", title="central rewards",
         img=record_dir+"central_reward.png")
 
     episodes = []
@@ -107,8 +113,18 @@ def save_exp_result(record_dir, data_file):
         mean_eval_reward.append(r)
     savefig(
         episodes, mean_eval_reward, x_lable="episodes",
-        y_label="reward", title="rewards",
+        y_label="reward", title="eval rewards",
         img=record_dir+"eval_reward_mean.png")
+
+    episodes = []
+    average_travel_time = []
+    for ep, t in central_data["average_travel_time"].items():
+        episodes.append(ep)
+        average_travel_time.append(t)
+    savefig(episodes, average_travel_time,
+            x_lable="episodes", y_label="average travel time",
+            title="average travel time",
+            img=record_dir+"average_travel_time.png")
 
     for id_, val in local_data.items():
 
