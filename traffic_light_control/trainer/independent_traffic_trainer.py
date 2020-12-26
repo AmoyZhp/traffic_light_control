@@ -12,9 +12,11 @@ import util
 from util.type import Transition
 
 
-CITYFLOW_CONFIG_PATH = "config/config.json"
-STATIC_CONFIG = "config/static_config.json"
 RECORDS_ROOT_DIR = "records/"
+PARAMS_DIR = "params/"
+FIGS_DIR = "figs/"
+DATA_DIR = "data/"
+
 CITYFLOW_CONFIG_ROOT_DIR = "config/"
 
 # env setting
@@ -162,7 +164,9 @@ class IndependentTrainer():
 
         # 创建和本次训练相应的保存目录
         record_dir = self.__create_record_dir(RECORDS_ROOT_DIR)
-        self.__record_init_config(record_dir, train_config)
+        data_dir = record_dir + "data/"
+        params_dir = record_dir + "params/"
+        self.__record_init_config(data_dir, train_config)
 
         # 保存每轮 episode 完成后的 reward 奖励
         central_reward_record = {}
@@ -265,7 +269,7 @@ class IndependentTrainer():
                         "episode": episode,
                     }
                     param_file_name = "params_latest.pth"
-                    param_file = record_dir + param_file_name
+                    param_file = params_dir + param_file_name
                     self.__snapshot_params(
                         env, policies, buffers, exec_params, train_config,
                         param_file
@@ -273,7 +277,7 @@ class IndependentTrainer():
                     if eval_reward_mean > SAVED_THRESHOLD:
                         # 如果当前模型效果达到期望的阈值，就保存模型
                         param_file_name = "params_{}.pth".format(episode)
-                        param_file = record_dir + "params/" + param_file_name
+                        param_file = params_dir + param_file_name
                         self.__snapshot_params(
                             env, policies, buffers, exec_params, train_config,
                             param_file
@@ -281,7 +285,7 @@ class IndependentTrainer():
 
         if saved:
             param_file_name = "params_latest.pth"
-            param_file = record_dir + param_file_name
+            param_file = params_dir + param_file_name
             exec_params = {
                 "batch_size": batch_size,
                 "episode": num_episodes,
@@ -301,7 +305,7 @@ class IndependentTrainer():
 
             test_config = self.__load_test_config(
                 param_file_name,
-                record_dir)
+                params_dir)
             self.test(test_config)
 
     def eval_(self, policies, env, num_episodes):
@@ -427,10 +431,10 @@ class IndependentTrainer():
             "local": local_record,
         }
         saved_data_file_name = "exp_result.txt"
-        result_file = record_dir + saved_data_file_name
+        result_file = record_dir + "data/" + saved_data_file_name
         with open(result_file, "w", encoding="utf-8") as f:
             f.write(str(saved_data))
-        self.__store_record_img(record_dir, result_file)
+        self.__store_record_img(record_dir + "figs/", result_file)
 
     def __create_record_dir(self, root_record, last_record="") -> str:
         # 创建的目录
@@ -443,17 +447,31 @@ class IndependentTrainer():
             date.minute,
             date.second
         )
-        path = root_record + sub_dir
-        if not os.path.exists(path):
-            os.mkdir(path)
+        record_dir = root_record + sub_dir
+        if not os.path.exists(record_dir):
+            os.mkdir(record_dir)
         else:
-            print("create record folder error , path exist : ", path)
-        param_path = path + "params/"
+            print("create record folder error , path exist : ", record_dir)
+
+        param_path = record_dir + "params/"
         if not os.path.exists(param_path):
             os.mkdir(param_path)
         else:
             print("create record folder error , path exist : ", param_path)
-        return path
+
+        fig_path = record_dir + "figs/"
+        if not os.path.exists(fig_path):
+            os.mkdir(fig_path)
+        else:
+            print("create record folder error , path exist : ", fig_path)
+
+        data_path = record_dir + "data/"
+        if not os.path.exists(data_path):
+            os.mkdir(data_path)
+        else:
+            print("create record folder error , path exist : ", data_path)
+
+        return record_dir
 
     def __parase_args(self):
         parser = argparse.ArgumentParser()
