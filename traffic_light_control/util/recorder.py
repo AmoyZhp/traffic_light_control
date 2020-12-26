@@ -1,0 +1,145 @@
+import datetime
+import os
+import torch
+from typing import List
+import matplotlib.pyplot as plt
+
+
+def create_record_dir(root_record, last_record="") -> str:
+    # 创建的目录
+    date = datetime.datetime.now()
+    sub_dir = "record_{}_{}_{}_{}_{}_{}/".format(
+        date.year,
+        date.month,
+        date.day,
+        date.hour,
+        date.minute,
+        date.second
+    )
+    record_dir = root_record + sub_dir
+    if not os.path.exists(record_dir):
+        os.mkdir(record_dir)
+    else:
+        print("create record folder error , path exist : ", record_dir)
+
+    param_path = record_dir + "params/"
+    if not os.path.exists(param_path):
+        os.mkdir(param_path)
+    else:
+        print("create record folder error , path exist : ", param_path)
+
+    fig_path = record_dir + "figs/"
+    if not os.path.exists(fig_path):
+        os.mkdir(fig_path)
+    else:
+        print("create record folder error , path exist : ", fig_path)
+
+    data_path = record_dir + "data/"
+    if not os.path.exists(data_path):
+        os.mkdir(data_path)
+    else:
+        print("create record folder error , path exist : ", data_path)
+
+    return record_dir
+
+
+def snapshot_params(env, polices, buffer, exec_params,
+                    train_config, params_file):
+
+    polices_weight = {}
+    for id_, p in polices.items():
+        polices_weight[id_] = p.get_weight()
+
+    buffer_weight = {}
+    for id_, b in buffer.items():
+        buffer_weight[id_] = b.get_weight()
+
+    weight = {
+        "policy": polices_weight,
+        "buffer": buffer_weight,
+    }
+
+    params = {
+        "config": train_config,
+        "weight": weight,
+        "exec": exec_params,
+    }
+
+    torch.save(params, params_file)
+
+
+def snapshot_exp_result(record_dir,
+                        central_record, local_record):
+    saved_data = {
+        "central": central_record,
+        "local": local_record,
+    }
+    saved_data_file_name = "exp_result.txt"
+    result_file = record_dir + "data/" + saved_data_file_name
+    with open(result_file, "w", encoding="utf-8") as f:
+        f.write(str(saved_data))
+    save_exp_result(record_dir + "figs/", result_file)
+
+
+def save_exp_result(record_dir, data_file):
+    data = {}
+    with open(data_file, "r", encoding="utf-8") as f:
+        data = eval(f.read())
+
+    central_data = data["central"]
+    local_data = data["local"]
+
+    episodes = []
+    rewards = []
+    for ep, r in central_data["reward"].items():
+        episodes.append(int(ep))
+        rewards.append(float(r))
+    savefig(
+        episodes, rewards, x_lable="episodes",
+        y_label="reward", title="rewards",
+        img=record_dir+"central_reward.png")
+
+    episodes = []
+    mean_eval_reward = []
+    eval_reward_mean = central_data["eval_reward"]["mean"]
+    for ep, r in eval_reward_mean.items():
+        episodes.append(int(ep))
+        mean_eval_reward.append(r)
+    savefig(
+        episodes, mean_eval_reward, x_lable="episodes",
+        y_label="reward", title="rewards",
+        img=record_dir+"eval_reward_mean.png")
+
+    for id_, val in local_data.items():
+
+        episodes = []
+        rewards = []
+        for ep, r in val["reward"].items():
+            episodes.append(int(ep))
+            rewards.append(float(r))
+        savefig(
+            episodes, rewards, x_lable="episodes",
+            y_label="reward", title="rewards",
+            img=record_dir+"local_reward_{}.png".format(id_))
+
+        episodes = []
+        loss = []
+        for ep, r in val["loss"].items():
+            episodes.append(int(ep))
+            loss.append(float(r))
+        savefig(
+            episodes, loss, x_lable="episodes",
+            y_label="loss", title="loss",
+            img=record_dir+"local_loss_{}.png".format(id_))
+
+
+def savefig(x: List, y: List, x_lable, y_label, title, img=""):
+    fig, ax = plt.subplots()
+    ax.plot(x, y, label='linear')
+    ax.set_xlabel(x_lable)
+    ax.set_ylabel(y_label)
+    ax.set_title(title)
+    if img != "":
+        fig.savefig(img)
+    plt.clf()
+    plt.close(fig)

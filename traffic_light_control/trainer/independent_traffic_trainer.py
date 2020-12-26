@@ -1,5 +1,3 @@
-import argparse
-import datetime
 import os
 import time
 import json
@@ -20,7 +18,7 @@ DATA_DIR = "data/"
 CITYFLOW_CONFIG_ROOT_DIR = "config/"
 
 # env setting
-MAX_TIME = 360
+MAX_TIME = 3600
 INTERVAL = 5
 
 # agent setting
@@ -51,7 +49,7 @@ class IndependentTrainer():
 
     def run(self):
 
-        args = self.__parase_args()
+        args = util.parase_args()
 
         mode = args.mode
         model_file = args.model_file
@@ -123,28 +121,19 @@ class IndependentTrainer():
 
         # 初始化环境
         env = envs.make(env_config)
+        ids = env.intersection_ids()
 
         # 初始化策略
         policies = {}
         buffers = {}
-        local_loss = {}
-        local_reward = {}
-        local_record = {}
-        ids = env.intersection_ids()
         for id_ in ids:
             policies[id_] = policy.get_policy(
                 policy_config["id"], policy_config)
             buffers[id_] = buffer.get_buffer(
                 buffer_config["id"],  buffer_config)
-            local_loss[id_] = 0.0
-            local_reward[id_] = {}
-            local_record[id_] = {
-                "loss": {},
-                "reward": {},
-            }
 
         # 创建和本次训练相应的保存目录
-        record_dir = self.__create_record_dir(RECORDS_ROOT_DIR)
+        record_dir = util.create_record_dir(RECORDS_ROOT_DIR)
         data_dir = record_dir + "data/"
         params_dir = record_dir + "params/"
         self.__record_init_config(data_dir, train_config)
@@ -152,8 +141,12 @@ class IndependentTrainer():
         # 保存每轮 episode 完成后的 reward 奖励
         central_reward_record = {}
         central_record = {}
-
-        # 保存每次评估时的评估奖励，和评估奖励的平均值
+        local_record = {}
+        for id_ in ids:
+            local_record[id_] = {
+                "loss": {},
+                "reward": {},
+            }
         eval_reward_recrod = {
             "all": {},
             "mean": {}
@@ -179,6 +172,8 @@ class IndependentTrainer():
             central_cumulative_reward = 0.0
             sim_time_cost = 0.0
             learn_time_cost = 0.0
+            local_loss = {}
+            local_reward = {}
             for k in ids:
                 local_loss[k] = 0.0
                 local_reward[k] = 0.0
@@ -255,7 +250,7 @@ class IndependentTrainer():
                     "reward": central_reward_record,
                     "eval_reward": eval_reward_recrod,
                 }
-                self.__snapshot_training(
+                util.snapshot_exp_result(
                     record_dir, central_record, local_record)
                 if saved:
                     exec_params = {
@@ -263,7 +258,7 @@ class IndependentTrainer():
                     }
                     param_file_name = "params_latest.pth"
                     param_file = params_dir + param_file_name
-                    self.__snapshot_params(
+                    util.snapshot_params(
                         env, policies, buffers, exec_params, train_config,
                         param_file
                     )
@@ -271,7 +266,7 @@ class IndependentTrainer():
                         # 如果当前模型效果达到期望的阈值，就保存模型
                         param_file_name = "params_{}.pth".format(episode)
                         param_file = params_dir + param_file_name
-                        self.__snapshot_params(
+                        util.snapshot_params(
                             env, policies, buffers, exec_params, train_config,
                             param_file
                         )
@@ -282,7 +277,7 @@ class IndependentTrainer():
             exec_params = {
                 "episode": num_episodes,
             }
-            self.__snapshot_params(
+            util.snapshot_params(
                 env, policies, buffers,
                 exec_params,
                 train_config,
@@ -292,7 +287,7 @@ class IndependentTrainer():
                 "reward": central_reward_record,
                 "eval_reward": eval_reward_recrod,
             }
-            self.__snapshot_training(
+            util.snapshot_exp_result(
                 record_dir, central_record, local_record)
 
             test_config = self.__load_test_config(
@@ -391,162 +386,6 @@ class IndependentTrainer():
             if done:
                 break
         print("total reward is {}".format(cumulative_reward))
-
-    def __snapshot_params(self, env, polices, buffer, exec_params,
-                          train_config, params_file):
-
-        polices_weight = {}
-        for id_, p in polices.items():
-            polices_weight[id_] = p.get_weight()
-
-        buffer_weight = {}
-        for id_, b in buffer.items():
-            buffer_weight[id_] = b.get_weight()
-
-        weight = {
-            "policy": polices_weight,
-            "buffer": buffer_weight,
-        }
-
-        params = {
-            "config": train_config,
-            "weight": weight,
-            "exec": exec_params,
-        }
-
-        torch.save(params, params_file)
-
-    def __snapshot_training(self, record_dir,
-                            central_record, local_record):
-        saved_data = {
-            "central": central_record,
-            "local": local_record,
-        }
-        saved_data_file_name = "exp_result.txt"
-        result_file = record_dir + "data/" + saved_data_file_name
-        with open(result_file, "w", encoding="utf-8") as f:
-            f.write(str(saved_data))
-        self.__store_record_img(record_dir + "figs/", result_file)
-
-    def __create_record_dir(self, root_record, last_record="") -> str:
-        # 创建的目录
-        date = datetime.datetime.now()
-        sub_dir = "record_{}_{}_{}_{}_{}_{}/".format(
-            date.year,
-            date.month,
-            date.day,
-            date.hour,
-            date.minute,
-            date.second
-        )
-        record_dir = root_record + sub_dir
-        if not os.path.exists(record_dir):
-            os.mkdir(record_dir)
-        else:
-            print("create record folder error , path exist : ", record_dir)
-
-        param_path = record_dir + "params/"
-        if not os.path.exists(param_path):
-            os.mkdir(param_path)
-        else:
-            print("create record folder error , path exist : ", param_path)
-
-        fig_path = record_dir + "figs/"
-        if not os.path.exists(fig_path):
-            os.mkdir(fig_path)
-        else:
-            print("create record folder error , path exist : ", fig_path)
-
-        data_path = record_dir + "data/"
-        if not os.path.exists(data_path):
-            os.mkdir(data_path)
-        else:
-            print("create record folder error , path exist : ", data_path)
-
-        return record_dir
-
-    def __parase_args(self):
-        parser = argparse.ArgumentParser()
-        parser.add_argument(
-            "-m", "--mode", type=str, default="", required=True,
-            help="mode of exec, include [train, test, static]")
-        parser.add_argument(
-            "-e", "--episodes", type=int, default=1,
-            help="episode of exectue time"
-        )
-        parser.add_argument(
-            "-mf", "--model_file", type=str,
-            help="the path of model parameter file"
-        )
-        parser.add_argument(
-            "-th", "--thread_num", type=int, default=1,
-            help="thread number of simulator"
-        )
-        parser.add_argument(
-            "-s", "--save", type=int, default=1,
-            help="save params or not"
-        )
-        parser.add_argument(
-            "-r", "--resume", type=int, default=0,
-            help="resume training or not"
-        )
-        parser.add_argument(
-            "-rd", "--record_dir", type=str, default="",
-            help="resume dir if set resume with true"
-        )
-
-        return parser.parse_args()
-
-    def __store_record_img(self, record_dir, data_file):
-        data = {}
-        with open(data_file, "r", encoding="utf-8") as f:
-            data = eval(f.read())
-
-        central_data = data["central"]
-        local_data = data["local"]
-
-        episodes = []
-        rewards = []
-        for ep, r in central_data["reward"].items():
-            episodes.append(int(ep))
-            rewards.append(float(r))
-        util.savefig(
-            episodes, rewards, x_lable="episodes",
-            y_label="reward", title="rewards",
-            img=record_dir+"central_reward.png")
-
-        episodes = []
-        mean_eval_reward = []
-        eval_reward_mean = central_data["eval_reward"]["mean"]
-        for ep, r in eval_reward_mean.items():
-            episodes.append(int(ep))
-            mean_eval_reward.append(r)
-        util.savefig(
-            episodes, mean_eval_reward, x_lable="episodes",
-            y_label="reward", title="rewards",
-            img=record_dir+"eval_reward_mean.png")
-
-        for id_, val in local_data.items():
-
-            episodes = []
-            rewards = []
-            for ep, r in val["reward"].items():
-                episodes.append(int(ep))
-                rewards.append(float(r))
-            util.savefig(
-                episodes, rewards, x_lable="episodes",
-                y_label="reward", title="rewards",
-                img=record_dir+"local_reward_{}.png".format(id_))
-
-            episodes = []
-            loss = []
-            for ep, r in val["loss"].items():
-                episodes.append(int(ep))
-                loss.append(float(r))
-            util.savefig(
-                episodes, loss, x_lable="episodes",
-                y_label="loss", title="loss",
-                img=record_dir+"local_loss_{}.png".format(id_))
 
     def __load_test_config(self, model_file, record_dir):
         params = torch.load(record_dir + model_file)
