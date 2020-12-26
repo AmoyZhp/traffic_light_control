@@ -91,7 +91,6 @@ def save_exp_result(record_dir, data_file):
     data = {}
     with open(data_file, "r", encoding="utf-8") as f:
         data = eval(f.read())
-
     central_data = data["central"]
     local_data = data["local"]
 
@@ -125,6 +124,16 @@ def save_exp_result(record_dir, data_file):
             x_lable="episodes", y_label="average travel time",
             title="average travel time",
             img=record_dir+"average_travel_time.png")
+
+    episodes = []
+    average_travel_time = []
+    for ep, t in central_data["eval_reward"]["average_travel_time"].items():
+        episodes.append(ep)
+        average_travel_time.append(t)
+    savefig(episodes, average_travel_time,
+            x_lable="episodes", y_label="average travel time",
+            title="average travel time",
+            img=record_dir+"eval_average_travel_time.png")
 
     for id_, val in local_data.items():
 

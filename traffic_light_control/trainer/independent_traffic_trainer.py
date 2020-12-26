@@ -1,6 +1,8 @@
 import os
 import time
 import json
+
+from numpy.lib.utils import info
 import buffer
 import envs
 import torch
@@ -35,9 +37,7 @@ ACTION_SPACE = 2
 
 
 # exec setting
-DATA_SAVE_PERIOD = 20
 EVAL_NUM_EPISODE = 50
-SAVED_THRESHOLD = -30.0
 INTERATION_UPPER_BOUND = 1000000
 
 ENV_ID = "hangzhou_1x1_bc-tyc_18041607_1h"
@@ -51,17 +51,16 @@ class IndependentTrainer():
     def run(self):
 
         args = util.parase_args()
+        print(args)
         mode = args.mode
         model_file = args.model_file
         thread_num = args.thread_num
         episodes = args.episodes
         save = False if args.save == 0 else True
         resume = True if args.resume == 1 else False
+        saved_peroid = args.data_saved_period
+        saved_threshold = args.saved_threshold
         record_dir = args.record_dir
-
-        print("mode : {}, model file :  {}, ep : {}, thread : {} ".format(
-            mode, model_file, episodes, thread_num
-        ) + "save : {}".format(save))
 
         if mode == "train":
             train_config = {}
@@ -81,6 +80,8 @@ class IndependentTrainer():
             train_config["exec"]["num_episodes"] = episodes
             train_config["exec"]["saved"] = save
             train_config["exec"]["resume"] = resume
+            train_config["exec"]["data_saved_period"] = saved_peroid
+            train_config["exec"]["saved_threshold"] = saved_threshold
 
             self.train(train_config)
         elif mode == "test":
@@ -116,6 +117,7 @@ class IndependentTrainer():
         eval_num_episodes = exec_config["eval_num_episodes"]
         saved = exec_config["saved"]
         data_saved_period = exec_config["data_saved_period"]
+        saved_threshold = exec_config["saved_threshold"]
 
         batch_size = policy_config["batch_size"]
 
@@ -144,6 +146,7 @@ class IndependentTrainer():
             "eval_reward": {
                 "all": {},
                 "mean": {},
+                "average_travel_time": {},
             },
             "average_travel_time": {}
         }
@@ -246,12 +249,15 @@ class IndependentTrainer():
                     num_episodes=eval_num_episodes,
                 )
                 eval_reward_mean = eval_rewards["mean"]
-                print(" episode : {}, eval mean reward is {:.3f}".format(
-                    episode, eval_rewards["mean"]
+                travel_time = eval_rewards["average_travel_time"]
+                print(" episode : {}, eval mean reward is {:.3f}, travel time {:.3f} ".format(
+                    episode, eval_rewards["mean"], travel_time,
                 ))
                 eval_reward_recrod = central_record["eval_reward"]
                 eval_reward_recrod["all"][episode] = eval_rewards["all"]
                 eval_reward_recrod["mean"][episode] = eval_rewards["mean"]
+                eval_reward_recrod["average_travel_time"][
+                    episode] = travel_time
                 train_info["training_time"] = time.time() - train_begin_time
                 util.snapshot_exp_result(
                     record_dir, central_record, local_record, train_info)
@@ -265,7 +271,7 @@ class IndependentTrainer():
                         env, policies, buffers, exec_params, train_config,
                         param_file
                     )
-                    if eval_reward_mean > SAVED_THRESHOLD:
+                    if eval_reward_mean < saved_threshold:
                         # 如果当前模型效果达到期望的阈值，就保存模型
                         param_file_name = "params_{}.pth".format(episode)
                         param_file = params_dir + param_file_name
@@ -300,6 +306,7 @@ class IndependentTrainer():
 
         ids = env.intersection_ids()
         reward_history = []
+        travel_time_history = []
         for _ in range(num_episodes):
             states = env.reset()
             cumulative_reward = 0.0
@@ -312,15 +319,18 @@ class IndependentTrainer():
                         print("intersection id is not exit {}".format(id_))
                     action = policy_.compute_single_action(obs, False)
                     actions[id_] = action
-                states, rewards, done, _ = env.step(actions)
+                states, rewards, done, info = env.step(actions)
                 for r in rewards.values():
                     cumulative_reward += r
                 if done:
                     reward_history.append(cumulative_reward)
+                    travel_time_history.append(info["average_travel_time"])
                     break
         reward_record = {}
         reward_record["all"] = reward_history
         reward_record["mean"] = sum(reward_history) / len(reward_history)
+        reward_record["average_travel_time"] = sum(
+            travel_time_history) / len(travel_time_history)
         return reward_record
 
     def test(self, test_config):
@@ -360,12 +370,12 @@ class IndependentTrainer():
                         print("intersection id is not exit {}".format(id_))
                     action = policy_.compute_single_action(obs, False)
                     actions[id_] = action
-                states, rewards, done, _ = env.step(actions)
+                states, rewards, done, info = env.step(actions)
                 for r in rewards.values():
                     cumulative_reward += r
                 if done:
-                    print("In test mode, episodes {}, reward is {:.3f}".format(
-                        eps, cumulative_reward))
+                    print("In test mode, episodes {}, reward is {:.3f}, travel time {:.3f}".format(
+                        eps, cumulative_reward, info["average_travel_time"]))
                     reward_history[eps] = cumulative_reward
                     break
         os.system("cp ../replay/replay_roadnet.json {}".format(
@@ -443,7 +453,6 @@ class IndependentTrainer():
         }
 
         exec_config = {
-            "data_saved_period": DATA_SAVE_PERIOD,
             "eval_num_episodes": EVAL_NUM_EPISODE,
         }
 

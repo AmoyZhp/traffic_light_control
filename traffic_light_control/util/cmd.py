@@ -1,6 +1,10 @@
 import argparse
 
 
+DATA_SAVE_PERIOD = 100
+SAVED_THRESHOLD = -100.0
+
+
 def parase_args():
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -29,6 +33,18 @@ def parase_args():
     parser.add_argument(
         "-rd", "--record_dir", type=str, default="",
         help="resume dir if set resume with true"
+    )
+
+    parser.add_argument(
+        "-dsp", "--data_saved_period", type=int, default=DATA_SAVE_PERIOD,
+        required=True,
+        help="saving period of data"
+    )
+
+    parser.add_argument(
+        "-st", "--saved_threshold", type=float, default=SAVED_THRESHOLD,
+        required=True,
+        help="the threhold that save model weight"
     )
 
     return parser.parse_args()
