@@ -52,7 +52,7 @@ class IndependentTrafficEnv(gym.Env):
     def __compute_reward(self) -> Dict[str, float]:
         reward = {}
         for id_, inter in self.intersections.items():
-            r = - inter.get_waiting_rate()
-            # r = - inter.get_pressure()
+            # r = - inter.get_waiting_rate()
+            r = - inter.get_pressure()
             reward[id_] = r
         return reward

@@ -54,6 +54,9 @@ class Intersection():
             out_road = rlink[GraphDirection.OUT]
             in_road = rlink[GraphDirection.IN]
             for dir_ in TrafficStreamDirection:
+                if (in_road.get_capacity(dir_) == 0
+                        or out_road.get_capacity(dir_) == 0):
+                    continue
                 in_density = in_road.get_vehicles(
                     dir_) / in_road.get_capacity(dir_)
                 out_density = out_road.get_vehicles(
