@@ -2,7 +2,7 @@ import argparse
 import datetime
 import os
 import time
-from typing import Any, Dict, List
+import json
 import buffer
 import envs
 import torch
@@ -39,7 +39,7 @@ DATA_SAVE_PERIOD = 20
 EVAL_NUM_EPISODE = 50
 SAVED_THRESHOLD = -30.0
 
-ENV_ID = "syn_4x4_gaussian_500_1h"
+ENV_ID = "hangzhou_1x1_bc-tyc_18041607_1h"
 
 
 class IndependentTrainer():
@@ -162,6 +162,7 @@ class IndependentTrainer():
 
         # 创建和本次训练相应的保存目录
         record_dir = self.__create_record_dir(RECORDS_ROOT_DIR)
+        self.__record_init_config(record_dir, train_config)
 
         # 保存每轮 episode 完成后的 reward 奖励
         central_reward_record = {}
@@ -179,6 +180,8 @@ class IndependentTrainer():
             ep_begin_time = time.time()
             states = env.reset()
             central_cumulative_reward = 0.0
+            sim_time_cost = 0.0
+            learn_time_cost = 0.0
             for k in ids:
                 local_loss[k] = 0.0
                 local_reward[k] = 0.0
@@ -191,7 +194,9 @@ class IndependentTrainer():
                         print("intersection id is not exit {}".format(id_))
                     action = policy_.compute_single_action(obs, True)
                     actions[id_] = action
+                sim_begin_time = time.time()
                 next_states, rewards, done, info = env.step(actions)
+                sim_time_cost += time.time() - sim_begin_time
 
                 for id_ in ids:
                     s = states[id_]
@@ -201,12 +206,15 @@ class IndependentTrainer():
                     terminal = np.array([[0 if done else 1]])
                     buff = buffers[id_]
                     buff.store(Transition(s, a, r, ns, terminal))
+
+                learn_begin_time = time.time()
                 for id_ in ids:
                     buff = buffers[id_]
                     batch_data = buff.sample(batch_size)
                     policy_ = policies[id_]
                     local_loss[id_] += policy_.learn_on_batch(
                         batch_data)
+                learn_time_cost += time.time() - learn_begin_time
                 states = next_states
                 for id_, r in rewards.items():
                     central_cumulative_reward += r
@@ -214,8 +222,12 @@ class IndependentTrainer():
                 if done:
                     ep_end_time = time.time()
                     print(" ====== episode {} ======".format(episode))
-                    print(" time cost {:.3f}s".format(
+                    print(" total time cost {:.3f}s".format(
                         ep_end_time - ep_begin_time))
+                    print(" simulation time cost {:.3f}s".format(
+                        sim_time_cost))
+                    print(" learning time cost {:.3f}s".format(
+                        learn_time_cost))
                     print(" central reward : {:.3f}".format(
                         central_cumulative_reward))
                     print(" loss :")
@@ -544,3 +556,9 @@ class IndependentTrainer():
         }
 
         return test_config
+
+    def __record_init_config(self, record_dir, config):
+        config["policy"].pop("device")
+        params_path = record_dir + "init_params.json"
+        with open(params_path, "w") as f:
+            json.dump(config, f)

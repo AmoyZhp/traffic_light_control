@@ -3,7 +3,7 @@ import cityflow
 
 
 def static_test():
-    path = "config/syn_4x4_gaussian_500_1h/config.json"
+    path = "config/hangzhou_1x1_bc-tyc_18041607_1h/config.json"
     max_time = 360
     eng = cityflow.Engine(path, thread_num=1)
     for t in range(max_time):
