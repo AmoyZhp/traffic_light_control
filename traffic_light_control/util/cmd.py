@@ -4,12 +4,34 @@ import argparse
 DATA_SAVE_PERIOD = 100
 SAVED_THRESHOLD = -100.0
 
+ENV_ID = "hangzhou_1x1_bc-tyc_18041607_1h"
+
 
 def parase_args():
     parser = argparse.ArgumentParser()
+
     parser.add_argument(
-        "-m", "--mode", type=str, default="", required=True,
+        "-m", "--mode", type=str, required=True,
         help="mode of exec, include [train, test, static]")
+
+    parser.add_argument(
+        "-dsp", "--data_saved_period", type=int,
+        required=True,
+        help="saving period of data"
+    )
+
+    parser.add_argument(
+        "-st", "--saved_threshold", type=float,
+        required=True,
+        help="the threhold that save model weight"
+    )
+
+    parser.add_argument(
+        "-env", "--environment", type=str,
+        required=True,
+        help="the id of environment"
+    )
+
     parser.add_argument(
         "-e", "--episodes", type=int, default=1,
         help="episode of exectue time"
@@ -33,18 +55,6 @@ def parase_args():
     parser.add_argument(
         "-rd", "--record_dir", type=str, default="",
         help="resume dir if set resume with true"
-    )
-
-    parser.add_argument(
-        "-dsp", "--data_saved_period", type=int, default=DATA_SAVE_PERIOD,
-        required=True,
-        help="saving period of data"
-    )
-
-    parser.add_argument(
-        "-st", "--saved_threshold", type=float, default=SAVED_THRESHOLD,
-        required=True,
-        help="the threhold that save model weight"
     )
 
     return parser.parse_args()

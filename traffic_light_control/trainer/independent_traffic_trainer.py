@@ -17,7 +17,6 @@ PARAMS_DIR = "params/"
 FIGS_DIR = "figs/"
 DATA_DIR = "data/"
 
-CITYFLOW_CONFIG_ROOT_DIR = "config/"
 
 # env setting
 MAX_TIME = 3600
@@ -40,8 +39,6 @@ ACTION_SPACE = 2
 EVAL_NUM_EPISODE = 50
 INTERATION_UPPER_BOUND = 1000000
 
-ENV_ID = "hangzhou_1x1_bc-tyc_18041607_1h"
-
 
 class IndependentTrainer():
 
@@ -61,6 +58,7 @@ class IndependentTrainer():
         saved_peroid = args.data_saved_period
         saved_threshold = args.saved_threshold
         record_dir = args.record_dir
+        env_id = args.environment
 
         if mode == "train":
             train_config = {}
@@ -75,6 +73,7 @@ class IndependentTrainer():
 
             train_config["env"]["thread_num"] = thread_num
             train_config["env"]["save_replay"] = False
+            train_config["env"]["id"] = env_id
             train_config["policy"]["device"] = torch.device(
                 "cuda" if torch.cuda.is_available() else "cpu")
             train_config["exec"]["num_episodes"] = episodes
@@ -93,10 +92,8 @@ class IndependentTrainer():
                 RECORDS_ROOT_DIR + record_dir + "/")
             self.test(test_config)
         elif mode == "static":
-            cityflow_config_dir = CITYFLOW_CONFIG_ROOT_DIR + ENV_ID + "/"
             env_config = {
-                "id": ENV_ID,
-                "cityflow_config_dir": cityflow_config_dir,
+                "id": env_id,
                 "max_time": MAX_TIME,
                 "interval": INTERVAL,
                 "thread_num": thread_num,
@@ -425,11 +422,7 @@ class IndependentTrainer():
 
     def __get_default_config(self):
 
-        cityflow_config_dir = CITYFLOW_CONFIG_ROOT_DIR + ENV_ID + "/"
-
         env_config = {
-            "id": ENV_ID,
-            "cityflow_config_dir": cityflow_config_dir,
             "max_time": MAX_TIME,
             "interval": INTERVAL,
         }

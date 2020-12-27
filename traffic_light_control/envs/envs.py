@@ -10,12 +10,16 @@ import math
 from util.enum import *
 
 
+CITYFLOW_CONFIG_ROOT_DIR = "config/"
+
+
 def make(config):
     return __get_env_by_roadnet(config)
 
 
 def __get_env_by_roadnet(config):
-    cityflow_config_dir = config["cityflow_config_dir"]
+    id_ = config["id"]
+    cityflow_config_dir = CITYFLOW_CONFIG_ROOT_DIR + id_ + "/"
     cityflow_config_file = cityflow_config_dir + "config.json"
 
     eng = cityflow.Engine(cityflow_config_file, config["thread_num"])
