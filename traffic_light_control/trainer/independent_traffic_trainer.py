@@ -374,7 +374,16 @@ class IndependentTrainer():
                     print("In test mode, episodes {}, reward is {:.3f}, travel time {:.3f}".format(
                         eps, cumulative_reward, info["average_travel_time"]))
                     reward_history[eps] = cumulative_reward
+                    test_result = {
+                        "travel_time": info["average_travel_time"],
+                        "central_reward": cumulative_reward,
+                    }
+                    test_result_file = record_dir + "data/" + \
+                        "test_result_{}.json".format(eps)
+                    with open(test_result_file, "w", encoding="utf-8") as f:
+                        json.dump(test_result, f)
                     break
+
         os.system("cp ../replay/replay_roadnet.json {}".format(
             record_dir + "data/"
         ))
