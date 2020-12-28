@@ -225,7 +225,7 @@ class IndependentTrainer():
 
                 print(" episode : {},".format(episode) +
                       "eval mean reward is {:.3f}, travel time {:.3f} ".format(
-                    episode, eval_rewards["mean"], travel_time,
+                    eval_rewards["mean"], travel_time,
                 ))
                 eval_reward_recrod = central_record["eval_reward"]
                 eval_reward_recrod["all"][episode] = eval_rewards["all"]
@@ -298,6 +298,7 @@ class IndependentTrainer():
                     reward_history.append(cumulative_reward)
                     travel_time_history.append(info["average_travel_time"])
                     break
+        print(reward_history)
         reward_record = {}
         reward_record["all"] = reward_history
         reward_record["mean"] = sum(reward_history) / len(reward_history)
