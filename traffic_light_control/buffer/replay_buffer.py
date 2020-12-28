@@ -22,7 +22,7 @@ class ReplayBuffer(object):
         }
         return weight
 
-    def set_weigth(self, weight):
+    def set_weight(self, weight):
         self.buffer = weight["buffer"]
 
     def get_config(self):

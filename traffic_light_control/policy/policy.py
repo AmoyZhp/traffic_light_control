@@ -1,6 +1,7 @@
 
 import net
 from policy.dqn import DQN
+from policy.independent_wrapper import IndependentWrapper
 
 
 def get_policy(id_, config):
@@ -8,6 +9,13 @@ def get_policy(id_, config):
         return __get_DQN(config)
     else:
         print("invalid id {}".format(id_))
+
+
+def get_wrapper(id_, config):
+    if id_ == "IL":
+        return IndependentWrapper(config, config["mode"])
+    else:
+        print("invalid wrapper id {}".format(id_))
 
 
 def __get_DQN(config):

@@ -1,5 +1,3 @@
-
-from typing import Any, Dict
 import numpy as np
 import buffer
 import policy
@@ -7,24 +5,26 @@ import policy
 from util.type import Transition
 
 
-class PolicyWrapper():
+class IndependentWrapper():
 
-    def __init__(self, ids, config, mode="train"):
-        self.ids = ids
+    def __init__(self, config, mode="train"):
+
+        self.ids = config["local_ids"]
 
         policy_config = config["policy"]
-        buffer_config = policy_config["buffer"]
+
         self.batch_size = policy_config["batch_size"]
 
         self.policies = {}
         for id_ in self.ids:
             self.policies[id_] = policy.get_policy(
-                policy_config["id"], policy_config)
+                policy_config["alg_id"], policy_config)
 
         self.mode = mode
+
         if self.mode == "train":
+            buffer_config = policy_config["buffer"]
             self.buffers = {}
-            buffer_config = config["buffer"]
             for id_ in self.ids:
                 self.buffers[id_] = buffer.get_buffer(
                     buffer_config["id"],  buffer_config)
@@ -87,3 +87,6 @@ class PolicyWrapper():
 
     def set_mode(self, mode):
         self.mode = mode
+
+    def get_mode(self):
+        return self.mode

@@ -2,8 +2,6 @@ import os
 import time
 import json
 
-from numpy.lib.utils import info
-import buffer
 import envs
 import torch
 import numpy as np
@@ -107,7 +105,6 @@ class IndependentTrainer():
     def train(self, train_config):
 
         env_config = train_config["env"]
-        buffer_config = train_config["buffer"]
         policy_config = train_config["policy"]
         exec_config = train_config["exec"]
 
@@ -122,9 +119,10 @@ class IndependentTrainer():
         ids = env.intersection_ids()
 
         # 初始化策略
-        p_wrapper = policy.PolicyWrapper(ids, {
-            "buffer": buffer_config,
+        p_wrapper = policy.get_wrapper(policy_config["wrapper_id"], {
             "policy": policy_config,
+            "mode": "train",
+            "local_ids": ids,
         })
 
         # 创建和本次训练相应的保存目录
@@ -169,14 +167,14 @@ class IndependentTrainer():
                 local_reward[k] = 0.0
             for cnt in range(INTERATION_UPPER_BOUND):
 
-                actions = p_wrapper.compute_action(states, True)
+                actions = p_wrapper.compute_action(states)
 
                 sim_begin_time = time.time()
                 next_states, rewards, done, info = env.step(actions)
                 sim_time_cost += time.time() - sim_begin_time
 
                 p_wrapper.record_transition(
-                    states, actions, rewards, next_states, done, info)
+                    states, actions, rewards, next_states, done)
 
                 states = next_states
 
@@ -286,6 +284,8 @@ class IndependentTrainer():
             self.test(test_config)
 
     def eval_(self, policy, env, num_episodes):
+        old_mode = policy.get_mode()
+        policy.set_mode("eval")
 
         reward_history = []
         travel_time_history = []
@@ -306,6 +306,7 @@ class IndependentTrainer():
         reward_record["mean"] = sum(reward_history) / len(reward_history)
         reward_record["average_travel_time"] = sum(
             travel_time_history) / len(travel_time_history)
+        policy.set_mode(old_mode)
         return reward_record
 
     def test(self, test_config):
@@ -323,12 +324,12 @@ class IndependentTrainer():
         ids = env.intersection_ids()
 
         # 初始化策略
-        p_wrapper = policy_wrapper.PolicyWrapper(
-            ids, {
-                "policy": policy_config,
-            },
-            mode="test"
-        )
+        p_wrapper = policy.get_wrapper(policy_config["wrapper_id"], {
+            "policy": policy_config,
+            "mode": "test",
+            "local_ids": ids,
+        })
+
         p_wrapper.set_weight(weight)
         reward_history = {}
 
@@ -336,7 +337,7 @@ class IndependentTrainer():
             states = env.reset()
             cumulative_reward = 0.0
             while True:
-                actions = p_wrapper.compute_action(states, False)
+                actions = p_wrapper.compute_action(states)
                 states, rewards, done, info = env.step(actions)
                 for r in rewards.values():
                     cumulative_reward += r
@@ -407,12 +408,13 @@ class IndependentTrainer():
             "interval": INTERVAL,
         }
 
-        buffer_config = {
-            "id": "basis",
-            "capacity": CAPACITY}
-
         policy_config = {
-            "id": "DQN",
+            "wrapper_id": "IL",
+            "alg_id": "DQN",
+            "buffer": {
+                "id": "basis",
+                "capacity": CAPACITY,
+            },
             "learning_rate": LERNING_RATE,
             "discount_factor": DISCOUNT_FACTOR,
             "net_id": "single_intersection",
@@ -431,7 +433,6 @@ class IndependentTrainer():
 
         train_config = {
             "env": env_config,
-            "buffer": buffer_config,
             "policy": policy_config,
             "exec": exec_config,
         }
