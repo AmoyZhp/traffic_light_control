@@ -127,16 +127,6 @@ class IndependentTrainer():
             "policy": policy_config,
         })
 
-        """
-        policies = {}
-        buffers = {}
-        for id_ in ids:
-            policies[id_] = policy.get_policy(
-                policy_config["id"], policy_config)
-            buffers[id_] = buffer.get_buffer(
-                buffer_config["id"],  buffer_config)
-        """
-
         # 创建和本次训练相应的保存目录
         record_dir = util.create_record_dir(RECORDS_ROOT_DIR)
         data_dir = record_dir + "data/"
@@ -178,16 +168,8 @@ class IndependentTrainer():
                 local_loss[k] = 0.0
                 local_reward[k] = 0.0
             for cnt in range(INTERATION_UPPER_BOUND):
-                actions = p_wrapper.compute_action(states, True)
 
-                # actions = {}
-                # for id_ in ids:
-                #     obs = states[id_]
-                #     policy_ = policies[id_]
-                #     if obs is None or policy_ is None:
-                #         print("intersection id is not exit {}".format(id_))
-                #     action = policy_.compute_single_action(obs, True)
-                #     actions[id_] = action
+                actions = p_wrapper.compute_action(states, True)
 
                 sim_begin_time = time.time()
                 next_states, rewards, done, info = env.step(actions)
@@ -196,30 +178,17 @@ class IndependentTrainer():
                 p_wrapper.record_transition(
                     states, actions, rewards, next_states, done, info)
 
-                # for id_ in ids:
-                #     s = states[id_]
-                #     a = np.reshape(actions[id_], (1, 1))
-                #     r = np.reshape(rewards[id_], (1, 1))
-                #     ns = next_states[id_]
-                #     terminal = np.array([[0 if done else 1]])
-                #     buff = buffers[id_]
-                #     buff.store(Transition(s, a, r, ns, terminal))
+                states = next_states
 
                 learn_begin_time = time.time()
                 local_losses = p_wrapper.update_policy()
-
-                # for id_ in ids:
-                #     buff = buffers[id_]
-                #     batch_data = buff.sample(batch_size)
-                #     policy_ = policies[id_]
-                #     local_loss[id_] += policy_.learn_on_batch(
-                #         batch_data)
                 learn_time_cost += time.time() - learn_begin_time
-                states = next_states
+
                 for id_, r in rewards.items():
                     central_cumulative_reward += r
                     local_reward[id_] += r
                     local_loss[id_] += local_losses[id_]
+
                 if done:
                     ep_end_time = time.time()
                     print(" ====== episode {} ======".format(episode))
@@ -325,16 +294,6 @@ class IndependentTrainer():
             cumulative_reward = 0.0
             while True:
                 actions = policy.compute_action(states)
-
-                # actions = {}
-                # for id_ in ids:
-                #     obs = states[id_]
-                #     policy_ = policies[id_]
-                #     if obs is None or policy_ is None:
-                #         print("intersection id is not exit {}".format(id_))
-                #     action = policy_.compute_single_action(obs, False)
-                #     actions[id_] = action
-
                 states, rewards, done, info = env.step(actions)
                 for r in rewards.values():
                     cumulative_reward += r
@@ -371,14 +330,6 @@ class IndependentTrainer():
             mode="test"
         )
         p_wrapper.set_weight(weight)
-
-        # policies = {}
-        # for id_ in ids:
-        #     policy_weight = weight["policy"][id_]
-        #     policies[id_] = policy.get_policy(
-        #         policy_config["id"], policy_config)
-        #     policies[id_].set_weight(policy_weight)
-
         reward_history = {}
 
         for eps in range(num_episodes):
@@ -386,14 +337,6 @@ class IndependentTrainer():
             cumulative_reward = 0.0
             while True:
                 actions = p_wrapper.compute_action(states, False)
-                # actions = {}
-                # for id_ in ids:
-                #     obs = states[id_]
-                #     policy_ = policies[id_]
-                #     if obs is None or policy_ is None:
-                #         print("intersection id is not exit {}".format(id_))
-                #     action = policy_.compute_single_action(obs, False)
-                #     actions[id_] = action
                 states, rewards, done, info = env.step(actions)
                 for r in rewards.values():
                     cumulative_reward += r
