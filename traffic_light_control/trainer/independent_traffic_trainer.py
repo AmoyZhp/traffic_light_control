@@ -4,11 +4,8 @@ import json
 
 import envs
 import torch
-import numpy as np
 import policy
-from policy import policy_wrapper
 import util
-from util.type import Transition
 
 
 RECORDS_ROOT_DIR = "records/"
@@ -219,7 +216,7 @@ class IndependentTrainer():
                     break
             if (episode % data_saved_period == 0):
                 eval_rewards = self.eval_(
-                    policy=policy_wrapper,
+                    policy=p_wrapper,
                     env=env,
                     num_episodes=eval_num_episodes,
                 )
