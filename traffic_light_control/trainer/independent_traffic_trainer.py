@@ -8,6 +8,7 @@ import envs
 import torch
 import numpy as np
 import policy
+from policy import policy_wrapper
 import util
 from util.type import Transition
 
@@ -116,13 +117,17 @@ class IndependentTrainer():
         data_saved_period = exec_config["data_saved_period"]
         saved_threshold = exec_config["saved_threshold"]
 
-        batch_size = policy_config["batch_size"]
-
         # 初始化环境
         env = envs.make(env_config)
         ids = env.intersection_ids()
 
         # 初始化策略
+        p_wrapper = policy.PolicyWrapper(ids, {
+            "buffer": buffer_config,
+            "policy": policy_config,
+        })
+
+        """
         policies = {}
         buffers = {}
         for id_ in ids:
@@ -130,6 +135,7 @@ class IndependentTrainer():
                 policy_config["id"], policy_config)
             buffers[id_] = buffer.get_buffer(
                 buffer_config["id"],  buffer_config)
+        """
 
         # 创建和本次训练相应的保存目录
         record_dir = util.create_record_dir(RECORDS_ROOT_DIR)
@@ -158,10 +164,6 @@ class IndependentTrainer():
         ep_begin = 1
         if exec_config["resume"]:
             ep_begin = exec_config["ep_begin"]
-            weight = train_config["weight"]
-            for id_ in ids:
-                policies[id_].set_weight(weight["policy"][id_])
-                buffer[id_].set_weight(weight["buffer"][id_])
 
         train_begin_time = time.time()
         for episode in range(ep_begin, num_episodes + ep_begin):
@@ -176,39 +178,48 @@ class IndependentTrainer():
                 local_loss[k] = 0.0
                 local_reward[k] = 0.0
             for cnt in range(INTERATION_UPPER_BOUND):
-                actions = {}
-                for id_ in ids:
-                    obs = states[id_]
-                    policy_ = policies[id_]
-                    if obs is None or policy_ is None:
-                        print("intersection id is not exit {}".format(id_))
-                    action = policy_.compute_single_action(obs, True)
-                    actions[id_] = action
+                actions = p_wrapper.compute_action(states, True)
+
+                # actions = {}
+                # for id_ in ids:
+                #     obs = states[id_]
+                #     policy_ = policies[id_]
+                #     if obs is None or policy_ is None:
+                #         print("intersection id is not exit {}".format(id_))
+                #     action = policy_.compute_single_action(obs, True)
+                #     actions[id_] = action
+
                 sim_begin_time = time.time()
                 next_states, rewards, done, info = env.step(actions)
                 sim_time_cost += time.time() - sim_begin_time
 
-                for id_ in ids:
-                    s = states[id_]
-                    a = np.reshape(actions[id_], (1, 1))
-                    r = np.reshape(rewards[id_], (1, 1))
-                    ns = next_states[id_]
-                    terminal = np.array([[0 if done else 1]])
-                    buff = buffers[id_]
-                    buff.store(Transition(s, a, r, ns, terminal))
+                p_wrapper.record_transition(
+                    states, actions, rewards, next_states, done, info)
+
+                # for id_ in ids:
+                #     s = states[id_]
+                #     a = np.reshape(actions[id_], (1, 1))
+                #     r = np.reshape(rewards[id_], (1, 1))
+                #     ns = next_states[id_]
+                #     terminal = np.array([[0 if done else 1]])
+                #     buff = buffers[id_]
+                #     buff.store(Transition(s, a, r, ns, terminal))
 
                 learn_begin_time = time.time()
-                for id_ in ids:
-                    buff = buffers[id_]
-                    batch_data = buff.sample(batch_size)
-                    policy_ = policies[id_]
-                    local_loss[id_] += policy_.learn_on_batch(
-                        batch_data)
+                local_losses = p_wrapper.update_policy()
+
+                # for id_ in ids:
+                #     buff = buffers[id_]
+                #     batch_data = buff.sample(batch_size)
+                #     policy_ = policies[id_]
+                #     local_loss[id_] += policy_.learn_on_batch(
+                #         batch_data)
                 learn_time_cost += time.time() - learn_begin_time
                 states = next_states
                 for id_, r in rewards.items():
                     central_cumulative_reward += r
                     local_reward[id_] += r
+                    local_loss[id_] += local_losses[id_]
                 if done:
                     ep_end_time = time.time()
                     print(" ====== episode {} ======".format(episode))
@@ -241,13 +252,15 @@ class IndependentTrainer():
                     break
             if (episode % data_saved_period == 0):
                 eval_rewards = self.eval_(
-                    policies=policies,
+                    policy=policy_wrapper,
                     env=env,
                     num_episodes=eval_num_episodes,
                 )
                 eval_reward_mean = eval_rewards["mean"]
                 travel_time = eval_rewards["average_travel_time"]
-                print(" episode : {}, eval mean reward is {:.3f}, travel time {:.3f} ".format(
+
+                print(" episode : {},".format(episode) +
+                      "eval mean reward is {:.3f}, travel time {:.3f} ".format(
                     episode, eval_rewards["mean"], travel_time,
                 ))
                 eval_reward_recrod = central_record["eval_reward"]
@@ -265,16 +278,20 @@ class IndependentTrainer():
                     param_file_name = "params_latest.pth"
                     param_file = params_dir + param_file_name
                     util.snapshot_params(
-                        env, policies, buffers, exec_params, train_config,
-                        param_file
+                        config=train_config,
+                        weight=p_wrapper.get_weight(),
+                        exec_params=exec_params,
+                        params_file=param_file
                     )
                     if eval_reward_mean < saved_threshold:
                         # 如果当前模型效果达到期望的阈值，就保存模型
                         param_file_name = "params_{}.pth".format(episode)
                         param_file = params_dir + param_file_name
                         util.snapshot_params(
-                            env, policies, buffers, exec_params, train_config,
-                            param_file
+                            config=train_config,
+                            weight=p_wrapper.get_weight(),
+                            exec_params=exec_params,
+                            params_file=param_file
                         )
 
         if saved:
@@ -284,10 +301,10 @@ class IndependentTrainer():
                 "episode": num_episodes,
             }
             util.snapshot_params(
-                env, policies, buffers,
-                exec_params,
-                train_config,
-                param_file
+                config=train_config,
+                weight=p_wrapper.get_weight(),
+                exec_params=exec_params,
+                params_file=param_file
             )
 
             train_info["training_time"] = time.time() - train_begin_time
@@ -299,23 +316,25 @@ class IndependentTrainer():
                 record_dir)
             self.test(test_config)
 
-    def eval_(self, policies, env, num_episodes):
+    def eval_(self, policy, env, num_episodes):
 
-        ids = env.intersection_ids()
         reward_history = []
         travel_time_history = []
         for _ in range(num_episodes):
             states = env.reset()
             cumulative_reward = 0.0
             while True:
-                actions = {}
-                for id_ in ids:
-                    obs = states[id_]
-                    policy_ = policies[id_]
-                    if obs is None or policy_ is None:
-                        print("intersection id is not exit {}".format(id_))
-                    action = policy_.compute_single_action(obs, False)
-                    actions[id_] = action
+                actions = policy.compute_action(states)
+
+                # actions = {}
+                # for id_ in ids:
+                #     obs = states[id_]
+                #     policy_ = policies[id_]
+                #     if obs is None or policy_ is None:
+                #         print("intersection id is not exit {}".format(id_))
+                #     action = policy_.compute_single_action(obs, False)
+                #     actions[id_] = action
+
                 states, rewards, done, info = env.step(actions)
                 for r in rewards.values():
                     cumulative_reward += r
@@ -342,37 +361,46 @@ class IndependentTrainer():
 
         # 初始化环境
         env = envs.make(env_config)
+        ids = env.intersection_ids()
 
         # 初始化策略
-        policies = {}
-        ids = env.intersection_ids()
-        for id_ in ids:
-            policy_weight = weight["policy"][id_]
-            policies[id_] = policy.get_policy(
-                policy_config["id"], policy_config)
-            policies[id_].set_weight(policy_weight)
+        p_wrapper = policy_wrapper.PolicyWrapper(
+            ids, {
+                "policy": policy_config,
+            },
+            mode="test"
+        )
+        p_wrapper.set_weight(weight)
+
+        # policies = {}
+        # for id_ in ids:
+        #     policy_weight = weight["policy"][id_]
+        #     policies[id_] = policy.get_policy(
+        #         policy_config["id"], policy_config)
+        #     policies[id_].set_weight(policy_weight)
 
         reward_history = {}
-        ids = env.intersection_ids()
 
         for eps in range(num_episodes):
             states = env.reset()
             cumulative_reward = 0.0
             while True:
-                actions = {}
-                for id_ in ids:
-                    obs = states[id_]
-                    policy_ = policies[id_]
-                    if obs is None or policy_ is None:
-                        print("intersection id is not exit {}".format(id_))
-                    action = policy_.compute_single_action(obs, False)
-                    actions[id_] = action
+                actions = p_wrapper.compute_action(states, False)
+                # actions = {}
+                # for id_ in ids:
+                #     obs = states[id_]
+                #     policy_ = policies[id_]
+                #     if obs is None or policy_ is None:
+                #         print("intersection id is not exit {}".format(id_))
+                #     action = policy_.compute_single_action(obs, False)
+                #     actions[id_] = action
                 states, rewards, done, info = env.step(actions)
                 for r in rewards.values():
                     cumulative_reward += r
                 if done:
-                    print("In test mode, episodes {}, reward is {:.3f}, travel time {:.3f}".format(
-                        eps, cumulative_reward, info["average_travel_time"]))
+                    print("In test mode, episodes {},".format(eps) +
+                          "reward is {:.3f}, travel time {:.3f}".format(
+                        cumulative_reward, info["average_travel_time"]))
                     reward_history[eps] = cumulative_reward
                     test_result = {
                         "travel_time": info["average_travel_time"],

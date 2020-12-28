@@ -44,28 +44,12 @@ def create_record_dir(root_record, last_record="") -> str:
     return record_dir
 
 
-def snapshot_params(env, polices, buffer, exec_params,
-                    train_config, params_file):
-
-    polices_weight = {}
-    for id_, p in polices.items():
-        polices_weight[id_] = p.get_weight()
-
-    buffer_weight = {}
-    for id_, b in buffer.items():
-        buffer_weight[id_] = b.get_weight()
-
-    weight = {
-        "policy": polices_weight,
-        "buffer": buffer_weight,
-    }
-
+def snapshot_params(config, weight, exec_params, params_file):
     params = {
-        "config": train_config,
+        "config": config,
         "weight": weight,
         "exec": exec_params,
     }
-
     torch.save(params, params_file)
 
 
