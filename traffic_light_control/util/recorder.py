@@ -6,16 +6,18 @@ from typing import List
 import matplotlib.pyplot as plt
 
 
-def create_record_dir(root_record, last_record="") -> str:
+def create_record_dir(root_record, info, last_record="") -> str:
     # 创建的目录
     date = datetime.datetime.now()
-    sub_dir = "record_{}_{}_{}_{}_{}_{}/".format(
+    sub_dir = "{}_{}_{}_{}_{}_{}_{}_{}/".format(
+        info["env_id"],
+        info["alg_id"],
         date.year,
         date.month,
         date.day,
         date.hour,
         date.minute,
-        date.second
+        date.second,
     )
     record_dir = root_record + sub_dir
     if not os.path.exists(record_dir):

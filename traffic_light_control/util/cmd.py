@@ -33,6 +33,18 @@ def parase_args():
     )
 
     parser.add_argument(
+        "-alg", "--algorithm", type=str,
+        required=True,
+        help="which algorithm be chosen"
+    )
+
+    parser.add_argument(
+        "-wrap", "--wrapper", type=str,
+        required=True,
+        help="the wrapper of algorithm"
+    )
+
+    parser.add_argument(
         "-e", "--episodes", type=int, default=1,
         help="episode of exectue time"
     )

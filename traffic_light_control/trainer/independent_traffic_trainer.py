@@ -55,6 +55,8 @@ class IndependentTrainer():
         saved_threshold = args.saved_threshold
         record_dir = args.record_dir
         env_id = args.environment
+        alg_id = args.algorithm
+        wrapper_id = args.wrapper
 
         if mode == "train":
             train_config = {}
@@ -70,6 +72,8 @@ class IndependentTrainer():
             train_config["env"]["thread_num"] = thread_num
             train_config["env"]["save_replay"] = False
             train_config["env"]["id"] = env_id
+            train_config["policy"]["alg_id"] = alg_id
+            train_config["policy"]["wrapper_id"] = wrapper_id
             train_config["policy"]["device"] = torch.device(
                 "cuda" if torch.cuda.is_available() else "cpu")
             train_config["exec"]["num_episodes"] = episodes
@@ -123,7 +127,12 @@ class IndependentTrainer():
         })
 
         # 创建和本次训练相应的保存目录
-        record_dir = util.create_record_dir(RECORDS_ROOT_DIR)
+        record_dir = util.create_record_dir(
+            RECORDS_ROOT_DIR,
+            {
+                "env_id": env_config["id"],
+                "alg_id": policy_config["alg_id"]
+            })
         data_dir = record_dir + "data/"
         params_dir = record_dir + "params/"
         self.__record_init_config(data_dir, train_config)
@@ -415,8 +424,6 @@ class IndependentTrainer():
         }
 
         policy_config = {
-            "wrapper_id": "Central",
-            "alg_id": "VDN",
             "buffer": {
                 "id": "basis",
                 "capacity": CAPACITY,

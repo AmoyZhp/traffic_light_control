@@ -16,7 +16,7 @@ def get_policy(id_, config):
 
 
 def get_wrapper(id_, config):
-    if id_ == "IL":
+    if id_ == "Independent":
         return IndependentWrapper(config, config["mode"])
     elif id_ == "Central":
         return CentralizedWrapper(config, config["mode"])

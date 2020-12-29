@@ -9,9 +9,9 @@ class IndependentWrapper():
 
     def __init__(self, config, mode="train"):
 
-        self.ids = config["local_ids"]
-
         policy_config = config["policy"]
+
+        self.ids = policy_config["local_ids"]
 
         self.batch_size = policy_config["batch_size"]
 
