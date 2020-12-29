@@ -70,7 +70,10 @@ class VDN():
             state = torch.tensor(
                 states[id_], dtype=torch.float, device=self.device)
             with torch.no_grad():
-                actions[id_] = self.acting_nets[id_](state)
+                value = self.acting_nets[id_](state)
+                value = np.squeeze(value, 0)
+                _, index = torch.max(value, 0)
+                actions[id_] = index.item()
 
         return actions
 
@@ -192,3 +195,24 @@ class VDN():
             processed_t[id_] = np.array([[0 if done else 1]])
         return Transition(processed_s, processed_a,
                           processed_r, processed_ns, processed_t)
+
+    def get_weight(self):
+        local_weight = {}
+        for id_ in self.local_ids:
+            local_weight[id_] = self.acting_nets[id_].state_dict()
+        weight = {
+            "net": local_weight,
+            "optimizer": self.optimizer.state_dict(),
+            "step": self.step,
+        }
+        return weight
+
+    def set_weight(self, weight):
+        optimizer_w = weight["optimizer"]
+        self.optimizer.load_state_dict(optimizer_w)
+        self.step = weight["step"]
+
+        net_w = weight["net"]
+        for id_ in self.local_ids:
+            self.acting_nets[id_].load_state_dict(net_w[id_])
+            self.target_nets[id_].load_state_dict(net_w[id_])

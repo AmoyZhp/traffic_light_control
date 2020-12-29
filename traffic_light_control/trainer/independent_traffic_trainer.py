@@ -131,6 +131,7 @@ class IndependentTrainer():
         # 保存每轮 episode 完成后的 reward 奖励
         central_record = {
             "reward": {},
+            "loss": {},
             "eval_reward": {
                 "all": {},
                 "mean": {},
@@ -158,6 +159,7 @@ class IndependentTrainer():
             sim_time_cost = 0.0
             learn_time_cost = 0.0
             local_loss = {}
+            central_loss = 0.0
             local_reward = {}
             for k in ids:
                 local_loss[k] = 0.0
@@ -180,6 +182,7 @@ class IndependentTrainer():
                 learn_time_cost += time.time() - learn_begin_time
 
                 central_cumulative_reward += rewards["central"]
+                central_loss += loss["central"]
                 for id_ in ids:
                     local_reward[id_] += rewards["local"][id_]
                 for id_, l in loss["local"].items():
@@ -198,6 +201,9 @@ class IndependentTrainer():
                         info["average_travel_time"]))
                     print(" central reward : {:.3f}".format(
                         central_cumulative_reward))
+                    print(" central loss : {:.3f}".format(
+                        central_loss / cnt
+                    ))
                     print(" local info : ")
                     for id_ in ids:
                         print("  id {}, reward {:.3f}, avg loss {:.3f}".format(
@@ -209,10 +215,11 @@ class IndependentTrainer():
                     print("=========================")
                     central_record["reward"][
                         episode] = central_cumulative_reward
+                    central_record["loss"][episode] = central_loss / cnt
                     central_record["average_travel_time"][
                         episode] = info["average_travel_time"]
                     for i in ids:
-                        local_record[i]["loss"][episode] = local_loss[i]
+                        local_record[i]["loss"][episode] = local_loss[i] / cnt
                         local_record[i]["reward"][episode] = local_reward[i]
                     break
             if (episode % data_saved_period == 0):

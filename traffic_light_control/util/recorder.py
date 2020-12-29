@@ -89,6 +89,16 @@ def save_exp_result(record_dir, data_file):
         img=record_dir+"central_reward.png")
 
     episodes = []
+    loss = []
+    for ep, l in central_data["loss"].items():
+        episodes.append(int(ep))
+        loss.append(float(l))
+    savefig(
+        episodes, rewards, x_lable="episodes",
+        y_label="reward", title="central loss",
+        img=record_dir+"central_loss.png")
+
+    episodes = []
     mean_eval_reward = []
     eval_reward_mean = central_data["eval_reward"]["mean"]
     for ep, r in eval_reward_mean.items():
