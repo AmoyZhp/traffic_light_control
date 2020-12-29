@@ -111,8 +111,9 @@ class VDN():
             )
             return torch_trans
 
-        true_state_values = torch.zeros((batch_size, 1))
-        true_next_state_values = torch.zeros((batch_size, 1))
+        true_state_values = torch.zeros((batch_size, 1), device=self.device)
+        true_next_state_values = torch.zeros(
+            (batch_size, 1), device=self.device)
         for id_, data in trans_div_by_id.items():
             acting_net = self.acting_nets[id_]
             target_net = self.target_nets[id_]
