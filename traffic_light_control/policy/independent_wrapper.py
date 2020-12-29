@@ -43,10 +43,11 @@ class IndependentWrapper():
 
     def record_transition(self, states, actions,
                           rewards, next_states, done):
+        local_rewards = rewards["local"]
         for id_ in self.ids:
             s = states[id_]
             a = np.reshape(actions[id_], (1, 1))
-            r = np.reshape(rewards[id_], (1, 1))
+            r = np.reshape(local_rewards[id_], (1, 1))
             ns = next_states[id_]
             terminal = np.array([[0 if done else 1]])
             buff = self.buffers[id_]
@@ -60,7 +61,11 @@ class IndependentWrapper():
             policy_ = self.policies[id_]
             local_loss[id_] = policy_.learn_on_batch(
                 batch_data)
-        return local_loss
+        loss = {
+            "central": 0.0,
+            "local": local_loss
+        }
+        return loss
 
     def get_weight(self):
         polices_weight = {}

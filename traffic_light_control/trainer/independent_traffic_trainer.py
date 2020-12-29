@@ -32,7 +32,7 @@ ACTION_SPACE = 2
 
 
 # exec setting
-EVAL_NUM_EPISODE = 50
+EVAL_NUM_EPISODE = 1
 INTERATION_UPPER_BOUND = 1000000
 
 
@@ -116,10 +116,10 @@ class IndependentTrainer():
         ids = env.intersection_ids()
 
         # 初始化策略
+        policy_config["local_ids"] = list(ids)
         p_wrapper = policy.get_wrapper(policy_config["wrapper_id"], {
             "policy": policy_config,
             "mode": "train",
-            "local_ids": ids,
         })
 
         # 创建和本次训练相应的保存目录
@@ -176,13 +176,14 @@ class IndependentTrainer():
                 states = next_states
 
                 learn_begin_time = time.time()
-                local_losses = p_wrapper.update_policy()
+                loss = p_wrapper.update_policy()
                 learn_time_cost += time.time() - learn_begin_time
 
-                for id_, r in rewards.items():
-                    central_cumulative_reward += r
-                    local_reward[id_] += r
-                    local_loss[id_] += local_losses[id_]
+                central_cumulative_reward += rewards["central"]
+                for id_ in ids:
+                    local_reward[id_] += rewards["local"][id_]
+                for id_, l in loss["local"].items():
+                    local_loss[id_] += l
 
                 if done:
                     ep_end_time = time.time()
@@ -292,8 +293,8 @@ class IndependentTrainer():
             while True:
                 actions = policy.compute_action(states)
                 states, rewards, done, info = env.step(actions)
-                for r in rewards.values():
-                    cumulative_reward += r
+                cumulative_reward += rewards["central"]
+
                 if done:
                     reward_history.append(cumulative_reward)
                     travel_time_history.append(info["average_travel_time"])
@@ -337,8 +338,7 @@ class IndependentTrainer():
             while True:
                 actions = p_wrapper.compute_action(states)
                 states, rewards, done, info = env.step(actions)
-                for r in rewards.values():
-                    cumulative_reward += r
+                cumulative_reward += rewards["central"]
                 if done:
                     print("In test mode, episodes {},".format(eps) +
                           "reward is {:.3f}, travel time {:.3f}".format(
@@ -396,6 +396,7 @@ class IndependentTrainer():
     def __record_init_config(self, record_dir, config):
         config["policy"].pop("device")
         params_path = record_dir + "init_params.json"
+        print(config)
         with open(params_path, "w") as f:
             json.dump(config, f)
 
@@ -407,8 +408,8 @@ class IndependentTrainer():
         }
 
         policy_config = {
-            "wrapper_id": "IL",
-            "alg_id": "DQN",
+            "wrapper_id": "Central",
+            "alg_id": "VDN",
             "buffer": {
                 "id": "basis",
                 "capacity": CAPACITY,

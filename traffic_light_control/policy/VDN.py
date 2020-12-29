@@ -29,12 +29,12 @@ class VDN():
         self.acting_nets = acting_nets
         self.target_nets = target_nets
         params = []
-        for id_, net in self.acting_nets:
+        for id_, net in self.acting_nets.items():
             self.target_nets[id_].load_state_dict(
                 net.state_dict())
             self.target_nets[id_].to(self.device)
             net.to(self.device)
-            params.append({"params": net.parameters})
+            params.append({"params": net.parameters()})
 
         self.optimizer = optim.Adam(params, learning_rate)
         self.loss_func = nn.MSELoss()
@@ -110,7 +110,9 @@ class VDN():
 
         true_state_values = torch.zeros((batch_size, 1))
         true_next_state_values = torch.zeros((batch_size, 1))
-        for id_, data in trans_div_by_id.item():
+        for id_, data in trans_div_by_id.items():
+            acting_net = self.acting_nets[id_]
+            target_net = self.target_nets[id_]
             batch = Transition(*zip(*map(np_to_torch, data)))
             non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
                                                     batch.next_state)),
@@ -126,14 +128,14 @@ class VDN():
             state_batch = torch.cat(batch.state, 0).to(self.device)
             action_batch = torch.cat(batch.action, 0).to(self.device)
 
-            state_action_values = self.acting_net(
+            state_action_values = acting_net(
                 state_batch).gather(1, action_batch).to(self.device)
 
             true_state_values += state_action_values
 
             next_state_values = torch.zeros(batch_size, device=self.device)
             if non_final_next_states is not None:
-                next_state_values[non_final_mask] = self.target_net(
+                next_state_values[non_final_mask] = target_net(
                     non_final_next_states).max(1)[0].detach()
             next_state_values = next_state_values.unsqueeze(1)
             true_next_state_values += next_state_values

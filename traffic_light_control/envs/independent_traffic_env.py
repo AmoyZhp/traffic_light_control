@@ -50,9 +50,14 @@ class IndependentTrafficEnv(gym.Env):
         return state
 
     def __compute_reward(self) -> Dict[str, float]:
-        reward = {}
+        reward = {
+            "local": {},
+            "central": 0.0,
+        }
         for id_, inter in self.intersections.items():
             # r = - inter.get_waiting_rate()
             r = - inter.get_pressure()
-            reward[id_] = r
+            reward["local"][id_] = r
+            reward["central"] += r
+
         return reward
