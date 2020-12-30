@@ -46,11 +46,11 @@ def create_record_dir(root_record, info, last_record="") -> str:
     return record_dir
 
 
-def snapshot_params(config, weight, exec_params, params_file):
+def snapshot_params(config, weight, record, params_file):
     params = {
         "config": config,
         "weight": weight,
-        "exec": exec_params,
+        "record": record,
     }
     torch.save(params, params_file)
 

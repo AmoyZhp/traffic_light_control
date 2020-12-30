@@ -59,13 +59,18 @@ class IndependentTrainer():
         wrapper_id = args.wrapper
 
         if mode == "train":
+            train_setting = {}
             train_config = {}
             if resume:
                 if (model_file == "" or record_dir == ""):
-                    print("please input model file and record dir if resume")
+                    print("please input model file and record dir if want " +
+                          "resume")
                     return
-                train_config = self.__resume_train_config(
-                    record_dir, model_file)
+                train_config, weight, record = self.__resume_train_config(
+                    RECORDS_ROOT_DIR + record_dir + "/",
+                    "params/" + model_file)
+                train_setting["weight"] = weight
+                train_setting["record"] = record
             else:
                 train_config = self.__get_default_config()
 
@@ -77,12 +82,14 @@ class IndependentTrainer():
             train_config["policy"]["device"] = torch.device(
                 "cuda" if torch.cuda.is_available() else "cpu")
             train_config["exec"]["num_episodes"] = episodes
+            train_config["exec"]["eval_num_episodes"] = EVAL_NUM_EPISODE
             train_config["exec"]["saved"] = save
             train_config["exec"]["resume"] = resume
             train_config["exec"]["data_saved_period"] = saved_peroid
             train_config["exec"]["saved_threshold"] = saved_threshold
+            train_setting["config"] = train_config
 
-            self.train(train_config)
+            self.train(train_setting)
         elif mode == "test":
             if model_file == "" or record_dir == "":
                 print("please input model file and record dir if want resume")
@@ -103,7 +110,9 @@ class IndependentTrainer():
         else:
             print(" invalid mode {} !!!".format(mode))
 
-    def train(self, train_config):
+    def train(self, train_setting):
+
+        train_config = train_setting["config"]
 
         env_config = train_config["env"]
         policy_config = train_config["policy"]
@@ -158,7 +167,11 @@ class IndependentTrainer():
 
         ep_begin = 1
         if exec_config["resume"]:
-            ep_begin = exec_config["ep_begin"]
+            ep_begin += exec_config["ep_begin"]
+            weight = train_setting["weight"]["policy"]
+            p_wrapper.set_weight(weight)
+            central_record = train_setting["record"]["central_record"]
+            local_record = train_setting["record"]["local_record"]
 
         train_begin_time = time.time()
         for episode in range(ep_begin, num_episodes + ep_begin):
@@ -253,15 +266,19 @@ class IndependentTrainer():
                 util.snapshot_exp_result(
                     record_dir, central_record, local_record, train_info)
                 if saved:
-                    exec_params = {
+                    r = {
                         "episode": episode,
+                        "central_record": central_record,
+                        "local_record": local_record,
                     }
                     param_file_name = "params_latest.pth"
                     param_file = params_dir + param_file_name
                     util.snapshot_params(
                         config=train_config,
-                        weight=p_wrapper.get_weight(),
-                        exec_params=exec_params,
+                        weight={
+                            "policy": p_wrapper.get_weight()
+                        },
+                        record=r,
                         params_file=param_file
                     )
                     if eval_reward_mean < saved_threshold:
@@ -270,21 +287,27 @@ class IndependentTrainer():
                         param_file = params_dir + param_file_name
                         util.snapshot_params(
                             config=train_config,
-                            weight=p_wrapper.get_weight(),
-                            exec_params=exec_params,
+                            weight={
+                                "policy": p_wrapper.get_weight()
+                            },
+                            record=r,
                             params_file=param_file
                         )
 
         if saved:
             param_file_name = "params_latest.pth"
             param_file = params_dir + param_file_name
-            exec_params = {
+            r = {
                 "episode": num_episodes,
+                "central_record": central_record,
+                "local_record": local_record,
             }
             util.snapshot_params(
                 config=train_config,
-                weight=p_wrapper.get_weight(),
-                exec_params=exec_params,
+                weight={
+                    "policy": p_wrapper.get_weight()
+                },
+                record=r,
                 params_file=param_file
             )
 
@@ -402,7 +425,7 @@ class IndependentTrainer():
         test_config = {
             "env": env_config,
             "policy": policy_config,
-            "weight": params["weight"],
+            "weight": params["weight"]["policy"],
             "record_dir": record_dir,
             "num_episodes": 1,
         }
@@ -412,7 +435,6 @@ class IndependentTrainer():
     def __record_init_config(self, record_dir, config):
         config["policy"].pop("device")
         params_path = record_dir + "init_params.json"
-        print(config)
         with open(params_path, "w") as f:
             json.dump(config, f)
 
@@ -453,4 +475,7 @@ class IndependentTrainer():
         return train_config
 
     def __resume_train_config(self, record_dir, model_file):
-        pass
+        params = torch.load(record_dir + model_file)
+        config = params["config"]
+        config["exec"]["ep_begin"] = params["record"]["episode"]
+        return config, params["weight"], params["record"]
