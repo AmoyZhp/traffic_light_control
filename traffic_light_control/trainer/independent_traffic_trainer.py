@@ -281,7 +281,7 @@ class IndependentTrainer():
                         record=r,
                         params_file=param_file
                     )
-                    if eval_reward_mean < saved_threshold:
+                    if travel_time < saved_threshold:
                         # 如果当前模型效果达到期望的阈值，就保存模型
                         param_file_name = "params_{}.pth".format(episode)
                         param_file = params_dir + param_file_name
