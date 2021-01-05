@@ -1,8 +1,7 @@
-from collections import defaultdict
 import os
 import time
 import json
-
+import numpy as np
 import envs
 import torch
 import policy
@@ -375,10 +374,10 @@ class IndependentTrainer():
             "done": [],
         }
         for id_ in ids:
-            traj["state"]["local"][id_] = []
+            traj["state"]["local"][id_] = np.empty((0,STATE_SPACE), dtype=np.float)
             traj["action"][id_] = []
             traj["reward"]["local"][id_] = []
-            traj["next_state"]["local"][id_] = []
+            traj["next_state"]["local"][id_] = np.empty([0, STATE_SPACE], dtype=np.float)
             traj["done"] = []
         for cnt in range(INTERATION_UPPER_BOUND):
 
@@ -389,11 +388,13 @@ class IndependentTrainer():
             sim_time_cost += time.time() - sim_begin_time
 
             for id_ in ids:
-                traj["state"]["local"][id_].append(states["local"][id_])
+                traj["state"]["local"][id_] = np.vstack(
+                    (traj["state"]["local"][id_], states["local"][id_]))
                 traj["action"][id_].append(actions[id_])
                 traj["reward"]["local"][id_].append(rewards["local"][id_])
-                traj["next_state"]["local"][id_].append(
-                    next_states["local"][id_])
+                traj["next_state"]["local"][id_] = np.vstack(
+                    (traj["next_state"]["local"][id_], 
+                    next_states["local"][id_]))
                 traj["done"].append(done)
 
             states = next_states

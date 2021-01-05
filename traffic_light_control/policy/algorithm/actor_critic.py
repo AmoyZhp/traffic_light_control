@@ -48,7 +48,6 @@ class ActorCritic(Policy):
             return 0.0
         actor_loss = 0.0
         critic_loss = 0.0
-
         for trans in batch_data:
 
             batch = Transition(
@@ -66,6 +65,8 @@ class ActorCritic(Policy):
             mask_batch = torch.tensor(tuple(map(lambda d: not d, batch.done)),
                                       device=self.device, dtype=torch.bool)
 
+            print(action_batch.shape)
+            print(state_batch.shape)
             action_values = self.critic_net(state_batch).gather(
                 1, action_batch.view(-1, 1)).to(self.device)
 
@@ -97,6 +98,7 @@ class ActorCritic(Policy):
         self.critic_optim.zero_grad()
         critic_loss.backward()
         self.critic_optim.step()
+        return critic_loss.item()
 
     def __compute_reward_to_go(self, rewards):
         rewards = rewards.view(-1, 1)
