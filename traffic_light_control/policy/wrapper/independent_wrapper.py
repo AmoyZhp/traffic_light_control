@@ -32,14 +32,12 @@ class IndependentWrapper(PolicyWrapper):
         local_states = states["local"]
         local_next_states = next_states["local"]
         for id_ in self.local_ids:
-            print(local_states[id_])
             s = np.array(local_states[id_])
             a = np.array(actions[id_])
             r = np.array(local_rewards[id_])
             terminal = np.array(done)
             ns = np.array(local_next_states[id_])
             buff = self.buffers[id_]
-            print(s.shape)
             buff.store(s, a, r, ns, terminal)
 
     def update_policy(self):

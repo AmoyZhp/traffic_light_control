@@ -65,8 +65,6 @@ class ActorCritic(Policy):
             mask_batch = torch.tensor(tuple(map(lambda d: not d, batch.done)),
                                       device=self.device, dtype=torch.bool)
 
-            print(action_batch.shape)
-            print(state_batch.shape)
             action_values = self.critic_net(state_batch).gather(
                 1, action_batch.view(-1, 1)).to(self.device)
 
@@ -103,7 +101,8 @@ class ActorCritic(Policy):
     def __compute_reward_to_go(self, rewards):
         rewards = rewards.view(-1, 1)
 
-        weight = torch.triu(torch.ones((rewards.shape[0], rewards.shape[0])))
+        weight = torch.triu(torch.ones((rewards.shape[0], rewards.shape[0]),
+         device=self.device))
         rtg = weight.matmul(rewards)
 
         return rtg
