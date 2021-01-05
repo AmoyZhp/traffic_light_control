@@ -43,7 +43,6 @@ class DQN():
         self.update_period = update_period
         self.action_space = action_space
         self.state_space = state_space
-        self.q_value_record = []
 
     def compute_action(self, obs, explore: bool):
         if explore:
@@ -57,7 +56,6 @@ class DQN():
         with torch.no_grad():
             value = self.acting_net(state)
             value = np.squeeze(value, 0)
-            self.q_value_record.append(value)
         _, index = torch.max(value, 0)
         action = index.item()
         return action

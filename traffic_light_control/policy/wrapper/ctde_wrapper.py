@@ -9,7 +9,7 @@ class CTDEWrapper():
         self.policy = policy_
         self.buffer = buffer_
         self.local_ids = local_ids
-        self.bathc_size = batch_size
+        self.batch_size = batch_size
         self.mode = mode
 
     def compute_action(self, states):
@@ -31,7 +31,7 @@ class CTDEWrapper():
             local_states[id_] = np.array(states["local"][id_])
             local_rewards[id_] = np.array(rewards["local"][id_])
             local_next_states[id_] = np.array(next_states["local"][id_])
-            local_actions[id_] = np.array(actions["local"][id_])
+            local_actions[id_] = np.array(actions[id_])
         n_state = {
             "central": central_state,
             "local": local_states

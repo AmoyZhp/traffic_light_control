@@ -212,7 +212,7 @@ class IndependentTrainer():
                 central_loss += loss["central"]
                 for id_ in ids:
                     local_reward[id_] += rewards["local"][id_]
-                for id_, l in loss["local"].items():
+                for id_, l in loss["local"]:
                     local_loss[id_] += l
 
                 if done:

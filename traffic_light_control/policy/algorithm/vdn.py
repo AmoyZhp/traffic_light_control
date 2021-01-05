@@ -68,7 +68,7 @@ class VDN():
         # 利用
         for id_ in self.local_ids:
             state = torch.tensor(
-                states[id_], dtype=torch.float, device=self.device)
+                states["local"][id_], dtype=torch.float, device=self.device)
             with torch.no_grad():
                 value = self.acting_nets[id_](state)
                 value = np.squeeze(value, 0)
@@ -80,14 +80,19 @@ class VDN():
     def learn_on_batch(self, batch_data: List[Transition]) -> float:
 
         batch_size = len(batch_data)
-
+        if batch_size == 0:
+            return {
+                "central": 0.0,
+                "local": [],
+            }
         trans_div_by_id = {}
         for id_ in self.local_ids:
             trans_div_by_id[id_] = []
         reward_batch = []
         for trans in batch_data:
             reward_batch.append(
-                torch.tensor(trans.reward["central"], dtype=torch.float))
+                torch.tensor(trans.reward["central"],
+                             dtype=torch.float).view(-1, 1))
             for id_ in self.local_ids:
                 trans_div_by_id[id_].append(
                     Transition(
@@ -103,7 +108,7 @@ class VDN():
         def np_to_torch(trans: Transition):
             torch_trans = Transition(
                 torch.tensor(trans.state, dtype=torch.float),
-                torch.tensor(trans.action, dtype=torch.long),
+                torch.tensor(trans.action, dtype=torch.long).view(-1, 1),
                 0,
                 torch.tensor(
                     trans.next_state, dtype=torch.float),
@@ -111,43 +116,41 @@ class VDN():
             )
             return torch_trans
 
-        true_state_values = torch.zeros((batch_size, 1), device=self.device)
-        true_next_state_values = torch.zeros(
+        central_state_action_value = torch.zeros(
             (batch_size, 1), device=self.device)
+        central_next_state_action_value = torch.zeros(
+            (batch_size, 1), device=self.device)
+
         for id_, data in trans_div_by_id.items():
             acting_net = self.acting_nets[id_]
             target_net = self.target_nets[id_]
-            batch = Transition(*zip(*map(np_to_torch, data)))
-            non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
-                                                    batch.next_state)),
-                                          device=self.device, dtype=torch.bool)
-            valid_next_state_batch = [
-                s for s in batch.next_state if s is not None]
-            non_final_next_states = None
-            if len(valid_next_state_batch) > 0:
-                non_final_next_states = torch.cat(
-                    [s for s in batch.next_state if s is not None]).to(
-                        self.device)
 
+            batch = Transition(*zip(*map(np_to_torch, data)))
+
+            mask_batch = torch.tensor(tuple(map(lambda d: not d, batch.done)),
+                                      device=self.device, dtype=torch.bool)
             state_batch = torch.cat(batch.state, 0).to(self.device)
             action_batch = torch.cat(batch.action, 0).to(self.device)
+            next_state_batch = torch.cat(batch.next_state, 0).to(self.device)
 
             state_action_values = acting_net(
                 state_batch).gather(1, action_batch).to(self.device)
 
-            true_state_values += state_action_values
+            central_state_action_value += state_action_values
 
-            next_state_values = torch.zeros(batch_size, device=self.device)
-            if non_final_next_states is not None:
-                next_state_values[non_final_mask] = target_net(
-                    non_final_next_states).max(1)[0].detach()
-            next_state_values = next_state_values.unsqueeze(1)
-            true_next_state_values += next_state_values
+            next_state_action_values = torch.zeros(
+                batch_size, device=self.device)
+            next_state_action_values[mask_batch] = target_net(
+                next_state_batch[mask_batch]).max(1)[0].detach()
+            next_state_action_values = next_state_action_values.unsqueeze(1)
+
+            central_next_state_action_value += next_state_action_values
 
         expected_state_action_values = (
-            true_next_state_values * self.discount_factor) + reward_batch
+            central_next_state_action_value *
+            self.discount_factor) + reward_batch
 
-        loss = self.loss_func(true_state_values,
+        loss = self.loss_func(central_state_action_value,
                               expected_state_action_values)
         self.optimizer.zero_grad()
         loss.backward()
@@ -159,7 +162,7 @@ class VDN():
                 acting_net = self.acting_nets[id_]
                 target_net.load_state_dict(acting_net.state_dict())
             self.update_count = 0
-        return loss.item()
+        return {"central": loss.item(), "local": []}
 
     def get_weight(self):
         local_weight = {}
