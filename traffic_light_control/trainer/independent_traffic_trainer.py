@@ -63,8 +63,7 @@ class IndependentTrainer():
         saved_threshold = args.saved_threshold
         record_dir = args.record_dir
         env_id = args.environment
-        alg_id = args.algorithm
-        wrapper_id = args.wrapper
+        policy_id = args.policy
 
         if mode == "train":
             train_setting = {}
@@ -85,8 +84,7 @@ class IndependentTrainer():
             train_config["env"]["thread_num"] = thread_num
             train_config["env"]["save_replay"] = False
             train_config["env"]["id"] = env_id
-            train_config["policy"]["alg_id"] = alg_id
-            train_config["policy"]["wrapper_id"] = wrapper_id
+            train_config["policy"]["policy_id"] = policy_id
             train_config["policy"]["device"] = torch.device(
                 "cuda" if torch.cuda.is_available() else "cpu")
             train_config["exec"]["num_episodes"] = episodes
@@ -138,17 +136,16 @@ class IndependentTrainer():
 
         # 初始化策略
         policy_config["local_ids"] = list(ids)
-        p_wrapper = policy.get_wrapper(policy_config["wrapper_id"], {
-            "policy": policy_config,
-            "mode": "train",
-        })
+        policy_config["mode"] = "train"
+        p_wrapper = policy.get_policy(policy_config["policy_id"],
+                                      policy_config)
 
         # 创建和本次训练相应的保存目录
         record_dir = util.create_record_dir(
             RECORDS_ROOT_DIR,
             {
                 "env_id": env_config["id"],
-                "alg_id": policy_config["alg_id"]
+                "policy_id": policy_config["policy_id"]
             })
         data_dir = record_dir + "data/"
         params_dir = record_dir + "params/"
@@ -370,11 +367,10 @@ class IndependentTrainer():
         ids = env.intersection_ids()
 
         # 初始化策略
-        p_wrapper = policy.get_wrapper(policy_config["wrapper_id"], {
-            "policy": policy_config,
-            "mode": "test",
-            "local_ids": ids,
-        })
+        policy_config["local_ids"] = list(ids)
+        policy_config["mode"] = "test"
+        p_wrapper = policy.get_policy(policy_config["policy_id"],
+                                      policy_config)
 
         p_wrapper.set_weight(weight)
         reward_history = {}

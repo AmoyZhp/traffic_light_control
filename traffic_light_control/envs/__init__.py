@@ -1,3 +1,3 @@
-from envs.envs import make
+from envs.factory import make
 
 __all__ = ["make"]

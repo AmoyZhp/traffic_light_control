@@ -1,12 +1,6 @@
 import argparse
 
 
-DATA_SAVE_PERIOD = 100
-SAVED_THRESHOLD = -100.0
-
-ENV_ID = "hangzhou_1x1_bc-tyc_18041607_1h"
-
-
 def parase_args():
     parser = argparse.ArgumentParser()
 
@@ -33,15 +27,9 @@ def parase_args():
     )
 
     parser.add_argument(
-        "-alg", "--algorithm", type=str,
+        "-ply", "--policy", type=str,
         required=True,
-        help="which algorithm be chosen"
-    )
-
-    parser.add_argument(
-        "-wrap", "--wrapper", type=str,
-        required=True,
-        help="the wrapper of algorithm"
+        help="which policy algorithm be chosen"
     )
 
     parser.add_argument(

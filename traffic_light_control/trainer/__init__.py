@@ -1,3 +1,3 @@
-from trainer.trainer import get_trainer
+from trainer.factory import get_trainer
 
 __all__ = ["get_trainer"]

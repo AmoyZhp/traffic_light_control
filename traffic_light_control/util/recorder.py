@@ -11,7 +11,7 @@ def create_record_dir(root_record, info, last_record="") -> str:
     date = datetime.datetime.now()
     sub_dir = "{}_{}_{}_{}_{}_{}_{}_{}/".format(
         info["env_id"],
-        info["alg_id"],
+        info["policy_id"],
         date.year,
         date.month,
         date.day,
