@@ -1,5 +1,6 @@
 
 from typing import List
+from policy.algorithm.actor_critic import ActorCritic
 import policy.buffer as buffer
 import policy.net as net
 from policy.algorithm.vdn import VDN
@@ -13,6 +14,8 @@ def get_policy(id_, config):
         return __get_VDN(config)
     elif id_ == "IQL":
         return __get_IQL(config)
+    elif id_ == "IAC":
+        return __get_AC(config)
     else:
         print("invalid id {}".format(id_))
 
@@ -89,3 +92,37 @@ def __get_VDN(config):
         mode=mode
     )
     return wrapper
+
+
+def __get_AC(config):
+
+    local_ids: List = config["local_ids"]
+    buffer_config = config["buffer"]
+    mode = config["mode"]
+    policies = {}
+    buffers = {}
+
+    for id_ in local_ids:
+        net_id = config["net_id"]
+        actor_net = net.get_net("IActor", config)
+        critic = net.get_net(net_id, config)
+        policies[id_] = ActorCritic(
+            actor_net=actor_net,
+            critic_net=critic,
+            learning_rate=config["learning_rate"],
+            discount_factor=config["discount_factor"],
+            device=config["device"],
+            action_space=config["output_space"],
+            state_space=config["input_space"]
+        )
+        if mode == "train":
+            buffers[id_] = buffer.get_buffer(
+                "on_policy_buffer",  buffer_config)
+    policy_wrapper = IndependentWrapper(
+        policies=policies,
+        buffers=buffers,
+        local_ids=local_ids,
+        batch_size=config["batch_size"],
+        mode=mode
+    )
+    return policy_wrapper

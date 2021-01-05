@@ -3,10 +3,11 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import torch
+from policy.core import Policy
 from util.type import Transition
 
 
-class DQN():
+class DQN(Policy):
     def __init__(self,
                  acting_net, target_net,
                  learning_rate: int,

@@ -5,10 +5,11 @@ import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 import torch
+from policy.core import Policy
 from util.type import Transition
 
 
-class VDN():
+class VDN(Policy):
     def __init__(self,
                  local_ids,
                  acting_nets, target_nets,

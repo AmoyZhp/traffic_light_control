@@ -1,8 +1,8 @@
 import numpy as np
-from util.type import Transition
+from policy.core import PolicyWrapper
 
 
-class CTDEWrapper():
+class CTDEWrapper(PolicyWrapper):
 
     def __init__(self, policy_, buffer_, local_ids, batch_size, mode="train"):
 

@@ -1,7 +1,9 @@
 import numpy as np
 
+from policy.core import PolicyWrapper
 
-class IndependentWrapper():
+
+class IndependentWrapper(PolicyWrapper):
 
     def __init__(self, policies, local_ids, batch_size,
                  buffers=None, mode="train"):
@@ -34,11 +36,7 @@ class IndependentWrapper():
             a = np.array(actions[id_])
             r = np.array(local_rewards[id_])
             terminal = np.array(done)
-            ns = None
-            if terminal:
-                ns = np.zeros(s.shape)
-            else:
-                ns = np.array(local_next_states[id_])
+            ns = np.array(local_next_states[id_])
             buff = self.buffers[id_]
             buff.store(s, a, r, ns, terminal)
 

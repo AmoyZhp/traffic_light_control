@@ -1,3 +1,4 @@
+from collections import defaultdict
 import os
 import time
 import json
@@ -180,75 +181,46 @@ class IndependentTrainer():
 
         train_begin_time = time.time()
         for episode in range(ep_begin, num_episodes + ep_begin):
-            ep_begin_time = time.time()
-            states = env.reset()
-            central_cumulative_reward = 0.0
-            sim_time_cost = 0.0
-            learn_time_cost = 0.0
-            local_loss = {}
-            central_loss = 0.0
-            local_reward = {}
-            for k in ids:
-                local_loss[k] = 0.0
-                local_reward[k] = 0.0
-            for cnt in range(INTERATION_UPPER_BOUND):
+            training_trail = {}
+            if policy_config["policy_id"] in ["IAC"]:
+                training_trail = self.on_policy_train(env, p_wrapper)
+            else:
+                training_trail = self.off_policy_train(env, p_wrapper)
 
-                actions = p_wrapper.compute_action(states)
-
-                sim_begin_time = time.time()
-                next_states, rewards, done, info = env.step(actions)
-                sim_time_cost += time.time() - sim_begin_time
-
-                p_wrapper.record_transition(
-                    states, actions, rewards, next_states, done)
-
-                states = next_states
-
-                learn_begin_time = time.time()
-                loss = p_wrapper.update_policy()
-                learn_time_cost += time.time() - learn_begin_time
-
-                central_cumulative_reward += rewards["central"]
-                central_loss += loss["central"]
-                for id_ in ids:
-                    local_reward[id_] += rewards["local"][id_]
-                for id_, l in loss["local"]:
-                    local_loss[id_] += l
-
-                if done:
-                    ep_end_time = time.time()
-                    print(" ====== episode {} ======".format(episode))
-                    print(" total time cost {:.3f}s".format(
-                        ep_end_time - ep_begin_time))
-                    print(" simulation time cost {:.3f}s".format(
-                        sim_time_cost))
-                    print(" learning time cost {:.3f}s".format(
-                        learn_time_cost))
-                    print(" average travel time : {:.3f}".format(
-                        info["average_travel_time"]))
-                    print(" central reward : {:.3f}".format(
-                        central_cumulative_reward))
-                    print(" central loss : {:.3f}".format(
-                        central_loss / cnt
-                    ))
-                    print(" local info : ")
-                    for id_ in ids:
-                        print("  id {}, reward {:.3f}, avg loss {:.3f}".format(
-                            id_, local_reward[id_], local_loss[id_] / cnt
-                        ))
-                    print(" training time pass {:.1f} min ".format(
-                        (time.time() - train_begin_time) / 60
-                    ))
-                    print("=========================")
-                    central_record["reward"][
-                        episode] = central_cumulative_reward
-                    central_record["loss"][episode] = central_loss / cnt
-                    central_record["average_travel_time"][
-                        episode] = info["average_travel_time"]
-                    for i in ids:
-                        local_record[i]["loss"][episode] = local_loss[i] / cnt
-                        local_record[i]["reward"][episode] = local_reward[i]
-                    break
+            print(" ====== episode {} ======".format(episode))
+            print(" time cost {:.3f}s".format(
+                training_trail["single_ep_time_cost"]))
+            print(" simulation time cost {:.3f}s".format(
+                training_trail["sim_time_cost"]))
+            print(" learning time cost {:.3f}s".format(
+                training_trail["learn_time_cost"]))
+            print(" average travel time : {:.3f}".format(
+                training_trail["average_travel_time"]))
+            print(" central avg reward : {:.3f}".format(
+                training_trail["central_avg_reward"]))
+            print(" central avg loss : {:.3f}".format(
+                training_trail["central_avg_loss"]
+            ))
+            local_reward = training_trail["local_reward"]
+            local_loss = training_trail["local_loss"]
+            print(" local info : ")
+            for id_ in ids:
+                print("  id {}, reward {:.3f}, avg loss {:.3f}".format(
+                    id_, local_reward[id_], local_loss[id_]
+                ))
+            print(" training time pass {:.1f} min ".format(
+                (time.time() - train_begin_time) / 60
+            ))
+            print("=========================")
+            central_record["reward"][
+                episode] = training_trail["central_avg_reward"]
+            central_record["loss"][
+                episode] = training_trail["central_avg_loss"]
+            central_record["average_travel_time"][
+                episode] = training_trail["average_travel_time"]
+            for i in ids:
+                local_record[i]["loss"][episode] = local_loss[i]
+                local_record[i]["reward"][episode] = local_reward[i]
             if (episode % data_saved_period == 0):
                 eval_rewards = self.eval_(
                     policy=p_wrapper,
@@ -324,6 +296,135 @@ class IndependentTrainer():
                 "params/" + param_file_name,
                 record_dir)
             self.test(test_config)
+
+    def off_policy_train(self, env, p_wrapper):
+        ep_begin_time = time.time()
+        central_cumulative_reward = 0.0
+        sim_time_cost = 0.0
+        learn_time_cost = 0.0
+        local_loss = {}
+        central_loss = 0.0
+        local_reward = {}
+        ids = env.intersection_ids()
+        for k in ids:
+            local_loss[k] = 0.0
+            local_reward[k] = 0.0
+
+        states = env.reset()
+        for cnt in range(INTERATION_UPPER_BOUND):
+
+            actions = p_wrapper.compute_action(states)
+
+            sim_begin_time = time.time()
+            next_states, rewards, done, info = env.step(actions)
+            sim_time_cost += time.time() - sim_begin_time
+
+            p_wrapper.record_transition(
+                states, actions, rewards, next_states, done)
+
+            states = next_states
+
+            learn_begin_time = time.time()
+            loss = p_wrapper.update_policy()
+            learn_time_cost += time.time() - learn_begin_time
+
+            central_cumulative_reward += rewards["central"]
+            central_loss += loss["central"]
+            for id_ in ids:
+                local_reward[id_] += rewards["local"][id_]
+            for id_, l in loss["local"].items():
+                local_loss[id_] += l
+
+            if done:
+                return {
+                    "single_ep_time_cost": time.time() - ep_begin_time,
+                    "sim_time_cost": sim_time_cost,
+                    "learn_time_cost": learn_time_cost,
+                    "average_travel_time": info["average_travel_time"],
+                    "central_avg_reward": central_cumulative_reward / cnt,
+                    "central_avg_loss": central_loss / cnt,
+                    "local_reward": local_reward,
+                    "local_loss": local_loss,
+                }
+
+    def on_policy_train(self, env, p_wrapper):
+        ep_begin_time = time.time()
+        central_cumulative_reward = 0.0
+        sim_time_cost = 0.0
+        learn_time_cost = 0.0
+        local_loss = {}
+        central_loss = 0.0
+        local_reward = {}
+        ids = env.intersection_ids()
+        for k in ids:
+            local_loss[k] = 0.0
+            local_reward[k] = 0.0
+
+        states = env.reset()
+        traj = {
+            "state": {
+                "local": {},
+            },
+            "action": {},
+            "reward": {
+                "local": {}
+            },
+            "next_state": {
+                "local": {}
+            },
+            "done": [],
+        }
+        for id_ in ids:
+            traj["state"]["local"][id_] = []
+            traj["action"][id_] = []
+            traj["reward"]["local"][id_] = []
+            traj["next_state"]["local"][id_] = []
+            traj["done"] = []
+        for cnt in range(INTERATION_UPPER_BOUND):
+
+            actions = p_wrapper.compute_action(states)
+
+            sim_begin_time = time.time()
+            next_states, rewards, done, info = env.step(actions)
+            sim_time_cost += time.time() - sim_begin_time
+
+            for id_ in ids:
+                traj["state"]["local"][id_].append(states["local"][id_])
+                traj["action"][id_].append(actions[id_])
+                traj["reward"]["local"][id_].append(rewards["local"][id_])
+                traj["next_state"]["local"][id_].append(
+                    next_states["local"][id_])
+                traj["done"].append(done)
+
+            states = next_states
+
+            central_cumulative_reward += rewards["central"]
+            for id_ in ids:
+                local_reward[id_] += rewards["local"][id_]
+
+            if done:
+                p_wrapper.record_transition(
+                    traj["state"], traj["action"],
+                    traj["reward"], traj["next_state"],
+                    traj["done"])
+                learn_begin_time = time.time()
+                loss = p_wrapper.update_policy()
+                learn_time_cost += time.time() - learn_begin_time
+
+                central_loss += loss["central"]
+                for id_, l in loss["local"].items():
+                    local_loss[id_] += l
+
+                return {
+                    "single_ep_time_cost": time.time() - ep_begin_time,
+                    "sim_time_cost": sim_time_cost,
+                    "learn_time_cost": learn_time_cost,
+                    "average_travel_time": info["average_travel_time"],
+                    "central_avg_reward": central_cumulative_reward / cnt,
+                    "central_avg_loss": central_loss / cnt,
+                    "local_reward": local_reward,
+                    "local_loss": local_loss,
+                }
 
     def eval_(self, policy, env, num_episodes):
         old_mode = policy.get_mode()
