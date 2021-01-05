@@ -36,6 +36,14 @@ EVAL_NUM_EPISODE = 1
 INTERATION_UPPER_BOUND = 1000000
 
 
+def time_cnt(func):
+    start = time.time()
+    r = func()
+    end = time.time()
+    print("time cost : ", end - start)
+    return r
+
+
 class IndependentTrainer():
 
     def __init__(self) -> None:

@@ -13,7 +13,8 @@ class ReplayBuffer(object):
         self.buffer.append(transition)
 
     def sample(self, batch_size: int):
-        batch_size = min(batch_size, len(self.buffer))
+        if batch_size > len(self.buffer):
+            return []
         return random.sample(self.buffer, batch_size)
 
     def get_weight(self):

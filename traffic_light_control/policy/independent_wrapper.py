@@ -45,11 +45,15 @@ class IndependentWrapper():
                           rewards, next_states, done):
         local_rewards = rewards["local"]
         for id_ in self.ids:
-            s = states[id_]
-            a = np.reshape(actions[id_], (1, 1))
-            r = np.reshape(local_rewards[id_], (1, 1))
-            ns = next_states[id_]
-            terminal = np.array([[0 if done else 1]])
+            s = np.array(states[id_])
+            a = np.array(actions[id_])
+            r = np.array(local_rewards[id_])
+            terminal = np.array(done)
+            ns = None
+            if terminal:
+                ns = np.zeros(s.shape)
+            else:
+                ns = np.array(next_states[id_])
             buff = self.buffers[id_]
             buff.store(Transition(s, a, r, ns, terminal))
 

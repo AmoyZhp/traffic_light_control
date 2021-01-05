@@ -1,4 +1,3 @@
-from os import stat
 from typing import List
 import torch.nn as nn
 import torch.optim as optim
@@ -65,12 +64,14 @@ class DQN():
 
     def learn_on_batch(self, batch_data: List[Transition]) -> float:
         batch_size = len(batch_data)
+        if batch_size == 0:
+            return 0.0
 
         def np_to_torch(trans: Transition):
             torch_trans = Transition(
                 torch.tensor(trans.state, dtype=torch.float),
-                torch.tensor(trans.action, dtype=torch.long),
-                torch.tensor(trans.reward, dtype=torch.float),
+                torch.tensor(trans.action, dtype=torch.long).view(-1, 1),
+                torch.tensor(trans.reward, dtype=torch.float).view(-1, 1),
                 torch.tensor(
                     trans.next_state, dtype=torch.float),
                 torch.tensor(trans.done, dtype=torch.long)
@@ -79,30 +80,25 @@ class DQN():
 
         batch_data = map(np_to_torch, batch_data)
         batch = Transition(*zip(*batch_data))
-        non_final_mask = torch.tensor(tuple(map(lambda s: s is not None,
-                                                batch.next_state)),
-                                      device=self.device, dtype=torch.bool)
-        valid_next_state_batch = [s for s in batch.next_state if s is not None]
-        non_final_next_states = None
-        if len(valid_next_state_batch) > 0:
-            non_final_next_states = torch.cat(
-                [s for s in batch.next_state if s is not None]).to(self.device)
+
+        mask_batch = torch.tensor(tuple(map(lambda d: not d, batch.done)),
+                                  device=self.device, dtype=torch.bool)
 
         state_batch = torch.cat(batch.state, 0).to(self.device)
         action_batch = torch.cat(batch.action, 0).to(self.device)
         reward_batch = torch.cat(batch.reward, 0).to(self.device)
+        next_state_batch = torch.cat(batch.next_state, 0).to(self.device)
 
         state_action_values = self.acting_net(
             state_batch).gather(1, action_batch).to(self.device)
 
-        next_state_values = torch.zeros(batch_size, device=self.device)
-        if non_final_next_states is not None:
-            next_state_values[non_final_mask] = self.target_net(
-                non_final_next_states).max(1)[0].detach()
-        next_state_values = next_state_values.unsqueeze(1)
+        next_state_action_values = torch.zeros(batch_size, device=self.device)
+        next_state_action_values[mask_batch] = self.target_net(
+            next_state_batch[mask_batch]).max(1)[0].detach()
+        next_state_action_values = next_state_action_values.unsqueeze(1)
 
         expected_state_action_values = (
-            next_state_values * self.discount_factor) + reward_batch
+            next_state_action_values * self.discount_factor) + reward_batch
 
         loss = self.loss_func(state_action_values,
                               expected_state_action_values)
