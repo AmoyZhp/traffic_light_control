@@ -1,6 +1,8 @@
 import argparse
 
 
+BATCH_SIZE = 256
+
 def parase_args():
     parser = argparse.ArgumentParser()
 
@@ -55,6 +57,11 @@ def parase_args():
     parser.add_argument(
         "-rd", "--record_dir", type=str, default="",
         help="resume dir if set resume with true"
+    )
+
+    parser.add_argument(
+        "-bs", "--batch_size", type=int, default=BATCH_SIZE,
+        help="batch size"
     )
 
     return parser.parse_args()

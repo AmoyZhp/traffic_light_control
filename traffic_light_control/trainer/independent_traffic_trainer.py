@@ -21,7 +21,6 @@ INTERVAL = 5
 # agent setting
 CAPACITY = 200000
 LERNING_RATE = 1e-4
-BATCH_SIZE = 1
 DISCOUNT_FACTOR = 0.99
 EPS_INIT = 1.0
 EPS_MIN = 0.01
@@ -64,6 +63,7 @@ class IndependentTrainer():
         record_dir = args.record_dir
         env_id = args.environment
         policy_id = args.policy
+        batch_size = args.batch_size
 
         if mode == "train":
             train_setting = {}
@@ -85,6 +85,7 @@ class IndependentTrainer():
             train_config["env"]["save_replay"] = False
             train_config["env"]["id"] = env_id
             train_config["policy"]["policy_id"] = policy_id
+            train_config["policy"]["batch_size"] = batch_size
             train_config["policy"]["device"] = torch.device(
                 "cuda" if torch.cuda.is_available() else "cpu")
             train_config["exec"]["num_episodes"] = episodes
@@ -565,7 +566,6 @@ class IndependentTrainer():
             "update_period": UPDATE_PERIOD,
             "input_space": STATE_SPACE,
             "output_space": ACTION_SPACE,
-            "batch_size": BATCH_SIZE,
         }
 
         exec_config = {
