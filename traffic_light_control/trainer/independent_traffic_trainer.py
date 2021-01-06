@@ -271,6 +271,9 @@ class IndependentTrainer():
                             params_file=param_file
                         )
 
+        print(" training time pass {:.1f} h ".format(
+            (time.time() - train_begin_time) / 3600
+        ))
         if saved:
             param_file_name = "params_latest.pth"
             param_file = params_dir + param_file_name
