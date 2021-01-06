@@ -375,10 +375,12 @@ class IndependentTrainer():
             "done": [],
         }
         for id_ in ids:
-            traj["state"]["local"][id_] = np.empty((0,STATE_SPACE), dtype=np.float)
+            traj["state"]["local"][id_] = np.empty(
+                (0, STATE_SPACE), dtype=np.float)
             traj["action"][id_] = []
             traj["reward"]["local"][id_] = []
-            traj["next_state"]["local"][id_] = np.empty([0, STATE_SPACE], dtype=np.float)
+            traj["next_state"]["local"][id_] = np.empty(
+                (0, STATE_SPACE), dtype=np.float)
             traj["done"] = []
         for cnt in range(INTERATION_UPPER_BOUND):
 
@@ -394,8 +396,8 @@ class IndependentTrainer():
                 traj["action"][id_].append(actions[id_])
                 traj["reward"]["local"][id_].append(rewards["local"][id_])
                 traj["next_state"]["local"][id_] = np.vstack(
-                    (traj["next_state"]["local"][id_], 
-                    next_states["local"][id_]))
+                    (traj["next_state"]["local"][id_],
+                     next_states["local"][id_]))
                 traj["done"].append(done)
 
             states = next_states

@@ -65,7 +65,8 @@ class ActorCritic(Policy):
             mask_batch = torch.tensor(tuple(map(lambda d: not d, batch.done)),
                                       device=self.device, dtype=torch.bool)
 
-            action_values = self.critic_net(state_batch).gather(
+            state_action_values = self.critic_net(state_batch)
+            selected_s_a_v = state_action_values.gather(
                 1, action_batch.view(-1, 1)).to(self.device)
 
             # 计算 critic loss
@@ -76,12 +77,15 @@ class ActorCritic(Policy):
             target_values = (next_action_values * self.discount_factor
                              + reward_batch)
             critic_loss += self.critic_loss_func(
-                action_values, target_values.view(-1, 1))
+                selected_s_a_v, target_values.view(-1, 1))
 
             # 计算 actor loss
-            reward = self.__compute_reward_to_go(reward_batch)
-            advantage = reward - action_values.detach()
+
             action_prob = self.actor_net(state_batch)
+            # reward = self.__compute_reward_to_go(reward_batch)
+            state_values = torch.sum(
+                state_action_values.detach() * action_prob.detach(),  dim=1)
+            advantage = selected_s_a_v.detach() - state_values.detach()
             m = Categorical(action_prob)
             log_prob = m.log_prob(action_batch)
             # 负数的原因是因为算法默认是梯度下降，加了负号后就可以让它变成梯度上升
@@ -100,9 +104,8 @@ class ActorCritic(Policy):
 
     def __compute_reward_to_go(self, rewards):
         rewards = rewards.view(-1, 1)
-
         weight = torch.triu(torch.ones((rewards.shape[0], rewards.shape[0]),
-         device=self.device))
+                                       device=self.device))
         rtg = weight.matmul(rewards)
 
         return rtg
