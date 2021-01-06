@@ -14,10 +14,51 @@ def get_policy(id_, config):
         return __get_VDN(config)
     elif id_ == "IQL":
         return __get_IQL(config)
+    elif id_ == "IQL_PS":
+        return __get_IQL_PS(config)
     elif id_ == "IAC":
         return __get_AC(config)
     else:
         print("invalid id {}".format(id_))
+
+
+def __get_IQL_PS(config):
+
+    local_ids: List = config["local_ids"]
+    buffer_config = config["buffer"]
+    mode = config["mode"]
+    policies = {}
+    buffers = {}
+
+    net_id = config["net_id"]
+    acting_net = net.get_net(net_id, config)
+    target_net = net.get_net(net_id, config)
+    policy_ = DQN(
+        acting_net=acting_net,
+        target_net=target_net,
+        learning_rate=config["learning_rate"],
+        discount_factor=config["discount_factor"],
+        eps_init=config["eps_init"],
+        eps_min=config["eps_min"],
+        eps_frame=config["eps_frame"],
+        update_period=config["update_period"],
+        device=config["device"],
+        action_space=config["output_space"],
+        state_space=config["input_space"]
+    )
+    for id_ in local_ids:
+        policies[id_] = policy_
+        if mode == "train":
+            buffers[id_] = buffer.get_buffer(
+                buffer_config["id"],  buffer_config)
+    policy_wrapper = IndependentWrapper(
+        policies=policies,
+        buffers=buffers,
+        local_ids=local_ids,
+        batch_size=config["batch_size"],
+        mode=mode
+    )
+    return policy_wrapper
 
 
 def __get_IQL(config):
