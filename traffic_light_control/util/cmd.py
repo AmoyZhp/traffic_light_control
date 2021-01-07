@@ -3,6 +3,7 @@ import argparse
 
 BATCH_SIZE = 256
 
+
 def parase_args():
     parser = argparse.ArgumentParser()
 

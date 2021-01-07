@@ -17,7 +17,9 @@ def get_policy(id_, config):
     elif id_ == "IQL_PS":
         return __get_IQL_PS(config)
     elif id_ == "IAC":
-        return __get_AC(config)
+        return __get_IAC(config)
+    elif id_ == "IAC_PS":
+        return __get_IAC_PS(config)
     else:
         print("invalid id {}".format(id_))
 
@@ -135,7 +137,7 @@ def __get_VDN(config):
     return wrapper
 
 
-def __get_AC(config):
+def __get_IAC(config):
 
     local_ids: List = config["local_ids"]
     buffer_config = config["buffer"]
@@ -156,6 +158,40 @@ def __get_AC(config):
             action_space=config["output_space"],
             state_space=config["input_space"]
         )
+        if mode == "train":
+            buffers[id_] = buffer.get_buffer(
+                "on_policy_buffer",  buffer_config)
+    policy_wrapper = IndependentWrapper(
+        policies=policies,
+        buffers=buffers,
+        local_ids=local_ids,
+        batch_size=config["batch_size"],
+        mode=mode
+    )
+    return policy_wrapper
+
+
+def __get_IAC_PS(config):
+
+    local_ids: List = config["local_ids"]
+    buffer_config = config["buffer"]
+    mode = config["mode"]
+    policies = {}
+    buffers = {}
+    net_id = config["net_id"]
+    actor_net = net.get_net("IActor", config)
+    critic = net.get_net(net_id, config)
+    policiy_ = ActorCritic(
+        actor_net=actor_net,
+        critic_net=critic,
+        learning_rate=config["learning_rate"],
+        discount_factor=config["discount_factor"],
+        device=config["device"],
+        action_space=config["output_space"],
+        state_space=config["input_space"]
+    )
+    for id_ in local_ids:
+        policies[id_] = policiy_
         if mode == "train":
             buffers[id_] = buffer.get_buffer(
                 "on_policy_buffer",  buffer_config)
