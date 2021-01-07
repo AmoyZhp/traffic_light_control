@@ -182,7 +182,7 @@ class IndependentTrainer():
         train_begin_time = time.time()
         for episode in range(ep_begin, num_episodes + ep_begin):
             training_trail = {}
-            if policy_config["policy_id"] in ["IAC"]:
+            if policy_config["policy_id"] in ["IAC", "IAC_PS"]:
                 training_trail = self.on_policy_train(env, p_wrapper)
             else:
                 training_trail = self.off_policy_train(env, p_wrapper)
