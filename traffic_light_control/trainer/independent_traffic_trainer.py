@@ -401,7 +401,7 @@ class IndependentTrainer():
                 traj["next_state"]["local"][id_] = np.vstack(
                     (traj["next_state"]["local"][id_],
                      next_states["local"][id_]))
-                traj["done"].append(done)
+            traj["done"].append(done)
 
             states = next_states
 
