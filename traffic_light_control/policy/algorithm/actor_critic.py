@@ -73,7 +73,8 @@ class ActorCritic(Policy):
             next_action_values = torch.zeros(
                 next_state_batch.shape[0], device=self.device)
             next_action_values[mask_batch] = self.critic_net(
-                next_state_batch[mask_batch]).max(1)[0].detach()
+                next_state_batch[mask_batch]).gather(
+                1, action_batch.view(-1, 1)[1:, :]).detach()
             target_values = (next_action_values * self.discount_factor
                              + reward_batch)
             critic_loss += self.critic_loss_func(
