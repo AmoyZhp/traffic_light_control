@@ -117,7 +117,7 @@ class COMA(Policy):
             # traj * n_agent * (n*action_space)
             action_mask = action_mask.unsqueeze(0).repeat(
                 joint_action_one_hot.shape[0], 1, 1
-            )
+            ).to(self.device)
 
             # traj * n_agent * (n * action_space)
             joint_action_one_hot = (
@@ -128,7 +128,7 @@ class COMA(Policy):
             #     joint_action_one_hot))
 
             # n_a * n_a
-            agent_ids_cat = torch.cat(agent_ids_cat, dim=0)
+            agent_ids_cat = torch.cat(agent_ids_cat, dim=0).to(self.device)
             agent_ids_cat = agent_ids_cat.unsqueeze(
                 0).repeat(central_state_n_a.shape[0], 1, 1).type(torch.float)
             # print("agent ids shape {} ".format(agent_ids_cat.shape))
@@ -139,7 +139,7 @@ class COMA(Policy):
                 (central_state_n_a, local_obs_cat,
                  agent_ids_cat, joint_action_one_hot),
                 dim=-1
-            )
+            ).to(self.device)
             # print("critic state shape {}".format(critic_states.shape))
             # print("criti state {}".format(critic_states))
 
