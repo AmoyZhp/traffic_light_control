@@ -27,7 +27,7 @@ class Intersection():
         return len(self.roadlinks)
 
     def get_roads_ids(self):
-        return self.roads.keys()
+        return list(self.roads.keys())
 
     def get_current_phase_index(self) -> int:
         return self.current_phase_index

@@ -136,8 +136,11 @@ class IndependentTrainer():
         ids = env.intersection_ids()
 
         # 初始化策略
-        policy_config["local_ids"] = list(ids)
+        policy_config["local_ids"] = ids
         policy_config["mode"] = "train"
+        policy_config["action_space"] = env.get_action_space()
+        policy_config["obs_space"] = env.get_local_obs_space()
+        policy_config["state_space"] = env.get_state_space()
         p_wrapper = policy.get_policy(policy_config["policy_id"],
                                       policy_config)
 
@@ -182,7 +185,7 @@ class IndependentTrainer():
         train_begin_time = time.time()
         for episode in range(ep_begin, num_episodes + ep_begin):
             training_trail = {}
-            if policy_config["policy_id"] in ["IAC", "IAC_PS"]:
+            if policy_config["policy_id"] in ["IAC", "IAC_PS", "COMA"]:
                 training_trail = self.on_policy_train(env, p_wrapper)
             else:
                 training_trail = self.off_policy_train(env, p_wrapper)
@@ -366,13 +369,16 @@ class IndependentTrainer():
         states = env.reset()
         traj = {
             "state": {
+                "central": [],
                 "local": {},
             },
             "action": {},
             "reward": {
+                "central": [],
                 "local": {}
             },
             "next_state": {
+                "central": [],
                 "local": {}
             },
             "done": [],
@@ -393,6 +399,10 @@ class IndependentTrainer():
             next_states, rewards, done, info = env.step(actions)
             sim_time_cost += time.time() - sim_begin_time
 
+            traj["state"]["central"].append(states["central"])
+            traj["next_state"]["central"].append(next_states["central"])
+            traj["reward"]["central"].append(rewards["central"])
+
             for id_ in ids:
                 traj["state"]["local"][id_] = np.vstack(
                     (traj["state"]["local"][id_], states["local"][id_]))
@@ -410,6 +420,15 @@ class IndependentTrainer():
                 local_reward[id_] += rewards["local"][id_]
 
             if done:
+                traj["state"]["central"] = np.vstack(
+                    traj["state"]["central"]
+                )
+                traj["next_state"]["central"] = np.vstack(
+                    traj["next_state"]["central"]
+                )
+                traj["reward"]["central"] = np.vstack(
+                    traj["reward"]["central"]
+                )
                 p_wrapper.record_transition(
                     traj["state"], traj["action"],
                     traj["reward"], traj["next_state"],

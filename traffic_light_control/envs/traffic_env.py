@@ -3,6 +3,9 @@ import gym
 from envs.intersection import Intersection
 import numpy as np
 
+OBS_SPACE = 6*4 + 12*2
+ACTION_SPACE = 2
+
 
 class TrafficEnv(gym.Env):
     def __init__(self, eng, id_: str, max_time: int, interval: int,
@@ -11,6 +14,7 @@ class TrafficEnv(gym.Env):
         self.eng = eng
         self.id_ = id_
         self.intersections = intersections
+        self.loacal_ids = sorted(list(self.intersections.keys()))
         self.interval = interval
         self.max_time = max_time
         self.time = 0
@@ -40,15 +44,18 @@ class TrafficEnv(gym.Env):
         return self.__compute_state()
 
     def intersection_ids(self):
-        return self.intersections.keys()
+        return self.loacal_ids
 
     def __compute_state(self) -> Dict[str, np.ndarray]:
         # 基于 intersections 计算全局的 state 情况
         state = {}
-        for id_, item in self.intersections.items():
+        central_state = []
+        for id_ in self.loacal_ids:
+            item = self.intersections[id_]
             state[id_] = item.to_tensor()
+            central_state.append(item.to_tensor())
         return {
-            "central": [],
+            "central": np.hstack(central_state),
             "local": state,
         }
 
@@ -64,3 +71,12 @@ class TrafficEnv(gym.Env):
             reward["central"] += r
 
         return reward
+
+    def get_action_space(self):
+        return ACTION_SPACE
+
+    def get_local_obs_space(self):
+        return OBS_SPACE
+
+    def get_state_space(self):
+        return OBS_SPACE * len(self.loacal_ids)
