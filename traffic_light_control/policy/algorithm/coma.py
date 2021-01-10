@@ -40,6 +40,7 @@ class COMA(Policy):
         self.actor_nets = actor_nets
 
         self.critic_net.to(self.device)
+        self.target_critic_net.to(self.device)
         for net_ in self.actor_nets.values():
             net_.to(self.device)
 
