@@ -21,6 +21,7 @@ class DQN(Policy):
                  state_space,
                  ) -> None:
         super().__init__()
+
         self.device = device
 
         self.acting_net = acting_net

@@ -336,10 +336,14 @@ class IndependentTrainer():
 
             central_cumulative_reward += rewards["central"]
             central_loss += loss["central"]
+
             for id_ in ids:
                 local_reward[id_] += rewards["local"][id_]
-            for id_, l in loss["local"].items():
-                local_loss[id_] += l
+                local_loss[id_] += loss["local"][id_]
+            
+            for id_ in ids:
+                local_reward[id_] /= cnt
+                local_loss[id_] /= cnt
 
             if done:
                 return {
@@ -441,6 +445,12 @@ class IndependentTrainer():
                 for id_, l in loss["local"].items():
                     local_loss[id_] += l
 
+                for id_, l in loss["local"].items():
+                    local_loss[id_] /= cnt
+
+                for id_ in ids:
+                    local_reward[id_] /= cnt
+
                 return {
                     "single_ep_time_cost": time.time() - ep_begin_time,
                     "sim_time_cost": sim_time_cost,
@@ -505,18 +515,18 @@ class IndependentTrainer():
         for eps in range(num_episodes):
             states = env.reset()
             cumulative_reward = 0.0
-            while True:
+            for cnt in range(INTERATION_UPPER_BOUND):
                 actions = p_wrapper.compute_action(states)
                 states, rewards, done, info = env.step(actions)
                 cumulative_reward += rewards["central"]
                 if done:
                     print("In test mode, episodes {},".format(eps) +
                           "reward is {:.3f}, travel time {:.3f}".format(
-                        cumulative_reward, info["average_travel_time"]))
-                    reward_history[eps] = cumulative_reward
+                        cumulative_reward / cnt, info["average_travel_time"]))
+                    reward_history[eps] = cumulative_reward / cnt
                     test_result = {
                         "travel_time": info["average_travel_time"],
-                        "central_reward": cumulative_reward,
+                        "central_reward": cumulative_reward / cnt,
                     }
                     test_result_file = record_dir + "data/" + \
                         "test_result_{}.json".format(eps)

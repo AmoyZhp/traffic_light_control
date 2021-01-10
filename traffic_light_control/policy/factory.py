@@ -242,18 +242,22 @@ def __get_COMA(config):
     }
     critic_net = net.get_net(
         "COMACritic", critic_net_conf)
-    act_net = net.get_net(
-        "COMAActor", actor_net_conf)
+    
+    target_critic_net = net.get_net(
+        "COMACritic", critic_net_conf)
 
     actor_nets = {}
     for id_ in local_ids:
-        actor_nets[id_] = act_net
+        actor_nets[id_] = net.get_net(
+            "COMAActor", actor_net_conf)
     policy_ = COMA(
         local_ids=local_ids,
         critic_net=critic_net,
+        target_critic_net=target_critic_net,
         actor_nets=actor_nets,
         learning_rate=config["learning_rate"],
         discount_factor=config["discount_factor"],
+        update_period=config["update_period"],
         device=config["device"],
         action_space=config["action_space"],
         state_space=config["state_space"],
