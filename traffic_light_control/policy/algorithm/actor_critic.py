@@ -80,7 +80,8 @@ class ActorCritic(Policy):
         advantage = selected_s_a_v - state_values
         log_prob = torch.log(action_prob).gather(2, action_batch)
         # 负数的原因是因为算法默认是梯度下降，加了负号后就可以让它变成梯度上升
-        actor_loss = -torch.sum(log_prob * advantage.detach())
+        actor_loss = -torch.sum(log_prob * advantage.detach()
+                                ) / batch.state.shape[0]
 
         self.actor_optim.zero_grad()
         actor_loss.backward()
