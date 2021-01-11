@@ -340,7 +340,7 @@ class IndependentTrainer():
             for id_ in ids:
                 local_reward[id_] += rewards["local"][id_]
                 local_loss[id_] += loss["local"][id_]
-            
+
             for id_ in ids:
                 local_reward[id_] /= cnt
                 local_loss[id_] /= cnt
