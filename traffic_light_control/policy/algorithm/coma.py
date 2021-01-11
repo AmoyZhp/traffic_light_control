@@ -136,7 +136,7 @@ class COMA(Policy):
         for id_ in self.local_ids:
 
             self.actor_optims[id_].zero_grad()
-            actor_loss.backward()
+            actor_loss[id_].backward()
             self.actor_optims[id_].step()
 
     def __critic_update(self, concat_state, joint_action, reward):
