@@ -118,6 +118,7 @@ class COMA(Policy):
     def __actor_update(self, local_obs, joint_action,
                        tranj_selected_q_v, tranj_q_v):
         # n_agent * action_space
+        actor_loss = {}
         for id_ in self.local_ids:
             index_a = self.ids_map[id_]
             action_prob = self.actor_nets[id_](
@@ -129,7 +130,11 @@ class COMA(Policy):
             m = Categorical(action_prob)
             log_prob = m.log_prob(joint_action[index_a])
             # 负数的原因是因为算法默认是梯度下降，加了负号后就可以让它变成梯度上升
-            actor_loss = -torch.sum(log_prob * advantage.detach())
+            actor_loss[id_] = -torch.sum(log_prob * advantage.detach())
+
+        # 考虑到有 params share 的情况把更新放到最后
+        for id_ in self.local_ids:
+
             self.actor_optims[id_].zero_grad()
             actor_loss.backward()
             self.actor_optims[id_].step()
