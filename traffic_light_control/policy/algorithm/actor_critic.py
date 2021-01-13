@@ -1,4 +1,3 @@
-from typing import List
 from torch import optim
 import torch
 import torch.nn as nn
@@ -47,60 +46,10 @@ class ActorCritic(Policy):
         batch_size = len(batch_data)
         if batch_size == 0:
             return 0.0
-
-        batch = self.__process_batch_data(batch_data)
-
-        state_batch = batch.state
-        action_batch = batch.action
-        reward_batch = batch.reward
-        next_state_batch = batch.next_state
-        mask_batch = batch.done
-
-        state_action_values = self.critic_net(state_batch)
-        selected_s_a_v = state_action_values.gather(
-            2, action_batch).to(self.device)
-
-        # 计算 critic loss
-        selected_next_s_a_v = torch.zeros_like(
-            selected_s_a_v, device=self.device)
-        selected_next_s_a_v[:, :-1, :] = self.critic_net(
-            next_state_batch[:, :-1, :]).gather(
-                2, action_batch[:, 1:, ]).to(self.device)
-        selected_next_s_a_v = selected_next_s_a_v * mask_batch
-        target_values = (selected_next_s_a_v.detach() * self.discount_factor
-                         + reward_batch)
-        critic_loss = self.critic_loss_func(
-            selected_s_a_v, target_values)
-
-        # 计算 actor loss
-
-        action_prob = self.actor_net(state_batch)
-        state_values = torch.sum(
-            state_action_values * action_prob,  dim=2).unsqueeze(-1)
-        advantage = selected_s_a_v - state_values
-        log_prob = torch.log(action_prob).gather(2, action_batch)
-        # 负数的原因是因为算法默认是梯度下降，加了负号后就可以让它变成梯度上升
-        actor_loss = -torch.sum(log_prob * advantage.detach()
-                                ) / batch.state.shape[0]
-
-        self.actor_optim.zero_grad()
-        actor_loss.backward()
-        self.actor_optim.step()
-
-        self.critic_optim.zero_grad()
-        critic_loss.backward()
-        self.critic_optim.step()
-        return critic_loss.item()
-
-    def __process_batch_data(self, batch_data: List[Transition]):
-
-        state_list = []
-        action_list = []
-        reward_list = []
-        next_state_list = []
-        mask_list = []
-
+        actor_loss = 0.0
+        critic_loss = 0.0
         for trans in batch_data:
+
             batch = Transition(
                 torch.tensor(trans.state, dtype=torch.float).to(self.device),
                 torch.tensor(trans.action, dtype=torch.long).to(self.device),
@@ -109,26 +58,50 @@ class ActorCritic(Policy):
                     trans.next_state, dtype=torch.float).to(self.device),
                 torch.tensor(trans.done, dtype=torch.long).to(self.device)
             )
-            state_list.append(batch.state.unsqueeze(0))
-            action_list.append(batch.action.view(-1, 1).unsqueeze(0))
-            reward_list.append(batch.reward.view(-1, 1).unsqueeze(0))
-            next_state_list.append(batch.next_state.unsqueeze(0))
-            mask = torch.tensor(tuple(map(lambda d: not d, batch.done)),
-                                device=self.device,
-                                dtype=torch.long).view(-1, 1)
-            mask_list.append(mask.unsqueeze(0))
-        state_batch = torch.cat(state_list, dim=0)
-        action_batch = torch.cat(action_list, dim=0)
-        reward_batch = torch.cat(reward_list, dim=0)
-        next_state_batch = torch.cat(next_state_list, dim=0)
-        mask_batch = torch.cat(mask_list, dim=0)
-        return Transition(
-            state_batch,
-            action_batch,
-            reward_batch,
-            next_state_batch,
-            mask_batch
-        )
+            state_batch = batch.state
+            action_batch = batch.action
+            reward_batch = batch.reward
+            next_state_batch = batch.next_state
+            mask_batch = torch.tensor(tuple(map(lambda d: not d, batch.done)),
+                                      device=self.device, dtype=torch.bool)
+
+            state_action_values = self.critic_net(state_batch)
+            selected_s_a_v = state_action_values.gather(
+                1, action_batch.view(-1, 1)).to(self.device)
+
+            # 计算 critic loss
+            next_action_values = torch.zeros_like(
+                selected_s_a_v, device=self.device)
+            next_action_values[mask_batch] = self.critic_net(
+                next_state_batch[mask_batch]).gather(
+                1, action_batch.view(-1, 1)[1:, :]).detach()
+            target_values = (next_action_values * self.discount_factor
+                             + reward_batch.view(-1, 1))
+            critic_loss += self.critic_loss_func(
+                selected_s_a_v, target_values.view(-1, 1))
+
+            # 计算 actor loss
+
+            action_prob = self.actor_net(state_batch)
+            # reward = self.__compute_reward_to_go(reward_batch)
+            state_values = torch.sum(
+                state_action_values.detach() * action_prob.detach(),  dim=1)
+            advantage = selected_s_a_v.detach() - state_values.detach()
+            m = Categorical(action_prob)
+            log_prob = m.log_prob(action_batch)
+            # 负数的原因是因为算法默认是梯度下降，加了负号后就可以让它变成梯度上升
+            actor_loss += -torch.sum(log_prob * advantage)
+
+        actor_loss /= batch_size
+        self.actor_optim.zero_grad()
+        actor_loss.backward()
+        self.actor_optim.step()
+
+        critic_loss /= batch_size
+        self.critic_optim.zero_grad()
+        critic_loss.backward()
+        self.critic_optim.step()
+        return critic_loss.item()
 
     def __compute_reward_to_go(self, rewards):
         rewards = rewards.view(-1, 1)
