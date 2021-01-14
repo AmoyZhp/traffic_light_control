@@ -83,10 +83,10 @@ class ActorCritic(Policy):
             # 计算 actor loss
 
             action_prob = self.actor_net(state_batch)
-            # reward = self.__compute_reward_to_go(reward_batch)
-            state_values = torch.sum(
-                state_action_values.detach() * action_prob.detach(),  dim=1).unsqueeze(-1)
-            advantage = selected_s_a_v.detach() - state_values.detach()
+            advantage = self.__compute_reward_to_go(reward_batch) - selected_s_a_v.detach()
+            # state_values = torch.sum(
+            #     state_action_values.detach() * action_prob.detach(),  dim=1).unsqueeze(-1)
+            # advantage = selected_s_a_v.detach() - state_values.detach()
             
             # m = Categorical(action_prob)
             # log_prob = m.log_prob(action_batch)
