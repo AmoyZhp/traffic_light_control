@@ -123,12 +123,10 @@ class COMA(Policy):
             index_a = self.ids_map[id_]
             action_prob = self.actor_nets[id_](
                 local_obs[index_a])
-
             baseline = torch.sum(
-                action_prob.detach() * tranj_q_v[index_a])
+                action_prob.detach() * tranj_q_v[index_a], dim=1).unsqueeze(-1)
             advantage = tranj_selected_q_v[index_a] - baseline
-            m = Categorical(action_prob)
-            log_prob = m.log_prob(joint_action[index_a])
+            log_prob = torch.log(action_prob).gather(1, joint_action[index_a].view(-1,1))
             # 负数的原因是因为算法默认是梯度下降，加了负号后就可以让它变成梯度上升
             actor_loss[id_] = -torch.sum(log_prob * advantage.detach())
 
