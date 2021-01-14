@@ -15,7 +15,7 @@ DATA_DIR = "data/"
 
 
 # env setting
-MAX_TIME = 40
+MAX_TIME = 3600
 INTERVAL = 5
 
 # agent setting
