@@ -59,36 +59,38 @@ class ActorCritic(Policy):
                 torch.tensor(trans.done, dtype=torch.long).to(self.device)
             )
             state_batch = batch.state
-            action_batch = batch.action
-            reward_batch = batch.reward
+            action_batch = batch.action.view(-1,1)
+            reward_batch = batch.reward.view(-1,1)
             next_state_batch = batch.next_state
             mask_batch = torch.tensor(tuple(map(lambda d: not d, batch.done)),
                                       device=self.device, dtype=torch.bool)
 
             state_action_values = self.critic_net(state_batch)
             selected_s_a_v = state_action_values.gather(
-                1, action_batch.view(-1, 1)).to(self.device)
+                1, action_batch).to(self.device)
 
             # 计算 critic loss
             next_action_values = torch.zeros_like(
                 selected_s_a_v, device=self.device)
-            next_action_values[mask_batch] = self.critic_net(
-                next_state_batch[mask_batch]).gather(
-                1, action_batch.view(-1, 1)[1:, :]).detach()
+            next_action_values[:-1] = self.critic_net(
+                state_batch[1:]).gather(
+                1, action_batch[1:]).detach()
             target_values = (next_action_values * self.discount_factor
-                             + reward_batch.view(-1, 1))
+                             + reward_batch)
             critic_loss += self.critic_loss_func(
-                selected_s_a_v, target_values.view(-1, 1))
+                selected_s_a_v, target_values)
 
             # 计算 actor loss
 
             action_prob = self.actor_net(state_batch)
             # reward = self.__compute_reward_to_go(reward_batch)
             state_values = torch.sum(
-                state_action_values.detach() * action_prob.detach(),  dim=1)
+                state_action_values.detach() * action_prob.detach(),  dim=1).unsqueeze(-1)
             advantage = selected_s_a_v.detach() - state_values.detach()
-            m = Categorical(action_prob)
-            log_prob = m.log_prob(action_batch)
+            
+            # m = Categorical(action_prob)
+            # log_prob = m.log_prob(action_batch)
+            log_prob = torch.log(action_prob).gather(1, action_batch)
             # 负数的原因是因为算法默认是梯度下降，加了负号后就可以让它变成梯度上升
             actor_loss += -torch.sum(log_prob * advantage)
 
