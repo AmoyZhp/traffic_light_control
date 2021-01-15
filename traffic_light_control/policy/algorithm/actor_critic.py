@@ -59,8 +59,8 @@ class ActorCritic(Policy):
                 torch.tensor(trans.done, dtype=torch.long).to(self.device)
             )
             state_batch = batch.state
-            action_batch = batch.action.view(-1,1)
-            reward_batch = batch.reward.view(-1,1)
+            action_batch = batch.action.view(-1, 1)
+            reward_batch = batch.reward.view(-1, 1)
             next_state_batch = batch.next_state
             mask_batch = torch.tensor(tuple(map(lambda d: not d, batch.done)),
                                       device=self.device, dtype=torch.bool)
@@ -83,11 +83,12 @@ class ActorCritic(Policy):
             # 计算 actor loss
 
             action_prob = self.actor_net(state_batch)
-            advantage = self.__compute_reward_to_go(reward_batch) - selected_s_a_v.detach()
-            # state_values = torch.sum(
-            #     state_action_values.detach() * action_prob.detach(),  dim=1).unsqueeze(-1)
-            # advantage = selected_s_a_v.detach() - state_values.detach()
-            
+            # advantage = self.__compute_reward_to_go(reward_batch) - selected_s_a_v.detach()
+            state_values = torch.sum(
+                state_action_values.detach() * action_prob.detach(),
+                dim=1).unsqueeze(-1)
+            advantage = selected_s_a_v.detach() - state_values.detach()
+
             # m = Categorical(action_prob)
             # log_prob = m.log_prob(action_batch)
             log_prob = torch.log(action_prob).gather(1, action_batch)
