@@ -341,11 +341,10 @@ class IndependentTrainer():
                 local_reward[id_] += rewards["local"][id_]
                 local_loss[id_] += loss["local"][id_]
 
-            for id_ in ids:
-                local_reward[id_] /= cnt
-                local_loss[id_] /= cnt
-
             if done:
+                for id_ in ids:
+                    local_reward[id_] /= cnt
+                    local_loss[id_] /= cnt
                 return {
                     "single_ep_time_cost": time.time() - ep_begin_time,
                     "sim_time_cost": sim_time_cost,
