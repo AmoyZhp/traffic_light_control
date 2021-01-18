@@ -61,9 +61,10 @@ class Intersection():
                     dir_) / in_road.get_capacity(dir_)
                 out_density = out_road.get_vehicles(
                     dir_) / out_road.get_capacity(dir_)
-                r_pressure += abs(in_density - out_density)
+                r_pressure += in_density - out_density
 
             pressure += r_pressure
+        pressure = abs(pressure)
         return pressure
 
     def move_to_next_phase(self):
