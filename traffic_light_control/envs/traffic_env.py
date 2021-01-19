@@ -69,6 +69,7 @@ class TrafficEnv(gym.Env):
             r = - inter.get_pressure()
             reward["local"][id_] = r
             reward["central"] += r
+        reward["central"] /= len(self.intersections)
 
         return reward
 

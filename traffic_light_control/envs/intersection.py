@@ -49,6 +49,7 @@ class Intersection():
 
     def get_pressure(self) -> float:
         pressure = 0.0
+        cnt = 0
         for rlink in self.roadlinks:
             r_pressure = 0.0
             out_road = rlink[GraphDirection.OUT]
@@ -61,10 +62,16 @@ class Intersection():
                     dir_) / in_road.get_capacity(dir_)
                 out_density = out_road.get_vehicles(
                     dir_) / out_road.get_capacity(dir_)
-                r_pressure += in_density - out_density
+                traffic_mov_pres = in_density - out_density
+                # scaling
+                traffic_mov_pres /= 2.0
+                r_pressure += traffic_mov_pres
+                cnt += 1
 
             pressure += r_pressure
         pressure = abs(pressure)
+        # scaling
+        pressure /= cnt
         return pressure
 
     def move_to_next_phase(self):
