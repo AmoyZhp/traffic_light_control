@@ -61,9 +61,7 @@ class ActorCritic(Policy):
             state_batch = batch.state
             action_batch = batch.action.view(-1, 1)
             reward_batch = batch.reward.view(-1, 1)
-            next_state_batch = batch.next_state
-            mask_batch = torch.tensor(tuple(map(lambda d: not d, batch.done)),
-                                      device=self.device, dtype=torch.bool)
+            traj_len = state_batch.shape[0]
 
             state_action_values = self.critic_net(state_batch)
             selected_s_a_v = state_action_values.gather(
@@ -74,26 +72,26 @@ class ActorCritic(Policy):
                 selected_s_a_v, device=self.device)
             next_action_values[:-1] = self.critic_net(
                 state_batch[1:]).gather(
-                1, action_batch[1:]).detach()
+                1, action_batch[1:])
             target_values = (next_action_values * self.discount_factor
                              + reward_batch)
             critic_loss += self.critic_loss_func(
-                selected_s_a_v, target_values)
+                selected_s_a_v, target_values.detach())
 
             # 计算 actor loss
 
             action_prob = self.actor_net(state_batch)
-            # advantage = self.__compute_reward_to_go(reward_batch) - selected_s_a_v.detach()
             state_values = torch.sum(
                 state_action_values.detach() * action_prob.detach(),
                 dim=1).unsqueeze(-1)
-            advantage = selected_s_a_v.detach() - state_values.detach()
+            advantage = selected_s_a_v - state_values
 
             # m = Categorical(action_prob)
             # log_prob = m.log_prob(action_batch)
             log_prob = torch.log(action_prob).gather(1, action_batch)
             # 负数的原因是因为算法默认是梯度下降，加了负号后就可以让它变成梯度上升
-            actor_loss += -torch.sum(log_prob * advantage)
+            actor_loss += (-torch.sum(log_prob *
+                                      advantage.detach()) / traj_len)
 
         actor_loss /= batch_size
         self.actor_optim.zero_grad()
