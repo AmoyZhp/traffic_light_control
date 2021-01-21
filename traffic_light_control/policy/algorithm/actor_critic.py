@@ -1,3 +1,4 @@
+from typing import List
 from torch import optim
 import torch
 import torch.nn as nn
@@ -8,19 +9,26 @@ from torch.distributions import Categorical
 
 class ActorCritic(Policy):
     def __init__(self,
-                 critic_net,
-                 actor_net,
-                 learning_rate,
-                 discount_factor,
-                 device,
+                 critic_net: nn.Module,
+                 critic_target_net: nn.Module,
+                 actor_net: nn.Module,
+                 learning_rate: float,
+                 discount_factor: float,
+                 update_period: int,
+                 device: torch.device,
                  action_space,
                  state_space) -> None:
 
         self.device = device
-        self.critic_net = critic_net
+
         self.actor_net = actor_net
+        self.critic_net = critic_net
+        self.critic_target_net = critic_target_net
+
+        self.critic_target_net.load_state_dict(self.critic_net.state_dict())
 
         self.critic_net.to(self.device)
+        self.critic_target_net.to(self.device)
         self.actor_net.to(self.device)
 
         self.critic_optim = optim.Adam(
@@ -32,7 +40,8 @@ class ActorCritic(Policy):
         self.learning_rate = learning_rate
         self.action_space = action_space
         self.state_space = state_space
-        self.critic_loss_func = nn.MSELoss()
+        self.update_count = 0
+        self.update_period = update_period
 
     def compute_action(self, state, explore):
         state = torch.tensor(state, dtype=torch.float, device=self.device)
@@ -42,66 +51,78 @@ class ActorCritic(Policy):
             action = m.sample()
             return action.item()
 
-    def learn_on_batch(self, batch_data):
+    def learn_on_batch(self, batch_data: List[Transition]):
         batch_size = len(batch_data)
         if batch_size == 0:
             return 0.0
-        actor_loss = 0.0
-        critic_loss = 0.0
-        for trans in batch_data:
 
-            batch = Transition(
-                torch.tensor(trans.state, dtype=torch.float).to(self.device),
-                torch.tensor(trans.action, dtype=torch.long).to(self.device),
-                torch.tensor(trans.reward, dtype=torch.float).to(self.device),
+        def np_to_tensor(trans: Transition):
+            return Transition(
+                torch.tensor(trans.state, dtype=torch.float).to(
+                    self.device).unsqueeze(1),
+                torch.tensor(trans.action, dtype=torch.long).to(
+                    self.device).view(-1, 1).unsqueeze(1),
+                torch.tensor(trans.reward, dtype=torch.float).to(
+                    self.device).view(-1, 1).unsqueeze(1),
                 torch.tensor(
                     trans.next_state, dtype=torch.float).to(self.device),
                 torch.tensor(trans.done, dtype=torch.long).to(self.device)
             )
-            state_batch = batch.state
-            action_batch = batch.action.view(-1, 1)
-            reward_batch = batch.reward.view(-1, 1)
-            traj_len = state_batch.shape[0]
+        batch_data = map(np_to_tensor, batch_data)
+        batch_data = Transition(*zip(*batch_data))
 
-            state_action_values = self.critic_net(state_batch)
-            selected_s_a_v = state_action_values.gather(
-                1, action_batch).to(self.device)
+        state_seq_batch = torch.cat(batch_data.state, 1)
+        action_seq_batch = torch.cat(batch_data.action, 1)
+        reward_seq_batch = torch.cat(batch_data.reward, 1)
 
-            # 计算 critic loss
-            next_action_values = torch.zeros_like(
-                selected_s_a_v, device=self.device)
-            next_action_values[:-1] = self.critic_net(
-                state_batch[1:]).gather(
-                1, action_batch[1:])
-            target_values = (next_action_values * self.discount_factor
-                             + reward_batch)
-            critic_loss += self.critic_loss_func(
-                selected_s_a_v, target_values.detach())
+        # seq * batch * action_space
+        q_vals = self.critic_net(state_seq_batch)
 
-            # 计算 actor loss
+        # seq * batch * 1
+        selected_q_v = q_vals.gather(
+            2, action_seq_batch).to(self.device)
 
-            action_prob = self.actor_net(state_batch)
-            state_values = torch.sum(
-                state_action_values.detach() * action_prob.detach(),
-                dim=1).unsqueeze(-1)
-            advantage = selected_s_a_v - state_values
+        # 计算 critic loss
 
-            # m = Categorical(action_prob)
-            # log_prob = m.log_prob(action_batch)
-            log_prob = torch.log(action_prob).gather(1, action_batch)
-            # 负数的原因是因为算法默认是梯度下降，加了负号后就可以让它变成梯度上升
-            actor_loss += (-torch.sum(log_prob *
-                                      advantage.detach()) / traj_len)
+        # seq * batch * 1
+        next_sel_q_v = torch.zeros_like(
+            selected_q_v, device=self.device)
+        next_sel_q_v[:-1] = self.critic_target_net(
+            state_seq_batch[1:]).gather(
+            2, action_seq_batch[1:])
+        target_values = (next_sel_q_v * self.discount_factor
+                         + reward_seq_batch)
+        critic_loss = self.__compute_critic_loss(
+            selected_q_v, target_values.detach())
 
-        actor_loss /= batch_size
+        # 计算 actor loss
+
+        # seq * batch * action_shape
+        action_prob = self.actor_net(state_seq_batch)
+        state_values = torch.sum(
+            q_vals * action_prob,
+            dim=2).unsqueeze(-1)
+        advantage = selected_q_v - state_values
+
+        # m = Categorical(action_prob)
+        # log_prob = m.log_prob(action_batch)
+        log_prob = torch.log(action_prob).gather(2, action_seq_batch)
+        # 负数的原因是因为算法默认是梯度下降，加了负号后就可以让它变成梯度上升
+        actor_loss = (-torch.mean(log_prob *
+                                  advantage.detach()))
+
         self.actor_optim.zero_grad()
         actor_loss.backward()
         self.actor_optim.step()
 
-        critic_loss /= batch_size
         self.critic_optim.zero_grad()
         critic_loss.backward()
         self.critic_optim.step()
+        self.update_count += 1
+        if self.update_count > self.update_period:
+            self.update_count = 0
+            self.critic_target_net.load_state_dict(
+                self.critic_net.state_dict())
         return critic_loss.item()
 
     def __compute_reward_to_go(self, rewards):
@@ -111,6 +132,9 @@ class ActorCritic(Policy):
         rtg = weight.matmul(rewards)
 
         return rtg
+
+    def __compute_critic_loss(self, input, target):
+        return torch.mean((input - target) ** 2)
 
     def get_weight(self):
         weight = {

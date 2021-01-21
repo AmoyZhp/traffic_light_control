@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import Dict, List
 from torch import optim
 import torch
 import torch.nn as nn
@@ -71,43 +71,32 @@ class COMA(Policy):
                 actions[id_] = action.item()
         return actions
 
-    def learn_on_batch(self, batch_data):
+    def learn_on_batch(self, batch_data: List[Transition]):
         batch_size = len(batch_data)
         if batch_size == 0:
             return 0.0
 
         for trans in batch_data:
 
-            batch = self.__process_tran(trans)
+            trans = self.__np_to_tensor(trans)
 
-            # joint_action_raw : traj_len * n_agent
-            # critic_states : traj_len * n_agent * (joint_state_space)
-            # local_obs_cat : traj_len * n_agent * (obs_space)
-            critic_states, joint_action_raw, local_obs_cat = self.__process_batch(
-                batch)
+            critic_states = self.__cat_critic_state(trans)
 
-            # traj_len * n_agent * 1
-            rewards = batch.reward["central"].unsqueeze(
-                1).repeat(1, self.n_agents, 1)
+            # traj_len * 1
+            rewards: torch.Tensor = trans.reward["central"]
+            joint_action: Dict[str, torch.Tensor] = trans.action
 
-            # tranj_selected_q_v : traj_len * n_agent * 1
-            # tranj_q_v : traj_len * n_agent * action_space
-            tranj_q_v, tranj_selected_q_v, critic_loss = self.__critic_update(
-                concat_state=critic_states,
-                joint_action=joint_action_raw,
-                reward=rewards
+            joint_q_v, joint_selct_q_v, critic_loss = self.__critic_update(
+                states=critic_states,
+                actions=joint_action,
+                rewards=rewards
             )
 
-            local_obs_cat = local_obs_cat.permute(1, 0, 2)
-            joint_action_raw = joint_action_raw.permute(1, 0)
-            tranj_q_v = tranj_q_v.permute(1, 0, 2)
-            tranj_selected_q_v = tranj_selected_q_v.permute(1, 0, 2)
-
             _ = self.__actor_update(
-                local_obs=local_obs_cat,
-                joint_action=joint_action_raw,
-                tranj_q_v=tranj_q_v,
-                tranj_selected_q_v=tranj_selected_q_v,
+                joint_obs=trans.state["local"],
+                joint_action=joint_action,
+                joint_q_v=joint_q_v,
+                joint_selct_q_v=joint_selct_q_v,
             )
 
             return {
@@ -115,18 +104,19 @@ class COMA(Policy):
                 "local": {},
             }
 
-    def __actor_update(self, local_obs, joint_action,
-                       tranj_selected_q_v, tranj_q_v):
+    def __actor_update(self, joint_obs, joint_action,
+                       joint_selct_q_v, joint_q_v):
         # n_agent * action_space
         actor_loss = {}
         for id_ in self.local_ids:
-            index_a = self.ids_map[id_]
+            local_obs = joint_obs[id_]
             action_prob = self.actor_nets[id_](
-                local_obs[index_a])
+                local_obs)
             baseline = torch.sum(
-                action_prob.detach() * tranj_q_v[index_a], dim=1).unsqueeze(-1)
-            advantage = tranj_selected_q_v[index_a] - baseline
-            log_prob = torch.log(action_prob).gather(1, joint_action[index_a].view(-1,1))
+                action_prob * joint_q_v[id_], dim=1).unsqueeze(-1)
+            advantage = joint_selct_q_v[id_] - baseline
+            log_prob = torch.log(action_prob).gather(
+                1, joint_action[id_])
             # 负数的原因是因为算法默认是梯度下降，加了负号后就可以让它变成梯度上升
             actor_loss[id_] = -torch.sum(log_prob * advantage.detach())
 
@@ -137,34 +127,64 @@ class COMA(Policy):
             actor_loss[id_].backward()
             self.actor_optims[id_].step()
 
-    def __critic_update(self, concat_state, joint_action, reward):
-        tranj_selected_q_v = []
-        tranj_q_v = []
+    def __critic_update(self,
+                        states: Dict[str, torch.Tensor],
+                        actions: Dict[str, torch.Tensor],
+                        rewards: torch.Tensor):
+        joint_selct_q_val = {}
+        joint_q_val = {}
+        expected_q_vals = {}
+        for id_ in self.local_ids:
+            ag_state = states[id_]
+            ag_action = actions[id_]
+            seq_len = ag_state.shape[0]
+            next_selected_q_val = torch.zeros((seq_len, 1), device=self.device)
+            next_selected_q_val[:-1] = self.target_critic_net(
+                ag_state[1:]
+            ).gather(1, ag_action[1:])
 
-        total_critic_loss = 0.0
-        for t in reversed(range(concat_state.shape[0])):
-            # n_agent * action_space
-            q_values = self.critic_net(concat_state[t])
-            tranj_q_v.append(q_values.unsqueeze(0).detach())
+            expected_q_vals[id_] = next_selected_q_val.detach() * \
+                self.discount_factor + rewards
 
-            # n_agent * 1
-            selected_q_values = q_values.gather(
-                1, joint_action[t].view(-1, 1)
+        total_loss = 0.0
+        for id_ in self.local_ids:
+            ag_state = states[id_]
+            ag_action = actions[id_]
+            ag_exp_q_vals = expected_q_vals[id_]
+            seq_q_val, seq_sel_q_val, loss = self.__local_critic_update(
+                ag_state, ag_action, ag_exp_q_vals)
+            joint_q_val[id_] = seq_q_val
+            joint_selct_q_val[id_] = seq_sel_q_val
+            total_loss += loss
+
+        return joint_q_val, joint_selct_q_val, total_loss
+
+    def __local_critic_update(self,
+                              seq_state,
+                              seq_action,
+                              seq_exp_q_val):
+        seq_q_val = []
+        seq_sel_q_val = []
+        seq_len = seq_state.shape[0]
+        total_loss = 0.0
+        for t in reversed(range(seq_len)):
+            # action_space
+            q_val = self.critic_net(seq_state[t]).unsqueeze(0)
+            seq_q_val.append(q_val.detach())
+
+            # 1 * 1
+            selected_q_val = q_val.gather(
+                1, seq_action[t].view(-1, 1)
             )
-
-            tranj_selected_q_v.append(selected_q_values.unsqueeze(0).detach())
-
-            selected_next_q_values = torch.zeros_like(selected_q_values)
-            if t+1 < concat_state.shape[0]:
-                next_q_values = self.target_critic_net(concat_state[t+1])
-                selected_next_q_values = next_q_values.gather(
-                    1, joint_action[t+1].view(-1, 1)
-                )
-            excepted_q_values = selected_next_q_values.detach() * \
-                self.discount_factor + reward[t]
+            seq_sel_q_val.append(selected_q_val.detach())
 
             critic_loss = self.critic_loss_func(
-                selected_q_values, excepted_q_values)
+                q_val, seq_exp_q_val[t])
+            self.critic_optim.zero_grad()
+            critic_loss.backward()
+            self.critic_optim.step()
+
+            total_loss += critic_loss
 
             self.update_count += 1
             if self.update_count >= self.update_period:
@@ -172,49 +192,27 @@ class COMA(Policy):
                 self.target_critic_net.load_state_dict(
                     self.critic_net.state_dict())
 
-            total_critic_loss += critic_loss.item()
-            self.critic_optim.zero_grad()
-            critic_loss.backward()
-            self.critic_optim.step()
+        seq_sel_q_val.reverse()
+        seq_q_val.reverse()
 
-        tranj_selected_q_v.reverse()
-        tranj_q_v.reverse()
-        tranj_selected_q_v = torch.cat(tranj_selected_q_v, dim=0)
-        tranj_q_v = torch.cat(tranj_q_v, dim=0)
-        return tranj_q_v, tranj_selected_q_v, total_critic_loss
+        seq_q_val = torch.cat(seq_q_val, 0)
+        seq_sel_q_val = torch.cat(seq_sel_q_val, 0)
 
-    def __process_batch(self, batch: Transition):
-        central_state_n_a = batch.state["central"].unsqueeze(1).repeat(
-            1, self.n_agents, 1)
+        return seq_q_val, seq_sel_q_val, total_loss.item()
+
+    def __cat_critic_state(self, batch: Transition) -> Dict[str, torch.Tensor]:
         joint_action_one_hot = []
-        joint_action_raw = []
-        local_obs_n_a = []
-        agent_ids_cat = []
 
         for id_ in self.local_ids:
-            # tranj * (n*action_space)
+            # seq * action_space
             action_one_hot = F.one_hot(batch.action[id_],
-                                       self.action_space)
+                                       self.action_space).squeeze(1)
             joint_action_one_hot.append(action_one_hot)
 
-            joint_action_raw.append(
-                batch.action[id_].view(-1, 1))
-
-            local_obs_n_a.append(batch.state["local"][id_].unsqueeze(1))
-
-            # 1 * n_agent
-            agent_id_one_hot = F.one_hot(
-                torch.tensor(self.ids_map[id_]), self.n_agents)
-            agent_ids_cat.append(agent_id_one_hot.view(1, -1))
-
-        # tranj * n_a * obs_space
-        local_obs_n_a = torch.cat(local_obs_n_a, dim=1)
-
-        # traj * (n * action_space)
+        # seq * (n * action_space)
         joint_action_one_hot = torch.cat(
             joint_action_one_hot, dim=1)
 
-        # traj * n_agent * (n * action_space)
         joint_action_one_hot = joint_action_one_hot.unsqueeze(
             1).repeat(1, self.n_agents, 1)
         action_mask = (1 - torch.eye(self.n_agents))
@@ -231,27 +229,27 @@ class COMA(Policy):
         # traj * n_agent * (n * action_space)
         joint_action_one_hot = (
             joint_action_one_hot * action_mask).type(torch.float)
+        # n_agent * seq * (n * action_space)
+        joint_action_one_hot = joint_action_one_hot.permute(1, 0, 2)
 
-        joint_action_raw = torch.cat(
-            joint_action_raw,
-            dim=1
-        ).to(self.device)
+        critic_states = {}
+        central_state = batch.state["central"]
+        for id_ in self.local_ids:
+            local_obs = batch.state["local"][id_]
+            agent_id_one_hot = F.one_hot(
+                torch.tensor(self.ids_map[id_]), self.n_agents)
 
-        # n_a * n_a
-        agent_ids_cat = torch.cat(agent_ids_cat, dim=0).to(self.device)
-        agent_ids_cat = agent_ids_cat.unsqueeze(
-            0).repeat(central_state_n_a.shape[0], 1, 1).type(torch.float)
+            agent_id_one_hot = agent_id_one_hot.view(1, -1).repeat(
+                central_state.shape[0], 1).type(torch.float)
+            critic_states[id_] = torch.cat(
+                (central_state, local_obs,
+                 agent_id_one_hot, joint_action_one_hot[self.ids_map[id_]]),
+                dim=-1
+            ).to(self.device)
 
-        # traj_len * n_agent * criti_state_space
-        critic_states = torch.cat(
-            (central_state_n_a, local_obs_n_a,
-                agent_ids_cat, joint_action_one_hot),
-            dim=-1
-        ).to(self.device)
+        return critic_states
 
-        return critic_states,  joint_action_raw, local_obs_n_a,
-
-    def __process_tran(self, trans):
+    def __np_to_tensor(self, trans: Transition) -> Transition:
         tensor_state = {
             "central": torch.tensor(
                 trans.state["central"], dtype=torch.float,
@@ -285,12 +283,12 @@ class COMA(Policy):
                 trans.action[id_],
                 dtype=torch.long,
                 device=self.device
-            )
+            ).view(-1, 1)
             tensor_reward["local"][id_] = torch.tensor(
                 trans.reward["local"][id_],
                 dtype=torch.float,
                 device=self.device,
-            )
+            ).view(-1, 1)
             tensor_next_state["local"][id_] = torch.tensor(
                 trans.next_state["local"][id_],
                 dtype=torch.float,

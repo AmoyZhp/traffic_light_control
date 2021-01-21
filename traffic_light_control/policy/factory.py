@@ -166,9 +166,13 @@ def __get_IAC(config):
         net_id = config["net_id"]
         actor_net = net.get_net("IActor", net_conf)
         critic = net.get_net(net_id, net_conf)
+
+        critic_target = net.get_net(net_id, net_conf)
         policies[id_] = ActorCritic(
             actor_net=actor_net,
             critic_net=critic,
+            critic_target_net=critic_target,
+            update_period=config["update_period"],
             learning_rate=config["learning_rate"],
             discount_factor=config["discount_factor"],
             device=config["device"],
@@ -242,7 +246,7 @@ def __get_COMA(config):
     }
     critic_net = net.get_net(
         "COMACritic", critic_net_conf)
-    
+
     target_critic_net = net.get_net(
         "COMACritic", critic_net_conf)
 

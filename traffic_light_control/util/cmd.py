@@ -12,18 +12,6 @@ def parase_args():
         help="mode of exec, include [train, test, static]")
 
     parser.add_argument(
-        "-dsp", "--data_saved_period", type=int,
-        required=True,
-        help="saving period of data"
-    )
-
-    parser.add_argument(
-        "-st", "--saved_threshold", type=float,
-        required=True,
-        help="the threhold that save model weight"
-    )
-
-    parser.add_argument(
         "-env", "--environment", type=str,
         required=True,
         help="the id of environment"
@@ -39,6 +27,17 @@ def parase_args():
         "-e", "--episodes", type=int, default=1,
         help="episode of exectue time"
     )
+
+    parser.add_argument(
+        "-dsp", "--data_saved_period", type=int, default=1000000,
+        help="saving period of data"
+    )
+
+    parser.add_argument(
+        "-st", "--saved_threshold", type=float, default=-1,
+        help="the threhold that save model weight"
+    )
+
     parser.add_argument(
         "-mf", "--model_file", type=str,
         help="the path of model parameter file"

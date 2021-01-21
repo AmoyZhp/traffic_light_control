@@ -17,8 +17,17 @@ def make(config):
     return __get_env_by_roadnet(config)
 
 
+def __id_shortcut_parased(id_):
+    if id_ == "1x3":
+        id_ = "syn_1x3_gaussian_500_1h"
+    elif id_ == "1x1":
+        id_ = "hangzhou_1x1_bc-tyc_18041607_1h"
+    # 都不匹配则直接返回
+    return id_
+
+
 def __get_env_by_roadnet(config):
-    id_ = config["id"]
+    id_ = __id_shortcut_parased(config["id"])
     cityflow_config_dir = CITYFLOW_CONFIG_ROOT_DIR + id_ + "/"
     cityflow_config_file = cityflow_config_dir + "config.json"
 
