@@ -1,4 +1,5 @@
 
+from policy.algorithm.ppo import PPO
 from typing import List
 from policy.algorithm.actor_critic import ActorCritic
 from policy.algorithm.coma import COMA
@@ -19,6 +20,8 @@ def get_policy(id_, config):
         return __get_IQL_PS(config)
     elif id_ == "IAC":
         return __get_IAC(config)
+    elif id_ == "IPPO":
+        return __get_IPPO(config)
     elif id_ == "IAC_PS":
         return __get_IAC_PS(config)
     elif id_ == "COMA":
@@ -191,6 +194,47 @@ def __get_IAC(config):
     )
     return policy_wrapper
 
+
+def __get_IPPO(config):
+
+    local_ids: List = config["local_ids"]
+    buffer_config = config["buffer"]
+    mode = config["mode"]
+    policies = {}
+    buffers = {}
+    net_conf = {
+        "input_space": config["obs_space"],
+        "output_space": config["action_space"],
+    }
+    for id_ in local_ids:
+        net_id = config["net_id"]
+        actor_net = net.get_net("IActor", net_conf)
+        critic = net.get_net(net_id, net_conf)
+
+        critic_target = net.get_net(net_id, net_conf)
+        policies[id_] = PPO(
+            actor_net=actor_net,
+            critic_net=critic,
+            critic_target_net=critic_target,
+            inner_epoch=config["inner_epoch"],
+            update_period=config["update_period"],
+            learning_rate=config["learning_rate"],
+            discount_factor=config["discount_factor"],
+            device=config["device"],
+            action_space=config["action_space"],
+            state_space=config["obs_space"]
+        )
+        if mode == "train":
+            buffers[id_] = buffer.get_buffer(
+                "on_policy_buffer",  buffer_config)
+    policy_wrapper = IndependentWrapper(
+        policies=policies,
+        buffers=buffers,
+        local_ids=local_ids,
+        batch_size=config["batch_size"],
+        mode=mode
+    )
+    return policy_wrapper
 
 def __get_IAC_PS(config):
 

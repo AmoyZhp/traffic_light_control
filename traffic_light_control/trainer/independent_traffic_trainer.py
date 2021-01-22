@@ -15,7 +15,7 @@ DATA_DIR = "data/"
 
 
 # env setting
-MAX_TIME = 40
+MAX_TIME = 3600
 INTERVAL = 5
 
 # agent setting
@@ -28,7 +28,7 @@ EPS_FRAME = 300000
 UPDATE_PERIOD = 500
 STATE_SPACE = 6*4 + 12*2
 ACTION_SPACE = 2
-
+INNER_EPOCH = 128
 
 # exec setting
 EVAL_NUM_EPISODE = 1
@@ -185,7 +185,7 @@ class IndependentTrainer():
         train_begin_time = time.time()
         for episode in range(ep_begin, num_episodes + ep_begin):
             training_trail = {}
-            if policy_config["policy_id"] in ["IAC", "IAC_PS", "COMA"]:
+            if policy_config["policy_id"] in ["IAC", "IAC_PS", "COMA", "IPPO"]:
                 training_trail = self.on_policy_train(env, p_wrapper)
             else:
                 training_trail = self.off_policy_train(env, p_wrapper)
@@ -599,6 +599,7 @@ class IndependentTrainer():
             "update_period": UPDATE_PERIOD,
             "input_space": STATE_SPACE,
             "output_space": ACTION_SPACE,
+            "inner_epoch":INNER_EPOCH,
         }
 
         exec_config = {

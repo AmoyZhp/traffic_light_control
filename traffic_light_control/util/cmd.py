@@ -29,7 +29,7 @@ def parase_args():
     )
 
     parser.add_argument(
-        "-dsp", "--data_saved_period", type=int, default=1000000,
+        "-dsp", "--data_saved_period", type=int, default=1000,
         help="saving period of data"
     )
 
