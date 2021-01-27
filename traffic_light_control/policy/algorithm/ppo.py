@@ -54,9 +54,9 @@ class PPO(Policy):
             m = Categorical(value)
             action = m.sample()
             return action.item()
-        
-    def __inner_train(self, state_seq_batch,action_seq_batch,
-        reward_seq_batch, sel_old_action_prob):
+
+    def __inner_train(self, state_seq_batch, action_seq_batch,
+                      reward_seq_batch, sel_old_action_prob):
         # seq * batch * action_space
         q_vals = self.critic_net(state_seq_batch)
 
@@ -146,7 +146,6 @@ class PPO(Policy):
                 sel_old_action_prob=sel_old_action_prob
             )
         return total_loss / self.inner_epoch
-
 
     def __compute_reward_to_go(self, rewards):
         rewards = rewards.view(-1, 1)

@@ -1,6 +1,6 @@
 import logging
 from typing import Dict, List
-from torch import optim
+from torch import Tensor, optim
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -76,47 +76,45 @@ class COMA(Policy):
         if batch_size == 0:
             return 0.0
 
-        for trans in batch_data:
+        seq_batch_data = self.__cat_batch_data(batch_data)
 
-            trans = self.__np_to_tensor(trans)
+        critic_states = self.__cat_critic_state(
+            agents_actions=seq_batch_data.action,
+            central_state=seq_batch_data.state["central"],
+            agents_local_obs=seq_batch_data.state["local"]
+        )
 
-            critic_states = self.__cat_critic_state(trans)
+        agents_q_v, agent_sel_q_v, critic_loss = self.__critic_update(
+            states=critic_states,
+            actions=seq_batch_data.action,
+            rewards=seq_batch_data.reward["central"],
+        )
 
-            # traj_len * 1
-            rewards: torch.Tensor = trans.reward["central"]
-            joint_action: Dict[str, torch.Tensor] = trans.action
+        self.__actor_update(
+            agents_local_obs=seq_batch_data.state["local"],
+            agents_actions=seq_batch_data.action,
+            agents_q_v=agents_q_v,
+            agents_selct_q_v=agent_sel_q_v,
+        )
+        return {
+            "central": critic_loss,
+            "local": {},
+        }
 
-            joint_q_v, joint_selct_q_v, critic_loss = self.__critic_update(
-                states=critic_states,
-                actions=joint_action,
-                rewards=rewards
-            )
-
-            _ = self.__actor_update(
-                joint_obs=trans.state["local"],
-                joint_action=joint_action,
-                joint_q_v=joint_q_v,
-                joint_selct_q_v=joint_selct_q_v,
-            )
-
-            return {
-                "central": critic_loss,
-                "local": {},
-            }
-
-    def __actor_update(self, joint_obs, joint_action,
-                       joint_selct_q_v, joint_q_v):
+    def __actor_update(self,
+                       agents_local_obs, agents_actions,
+                       agents_selct_q_v, agents_q_v):
         # n_agent * action_space
         actor_loss = {}
         for id_ in self.local_ids:
-            local_obs = joint_obs[id_]
+            local_obs = agents_local_obs[id_]
             action_prob = self.actor_nets[id_](
                 local_obs)
             baseline = torch.sum(
-                action_prob * joint_q_v[id_], dim=1).unsqueeze(-1)
-            advantage = joint_selct_q_v[id_] - baseline
+                action_prob * agents_q_v[id_], dim=1).unsqueeze(-1)
+            advantage = agents_selct_q_v[id_] - baseline
             log_prob = torch.log(action_prob).gather(
-                1, joint_action[id_])
+                1, agents_actions[id_])
             # 负数的原因是因为算法默认是梯度下降，加了负号后就可以让它变成梯度上升
             actor_loss[id_] = -torch.sum(log_prob * advantage.detach())
 
@@ -200,12 +198,16 @@ class COMA(Policy):
 
         return seq_q_val, seq_sel_q_val, total_loss.item()
 
-    def __cat_critic_state(self, batch: Transition) -> Dict[str, torch.Tensor]:
+    def __cat_critic_state(self,
+                           agents_actions: Dict[str, Tensor],
+                           central_state: Tensor,
+                           agents_local_obs: Dict[str, Tensor]
+                           ) -> Dict[str, torch.Tensor]:
         joint_action_one_hot = []
 
         for id_ in self.local_ids:
             # seq * action_space
-            action_one_hot = F.one_hot(batch.action[id_],
+            action_one_hot = F.one_hot(agents_actions[id_],
                                        self.action_space).squeeze(1)
             joint_action_one_hot.append(action_one_hot)
 
@@ -233,9 +235,8 @@ class COMA(Policy):
         joint_action_one_hot = joint_action_one_hot.permute(1, 0, 2)
 
         critic_states = {}
-        central_state = batch.state["central"]
         for id_ in self.local_ids:
-            local_obs = batch.state["local"][id_]
+            local_obs = agents_local_obs[id_]
             agent_id_one_hot = F.one_hot(
                 torch.tensor(self.ids_map[id_]), self.n_agents)
 
@@ -249,56 +250,97 @@ class COMA(Policy):
 
         return critic_states
 
-    def __np_to_tensor(self, trans: Transition) -> Transition:
-        tensor_state = {
-            "central": torch.tensor(
-                trans.state["central"], dtype=torch.float,
-                device=self.device,
-            ),
-            "local": {}
-        }
-        tensor_action = {}
-        tensor_reward = {
-            "central": torch.tensor(
-                trans.reward["central"], dtype=torch.float,
-                device=self.device
-            ),
-            "local": {}
-        }
-        tensor_next_state = {
-            "central": torch.tensor(
-                trans.next_state["central"], dtype=torch.float,
-                device=self.device,
-            ),
-            "local": {}
-        }
-        tensor_done = torch.tensor(
-            trans.done, dtype=torch.bool, device=self.device)
-        for id_ in self.local_ids:
-            tensor_state["local"][id_] = torch.tensor(
-                trans.state["local"][id_],
-                dtype=torch.float,
-                device=self.device)
-            tensor_action[id_] = torch.tensor(
-                trans.action[id_],
-                dtype=torch.long,
-                device=self.device
-            ).view(-1, 1)
-            tensor_reward["local"][id_] = torch.tensor(
-                trans.reward["local"][id_],
-                dtype=torch.float,
-                device=self.device,
-            ).view(-1, 1)
-            tensor_next_state["local"][id_] = torch.tensor(
-                trans.next_state["local"][id_],
-                dtype=torch.float,
-                device=self.device,
+    def __cat_batch_data(self, batch_data) -> List[Transition]:
+
+        def np_to_tensor(trans: Transition) -> Transition:
+            tensor_state = {
+                "central": torch.tensor(
+                    trans.state["central"], dtype=torch.float,
+                    device=self.device,
+                ),
+                "local": {}
+            }
+            tensor_action = {}
+            tensor_reward = {
+                "central": torch.tensor(
+                    trans.reward["central"], dtype=torch.float,
+                    device=self.device
+                ),
+                "local": {}
+            }
+            tensor_next_state = {
+                "central": torch.tensor(
+                    trans.next_state["central"], dtype=torch.float,
+                    device=self.device,
+                ),
+                "local": {}
+            }
+
+            tensor_done = torch.tensor(
+                trans.done, dtype=torch.bool, device=self.device)
+            for id_ in self.local_ids:
+                tensor_state["local"][id_] = torch.tensor(
+                    trans.state["local"][id_],
+                    dtype=torch.float,
+                    device=self.device)
+                tensor_action[id_] = torch.tensor(
+                    trans.action[id_],
+                    dtype=torch.long,
+                    device=self.device
+                ).view(-1, 1)
+                tensor_reward["local"][id_] = torch.tensor(
+                    trans.reward["local"][id_],
+                    dtype=torch.float,
+                    device=self.device,
+                ).view(-1, 1)
+                tensor_next_state["local"][id_] = torch.tensor(
+                    trans.next_state["local"][id_],
+                    dtype=torch.float,
+                    device=self.device,
+                )
+            batch = Transition(
+                tensor_state, tensor_action, tensor_reward,
+                tensor_next_state, tensor_done,
             )
-        batch = Transition(
-            tensor_state, tensor_action, tensor_reward,
-            tensor_next_state, tensor_done,
+            return batch
+        batch_data = list(map(batch_data, np_to_tensor))
+        seq_batch_state = {
+        }
+        seq_batch_action = {}
+        seq_batch_reward = {}
+
+        central_states = []
+        central_rewards = []
+        agents_actions = {}
+        agents_local_obs = {}
+        for id_ in self.local_ids:
+            agents_actions[id_] = []
+            agents_local_obs[id_] = []
+
+        for trans in batch_data:
+            central_states.append(trans.state["central"].unsqueeze(1))
+            central_rewards.append(trans.reward["central"].unsqueeze(1))
+            for k, v in trans.state["local"].items():
+                agents_local_obs[k].append(v.unsqueeze(1))
+            for k, v in trans.action.items():
+                agents_actions[k].append(v.unsqueeze(1))
+        central_states = torch.cat(central_states, dim=1)
+        central_rewards = torch.cat(central_rewards, dim=1)
+        for id_ in self.local_ids:
+            agents_actions[id_] = torch.cat(agents_actions[id_], dim=1)
+            agents_local_obs[id_] = torch.cat(agents_local_obs[id_], dim=1)
+
+        seq_batch_data = Transition(
+            {
+                "central": central_states,
+                "local": agents_local_obs,
+            },
+            agents_actions,
+            central_rewards,
+            {},
+            {}
         )
-        return batch
+        return seq_batch_data
 
     def get_weight(self):
         actor_nets_weight = {}
@@ -330,3 +372,6 @@ class COMA(Policy):
         self.critic_net.load_state_dict(net_w["critic"])
         self.target_critic_net.load_state_dict(net_w["critic"])
         self.critic_optim.load_state_dict(optimizer_w["critic"])
+
+
+batch
