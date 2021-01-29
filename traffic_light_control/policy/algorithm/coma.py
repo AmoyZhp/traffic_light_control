@@ -84,26 +84,38 @@ class COMA(Policy):
             agents_local_obs=seq_batch_data.state["local"]
         )
 
-        agents_q_v, agent_sel_q_v, critic_loss = self.__critic_update(
+        agents_q_v, agent_sel_q_v, agents_critic_loss = self.__cal_critic_loss(
             states=critic_states,
             actions=seq_batch_data.action,
             rewards=seq_batch_data.reward["central"],
         )
 
-        self.__actor_update(
+        agents_actor_loss = self.__cal_actor_loss(
             agents_local_obs=seq_batch_data.state["local"],
             agents_actions=seq_batch_data.action,
             agents_q_v=agents_q_v,
             agents_selct_q_v=agent_sel_q_v,
         )
+
+        critic_loss = 0.0
+        for id_ in self.local_ids:
+            critic_loss += agents_critic_loss[id_]
+            self.critic_optim.zero_grad()
+            agents_critic_loss[id_].backward()
+            self.critic_optim.step()
+
+            self.actor_optims[id_].zero_grad()
+            agents_actor_loss[id_].backward()
+            self.actor_optims[id_].step()
+
         return {
-            "central": critic_loss,
+            "central": critic_loss.item(),
             "local": {},
         }
 
-    def __actor_update(self,
-                       agents_local_obs, agents_actions,
-                       agents_selct_q_v, agents_q_v):
+    def __cal_actor_loss(self,
+                         agents_local_obs, agents_actions,
+                         agents_selct_q_v, agents_q_v):
         # n_agent * action_space
         actor_loss = {}
         for id_ in self.local_ids:
@@ -112,91 +124,55 @@ class COMA(Policy):
                 local_obs)
             baseline = torch.sum(
                 action_prob * agents_q_v[id_], dim=1).unsqueeze(-1)
+            print("baseline shape {}".format(baseline.shape))
             advantage = agents_selct_q_v[id_] - baseline
+            print("adv shape {}".format(advantage.shape))
             log_prob = torch.log(action_prob).gather(
-                1, agents_actions[id_])
+                -1, agents_actions[id_])
             # 负数的原因是因为算法默认是梯度下降，加了负号后就可以让它变成梯度上升
             actor_loss[id_] = -torch.sum(log_prob * advantage.detach())
 
-        # 考虑到有 params share 的情况把更新放到最后
-        for id_ in self.local_ids:
+        return actor_loss
 
-            self.actor_optims[id_].zero_grad()
-            actor_loss[id_].backward()
-            self.actor_optims[id_].step()
-
-    def __critic_update(self,
-                        states: Dict[str, torch.Tensor],
-                        actions: Dict[str, torch.Tensor],
-                        rewards: torch.Tensor):
-        joint_selct_q_val = {}
-        joint_q_val = {}
+    def __cal_critic_loss(self,
+                          states: Dict[str, torch.Tensor],
+                          actions: Dict[str, torch.Tensor],
+                          rewards: torch.Tensor):
         expected_q_vals = {}
         for id_ in self.local_ids:
             ag_state = states[id_]
             ag_action = actions[id_]
-            seq_len = ag_state.shape[0]
-            next_selected_q_val = torch.zeros((seq_len, 1), device=self.device)
-            next_selected_q_val[:-1] = self.target_critic_net(
-                ag_state[1:]
-            ).gather(1, ag_action[1:])
 
-            expected_q_vals[id_] = next_selected_q_val.detach() * \
-                self.discount_factor + rewards
-
-        total_loss = 0.0
+        agents_q_val = {}
+        agents_sel_q_val = {}
+        agents_local_loss = {}
         for id_ in self.local_ids:
             ag_state = states[id_]
             ag_action = actions[id_]
-            ag_exp_q_vals = expected_q_vals[id_]
-            seq_q_val, seq_sel_q_val, loss = self.__local_critic_update(
-                ag_state, ag_action, ag_exp_q_vals)
-            joint_q_val[id_] = seq_q_val
-            joint_selct_q_val[id_] = seq_sel_q_val
-            total_loss += loss
+            seq_len = ag_state.shape[0]
+            batch_size = ag_state.shape[1]
 
-        return joint_q_val, joint_selct_q_val, total_loss
-
-    def __local_critic_update(self,
-                              seq_state,
-                              seq_action,
-                              seq_exp_q_val):
-        seq_q_val = []
-        seq_sel_q_val = []
-        seq_len = seq_state.shape[0]
-        total_loss = 0.0
-        for t in reversed(range(seq_len)):
-            # action_space
-            q_val = self.critic_net(seq_state[t]).unsqueeze(0)
-            seq_q_val.append(q_val.detach())
-
-            # 1 * 1
-            selected_q_val = q_val.gather(
-                1, seq_action[t].view(-1, 1)
+            q_vals = self.critic_net(ag_state)
+            sel_q_vals = q_vals.gather(
+                -1, ag_action
             )
-            seq_sel_q_val.append(selected_q_val.detach())
 
-            critic_loss = self.critic_loss_func(
-                q_val, seq_exp_q_val[t])
-            self.critic_optim.zero_grad()
-            critic_loss.backward()
-            self.critic_optim.step()
+            next_sel_q_val = torch.zeros(
+                (seq_len, batch_size, 1), device=self.device)
+            next_sel_q_val[:-1] = self.target_critic_net(
+                ag_state[1:]
+            ).gather(-1, ag_action[1:])
 
-            total_loss += critic_loss
+            expected_q_vals = next_sel_q_val * \
+                self.discount_factor + rewards
 
-            self.update_count += 1
-            if self.update_count >= self.update_period:
-                self.update_count = 0
-                self.target_critic_net.load_state_dict(
-                    self.critic_net.state_dict())
+            loss = self.__critic_loss_func(
+                sel_q_vals, expected_q_vals.detach())
+            agents_q_val[id_] = q_vals
+            agents_sel_q_val[id_] = sel_q_vals
+            agents_local_loss[id_] = loss
 
-        seq_sel_q_val.reverse()
-        seq_q_val.reverse()
-
-        seq_q_val = torch.cat(seq_q_val, 0)
-        seq_sel_q_val = torch.cat(seq_sel_q_val, 0)
-
-        return seq_q_val, seq_sel_q_val, total_loss.item()
+        return agents_q_val, agents_sel_q_val, agents_local_loss
 
     def __cat_critic_state(self,
                            agents_actions: Dict[str, Tensor],
@@ -303,12 +279,8 @@ class COMA(Policy):
                 tensor_next_state, tensor_done,
             )
             return batch
-        batch_data = list(map(batch_data, np_to_tensor))
-        seq_batch_state = {
-        }
-        seq_batch_action = {}
-        seq_batch_reward = {}
 
+        batch_data = list(map(batch_data, np_to_tensor))
         central_states = []
         central_rewards = []
         agents_actions = {}
@@ -373,5 +345,5 @@ class COMA(Policy):
         self.target_critic_net.load_state_dict(net_w["critic"])
         self.critic_optim.load_state_dict(optimizer_w["critic"])
 
-
-batch
+    def __critic_loss_func(self, input, target):
+        return torch.mean((input - target) ** 2)
