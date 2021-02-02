@@ -599,7 +599,7 @@ class IndependentTrainer():
             "update_period": UPDATE_PERIOD,
             "input_space": STATE_SPACE,
             "output_space": ACTION_SPACE,
-            "inner_epoch":INNER_EPOCH,
+            "inner_epoch": INNER_EPOCH,
         }
 
         exec_config = {
