@@ -260,7 +260,7 @@ class COMA(Policy):
             joint_action_one_hot * action_mask).type(torch.float)
         # n_agent * seq * (n * action_space)
         joint_action_one_hot = joint_action_one_hot.permute(2, 0, 1, 3)
-        joint_action_one_hot = joint_action_one_hot.to(self.ids_map)
+        joint_action_one_hot = joint_action_one_hot.to(self.device)
 
         critic_states = {}
         for id_ in self.local_ids:
