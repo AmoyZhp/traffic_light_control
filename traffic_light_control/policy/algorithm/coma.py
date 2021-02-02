@@ -72,9 +72,13 @@ class COMA(Policy):
         return actions
 
     def learn_on_batch(self, batch_data: List[Transition]):
+
         batch_size = len(batch_data)
         if batch_size == 0:
-            return 0.0
+            return {
+                "central": 0.0,
+                "local": {},
+            }
 
         seq_batch_data = self.__cat_batch_data(batch_data)
 
@@ -103,6 +107,12 @@ class COMA(Policy):
             self.critic_optim.zero_grad()
             agents_critic_loss[id_].backward()
             self.critic_optim.step()
+            self.update_count += 1
+            if self.update_count >= self.update_period:
+                self.update_count = 0
+                self.target_critic_net.load_state_dict(
+                    self.critic_net.state_dict()
+                )
 
             self.actor_optims[id_].zero_grad()
             agents_actor_loss[id_].backward()
@@ -198,8 +208,12 @@ class COMA(Policy):
         joint_action_one_hot = torch.cat(
             joint_action_one_hot, dim=-1)
 
+        print("joint action one hot shape {}".format(joint_action_one_hot.shape))
+        seq_len = joint_action_one_hot.shape[0]
+        batch_size = joint_action_one_hot.shape[1]
         joint_action_one_hot = joint_action_one_hot.unsqueeze(
-            1).repeat(1, 1,  self.n_agents, 1)
+            2).repeat(1, 1,  self.n_agents, 1)
+        print("joint action one hot shape {}".format(joint_action_one_hot.shape))
         action_mask = (1 - torch.eye(self.n_agents))
 
         # n_agent * (n*action_space)
@@ -207,11 +221,11 @@ class COMA(Policy):
             1, self.action_space).view(self.n_agents, -1)
 
         # traj * n_agent * (n*action_space)
-        seq_len = joint_action_one_hot.shape[0]
-        batch_size = joint_action_one_hot.shape[1]
+
         action_mask = action_mask.unsqueeze(0).unsqueeze(0).repeat(
             seq_len, batch_size, 1, 1
         ).to(self.device)
+        print("action mask shape {}".format(action_mask.shape))
 
         # traj * n_agent * (n * action_space)
         joint_action_one_hot = (

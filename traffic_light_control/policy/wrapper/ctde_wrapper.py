@@ -49,6 +49,11 @@ class CTDEWrapper(PolicyWrapper):
 
     def update_policy(self):
         batch_data = self.buffer.sample(self.batch_size)
+        if batch_data is None or len(batch_data) <= 0:
+            return {
+                "central": 0.0,
+                "local": {},
+            }
         loss = self.policy.learn_on_batch(batch_data)
         return loss
 
