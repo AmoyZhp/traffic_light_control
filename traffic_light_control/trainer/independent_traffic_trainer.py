@@ -439,7 +439,6 @@ class IndependentTrainer():
                 learn_begin_time = time.time()
                 loss = p_wrapper.update_policy()
                 learn_time_cost += time.time() - learn_begin_time
-                print(loss)
 
                 central_loss += loss["central"]
                 for id_, l in loss["local"].items():

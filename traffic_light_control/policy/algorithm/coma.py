@@ -23,7 +23,9 @@ class COMA(Policy):
                  update_period: int,
                  action_space: int,
                  state_space: int,
-                 local_obs_space: int) -> None:
+                 local_obs_space: int,
+                 clip_param=0.2,
+                 inner_epoch=32) -> None:
 
         self.local_ids = local_ids
         self.ids_map = {}
@@ -58,7 +60,8 @@ class COMA(Policy):
         self.local_obs_space = local_obs_space
         self.update_period = update_period
         self.update_count = 0
-        self.critic_loss_func = nn.MSELoss()
+        self.clip_param = clip_param
+        self.inner_epoch = inner_epoch
 
     def compute_action(self, states, explore):
         actions = {}
@@ -88,6 +91,30 @@ class COMA(Policy):
             agents_local_obs=seq_batch_data.state["local"]
         )
 
+        agents_sel_old_action_prob = {}
+        for id_ in self.local_ids:
+            action_prob = self.critic_net(critic_states[id_])
+            agents_sel_old_action_prob[id_] = action_prob.gather(
+                -1, seq_batch_data.action[id_]
+            ).detach()
+
+        loss = 0.0
+        for _ in range(self.inner_epoch):
+            loss += self.__inner_train(
+                seq_batch_data,
+                critic_states,
+                agents_sel_old_action_prob,
+            )
+        loss /= self.inner_epoch
+        return {
+            "central": loss.item(),
+            "local": {},
+        }
+
+    def __inner_train(self,
+                      seq_batch_data,
+                      critic_states,
+                      agents_sel_old_action_prob):
         agents_q_v, agent_sel_q_v, agents_critic_loss = self.__cal_critic_loss(
             states=critic_states,
             actions=seq_batch_data.action,
@@ -99,6 +126,7 @@ class COMA(Policy):
             agents_actions=seq_batch_data.action,
             agents_q_v=agents_q_v,
             agents_sel_q_v=agent_sel_q_v,
+            agents_old_action_prob=agents_sel_old_action_prob,
         )
 
         critic_loss = 0.0
@@ -117,15 +145,12 @@ class COMA(Policy):
             self.actor_optims[id_].zero_grad()
             agents_actor_loss[id_].backward()
             self.actor_optims[id_].step()
-
-        return {
-            "central": critic_loss.item(),
-            "local": {},
-        }
+        return critic_loss
 
     def __cal_actor_loss(self,
                          agents_local_obs,
                          agents_actions,
+                         agents_old_action_prob,
                          agents_sel_q_v,
                          agents_q_v):
         # n_agent * action_space
@@ -135,16 +160,22 @@ class COMA(Policy):
             # seq len * batch size * action space
             action_prob = self.actor_nets[id_](
                 local_obs)
-
+            sel_action_prob = action_prob.gather(-1, agents_actions[id_])
+            sel_old_action_prob = agents_old_action_prob[id_]
             # should be : seq len * batch size * 1
             baseline = torch.sum(
                 action_prob * agents_q_v[id_], dim=-1).unsqueeze(-1)
 
             advantage = agents_sel_q_v[id_] - baseline
-            log_prob = torch.log(action_prob).gather(
-                -1, agents_actions[id_])
+            advantage = advantage.detach()
+
+            ratio = sel_action_prob / sel_old_action_prob
+            surr1 = ratio * advantage
+            surr2 = torch.clamp(ratio, 1 - self.clip_param,
+                                1 + self.clip_param) * advantage
+
             # 负数的原因是因为算法默认是梯度下降，加了负号后就可以让它变成梯度上升
-            actors_loss[id_] = -torch.sum(log_prob * advantage.detach())
+            actors_loss[id_] = -torch.min(surr1, surr2).mean()
 
         return actors_loss
 
@@ -208,12 +239,10 @@ class COMA(Policy):
         joint_action_one_hot = torch.cat(
             joint_action_one_hot, dim=-1)
 
-        print("joint action one hot shape {}".format(joint_action_one_hot.shape))
         seq_len = joint_action_one_hot.shape[0]
         batch_size = joint_action_one_hot.shape[1]
         joint_action_one_hot = joint_action_one_hot.unsqueeze(
             2).repeat(1, 1,  self.n_agents, 1)
-        print("joint action one hot shape {}".format(joint_action_one_hot.shape))
         action_mask = (1 - torch.eye(self.n_agents))
 
         # n_agent * (n*action_space)
@@ -225,7 +254,6 @@ class COMA(Policy):
         action_mask = action_mask.unsqueeze(0).unsqueeze(0).repeat(
             seq_len, batch_size, 1, 1
         ).to(self.device)
-        print("action mask shape {}".format(action_mask.shape))
 
         # traj * n_agent * (n * action_space)
         joint_action_one_hot = (
