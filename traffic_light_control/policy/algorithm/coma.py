@@ -260,6 +260,7 @@ class COMA(Policy):
             joint_action_one_hot * action_mask).type(torch.float)
         # n_agent * seq * (n * action_space)
         joint_action_one_hot = joint_action_one_hot.permute(2, 0, 1, 3)
+        joint_action_one_hot = joint_action_one_hot.to(self.ids_map)
 
         critic_states = {}
         for id_ in self.local_ids:
@@ -268,7 +269,7 @@ class COMA(Policy):
             agent_id_one_hot = F.one_hot(
                 torch.tensor(self.ids_map[id_]), self.n_agents)
             agent_id_one_hot = agent_id_one_hot.view(1, -1).repeat(
-                seq_len, batch_size, 1).type(torch.float)
+                seq_len, batch_size, 1).type(torch.float).to(self.device)
             critic_states[id_] = torch.cat(
                 (central_state, local_obs,
                  agent_id_one_hot, joint_action_one_hot[self.ids_map[id_]]),
