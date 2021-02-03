@@ -198,26 +198,26 @@ class COMA(Policy):
             batch_size = ag_state.shape[1]
 
             # seq len * batch size * action space
-            q_vals = self.critic_net(ag_state).to(self.device)
+            q_vals = self.critic_net(ag_state)
 
             # seq len * batch size * 1
             sel_q_vals = q_vals.gather(
                 -1, ag_action
-            ).to(self.device)
+            )
 
             next_sel_q_val = torch.zeros(
                 (seq_len, batch_size, 1), device=self.device)
             next_sel_q_val[:-1] = self.target_critic_net(
                 ag_state[1:]
-            ).gather(-1, ag_action[1:]).to(self.device)
+            ).gather(-1, ag_action[1:])
 
             # seq len * batch size * 1
             expected_vals = (next_sel_q_val *
                              self.discount_factor + rewards)
             loss = self.__critic_loss_func(
                 sel_q_vals, expected_vals.detach())
-            agents_q_val[id_] = q_vals.detach()
-            agents_sel_q_val[id_] = sel_q_vals.detach()
+            agents_q_val[id_] = q_vals
+            agents_sel_q_val[id_] = sel_q_vals
             agents_local_loss[id_] = loss
 
         return agents_q_val, agents_sel_q_val, agents_local_loss

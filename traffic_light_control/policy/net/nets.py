@@ -58,11 +58,11 @@ class COMACritic(nn.Module):
         self.fc5 = nn.Linear(32, output_space)
 
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = F.relu(self.fc3(x))
-        x = F.relu(self.fc4(x))
-        state_action_value = self.fc5(x)
+        x1 = F.relu(self.fc1(x))
+        x2 = F.relu(self.fc2(x1))
+        x3 = F.relu(self.fc3(x2))
+        x4 = F.relu(self.fc4(x3))
+        state_action_value = self.fc5(x4)
         return state_action_value
 
 
@@ -74,7 +74,7 @@ class COMAActor(nn.Module):
         self.fc3 = nn.Linear(32, output_space)
 
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        action = F.softmax(self.fc3(x), dim=-1)
+        x1 = F.relu(self.fc1(x))
+        x2 = F.relu(self.fc2(x1))
+        action = F.softmax(self.fc3(x2), dim=-1)
         return action
