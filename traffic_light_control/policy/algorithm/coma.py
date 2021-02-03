@@ -25,7 +25,7 @@ class COMA(Policy):
                  state_space: int,
                  local_obs_space: int,
                  clip_param=0.2,
-                 inner_epoch=32) -> None:
+                 inner_epoch=64) -> None:
 
         self.local_ids = local_ids
         self.ids_map = {}
@@ -93,7 +93,8 @@ class COMA(Policy):
 
         agents_sel_old_action_prob = {}
         for id_ in self.local_ids:
-            action_prob = self.critic_net(critic_states[id_])
+            action_prob = self.actor_nets[id_](
+                seq_batch_data.state["local"][id_])
             agents_sel_old_action_prob[id_] = action_prob.gather(
                 -1, seq_batch_data.action[id_]
             ).detach()
