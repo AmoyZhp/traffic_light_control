@@ -132,19 +132,20 @@ class COMA(Policy):
         critic_loss = 0.0
         for id_ in self.local_ids:
             critic_loss += agents_critic_loss[id_]
-            self.critic_optim.zero_grad()
-            agents_critic_loss[id_].backward()
-            self.critic_optim.step()
-            self.update_count += 1
-            if self.update_count >= self.update_period:
-                self.update_count = 0
-                self.target_critic_net.load_state_dict(
-                    self.critic_net.state_dict()
-                )
-
             self.actor_optims[id_].zero_grad()
             agents_actor_loss[id_].backward()
             self.actor_optims[id_].step()
+
+        critic_loss /= len(self.local_ids)
+        self.critic_optim.zero_grad()
+        critic_loss.backward()
+        self.critic_optim.step()
+        self.update_count += 1
+        if self.update_count >= self.update_period:
+            self.update_count = 0
+            self.target_critic_net.load_state_dict(
+                self.critic_net.state_dict()
+            )
         return critic_loss
 
     def __cal_actor_loss(self,
