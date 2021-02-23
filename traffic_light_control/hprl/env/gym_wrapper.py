@@ -15,9 +15,12 @@ class GymWrapper(MultiAgentEnv):
 
     def step(self,
              actions: Action
-             ):
+             ) -> Tuple[State, Reward, bool, Dict]:
+
         action = actions.local[self.local_ids[0]]
+
         s, r, done, info = self.env.step(action)
+
         state = State(local={
             self.local_ids[0]: np.array(s)
         }),

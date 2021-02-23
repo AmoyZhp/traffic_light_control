@@ -1,3 +1,6 @@
+
+import torch.nn as nn
+
 from hprl.trainer.core import Train_Fn_Type
 from hprl.trainer.common_trainer import CommonTrainer
 from hprl.env import MultiAgentEnv
@@ -19,12 +22,10 @@ class QLearningTranier(CommonTrainer):
         for ep in episode:
             state = self.env.reset()
             while True:
-                # family of q learning algorithm
-                # are wrapped by epslion greedy defaulty
                 raw_q_policy = self.policy.unwrapped()
                 action = raw_q_policy.compute_action(state)
-                r = self.env.step(action)
-                state = r.state
-                if r.terminal:
+                ns, r, done, _ = self.env.step(action)
+                state = ns[0]
+                if done:
                     break
         return records

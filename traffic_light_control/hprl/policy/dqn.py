@@ -1,6 +1,3 @@
-from __future__ import print_function
-from dataclasses import asdict
-from hprl.policy.nets import CartPole
 from typing import List
 
 
@@ -11,8 +8,9 @@ import numpy as np
 
 
 from hprl.util.typing import State, Transition, TransitionTuple, TrainnerTypes
-from hprl.util.typing import DQNConfig, ExecConfig, ReplayBufferConfig, TrainnerConfig
 from hprl.policy.core import Policy
+from hprl.util.enum import ReplayBufferTypes
+from hprl.policy.nets import CartPole
 
 
 def get_default_config():
@@ -27,28 +25,29 @@ def get_default_config():
     action_space = 2
     state_space = 4
 
-    policy_config = DQNConfig(
-        learning_rate=learning_rate,
-        discount_factor=discount_factor,
-        update_period=update_period,
-        action_space=action_space,
-        state_space=state_space,
-        eps_frame=eps_frame,
-        eps_init=eps_init,
-        eps_min=eps_min,
-    )
-    buffer_config = ReplayBufferConfig(
-        capacity=capacity
-    )
-    exec_config = ExecConfig(
-        batch_size=batch_size
-    )
-    trainner_config = TrainnerConfig(
-        type=TrainnerTypes.IQL,
-        policy=asdict(policy_config),
-        buffer=asdict(buffer_config),
-        executing=asdict(exec_config),
-    )
+    policy_config = {
+        "learning_rate": learning_rate,
+        "discount_factor": discount_factor,
+        "update_period": update_period,
+        "action_space": action_space,
+        "state_space": state_space,
+        "eps_frame": eps_frame,
+        "eps_init": eps_init,
+        "eps_min": eps_min,
+    }
+    buffer_config = {
+        "type": ReplayBufferTypes.Common,
+        "capacity": capacity,
+    }
+    exec_config = {
+        "batch_size": batch_size
+    }
+    trainner_config = {
+        "type": TrainnerTypes.IQL,
+        "policy": policy_config,
+        "buffer": buffer_config,
+        "executing": exec_config,
+    }
 
     acting_net = CartPole(
         input_space=state_space,

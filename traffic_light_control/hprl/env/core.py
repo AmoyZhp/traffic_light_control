@@ -9,7 +9,7 @@ class MultiAgentEnv(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def step(self,
              actions: Action
-             ):
+             ) -> Tuple[State, Reward, bool, Dict]:
         ...
 
     @abc.abstractmethod

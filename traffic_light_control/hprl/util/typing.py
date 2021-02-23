@@ -36,36 +36,6 @@ class Transition():
 
 
 @dataclass
-class TrainnerConfig():
-    type: TrainnerTypes
-    policy: Dict
-    buffer: Dict
-    executing: Dict
-
-
-@dataclass
-class DQNConfig():
-    learning_rate: float
-    discount_factor: float
-    update_period: float
-    action_space: int
-    state_space: int
-    eps_frame: int
-    eps_init: float
-    eps_min: float
-
-
-@dataclass
-class ReplayBufferConfig():
-    capacity: int
-
-
-@dataclass
-class ExecConfig():
-    batch_size: int
-
-
-@dataclass
 class TrainingRecord():
     rewards: Dict[int, Reward]
 

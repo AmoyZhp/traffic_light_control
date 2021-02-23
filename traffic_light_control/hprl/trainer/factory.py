@@ -1,11 +1,10 @@
 from typing import Dict, List
-from numpy.lib.utils import info
 
 import torch
 import torch.nn as nn
 
 from hprl.util.enum import ReplayBufferTypes, TrainnerTypes
-from hprl.util.typing import Reward, TrainnerConfig, Transition
+from hprl.util.typing import Reward, Transition
 from hprl.policy import Policy, DQN, ILearnerWrapper
 from hprl.env import MultiAgentEnv
 from hprl.replaybuffer import ReplayBuffer, CommonBuffer
@@ -82,25 +81,31 @@ def _on_policy_train_fn(
 
 
 def create_trainer(
-        config: TrainnerConfig,
+        config: Dict,
         env: MultiAgentEnv,
-        policy: Policy = None,
-        models: Dict = None) -> Trainer:
+        models: Dict,
+        replay_buffer: ReplayBuffer = None,
+        policy: Policy = None) -> Trainer:
 
-    trainner_type = config.type
-    buffer_config = config.buffer
-    policy_config = config.policy
-    executing_config = config.executing
+    trainner_type = config.get("type")
+    buffer_config = config.get("buffer")
+    policy_config = config.get("policy")
+    executing_config = config.get("executing")
 
     agents_id = env.get_agents_id()
 
     if trainner_type == TrainnerTypes.IQL:
-        replay_buffer_type = ReplayBufferTypes.Common
-        replay_buffer = _create_replay_buffer(
-            replay_buffer_type, buffer_config)
-        policy = _create_policy(
-            TrainnerTypes.IQL, agents_id,
-            policy_config, models)
+
+        if replay_buffer is None:
+            replay_buffer_type = buffer_config.get("type")
+            replay_buffer = _create_replay_buffer(
+                replay_buffer_type, buffer_config)
+
+        if policy is None:
+            policy = _create_policy(
+                trainner_type, agents_id,
+                policy_config, models)
+
         trainner = QLearningTranier(
             config=executing_config,
             train_fn=_off_policy_train_fn,
@@ -113,21 +118,21 @@ def create_trainer(
     raise ValueError("trainner type {} is invalid".format(trainner_type))
 
 
-def _create_replay_buffer(buffer_type, config):
-    if buffer_type == ReplayBufferTypes.Common:
+def _create_replay_buffer(type, config):
+    if type == ReplayBufferTypes.Common:
         capacity = config.get("capacity")
         return CommonBuffer(capacity)
-    raise ValueError("replay buffer type {} is invalid".format(buffer_type))
+    raise ValueError("replay buffer type {} is invalid".format(type))
 
 
 def _create_policy(type, agents_id, config, models):
+    policies = {}
     if type == TrainnerTypes.IQL:
-        policies = {}
         for id_ in agents_id:
             model = models[id_]
             policies[id_] = DQN(
-                acting_net=model["acting"],
-                target_net=model["target"],
+                acting_net=model.get("acting"),
+                target_net=model.get("target"),
                 learning_rate=config.get("learning_rate"),
                 discount_factor=config.get("discount_factor"),
                 update_period=config.get("update_period"),
@@ -139,3 +144,4 @@ def _create_policy(type, agents_id, config, models):
             policies=policies,
         )
         return i_learner
+    raise ValueError(f'policy type {type} is invalid')
