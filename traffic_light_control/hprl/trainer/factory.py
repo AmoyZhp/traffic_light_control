@@ -1,3 +1,5 @@
+from hprl.policy.epsilon_greedy import EpsilonGreedy
+from hprl.util.checkpointer import Checkpointer
 from typing import Dict, List
 
 import torch
@@ -80,6 +82,20 @@ def _on_policy_train_fn(
             break
 
 
+def load_trainer(
+        env: MultiAgentEnv,
+        models: Dict,
+        checkpoint_dir: str,
+        checkpoint_file: str):
+    checkpoint = Checkpointer(checkpoint_dir)
+    data = checkpoint.load(checkpoint_file)
+    config = data.get("config")
+    weight = data.get("weight")
+    trainer = create_trainer(config, env, models)
+    trainer.set_weight(weight)
+    return trainer
+
+
 def create_trainer(
         config: Dict,
         env: MultiAgentEnv,
@@ -93,6 +109,11 @@ def create_trainer(
     executing_config = config.get("executing")
 
     agents_id = env.get_agents_id()
+    base_directory = executing_config.get("base_dir")
+    checkpoint_frequency = executing_config.get("check_frequency")
+    checkpointer = Checkpointer(
+        base_directory=base_directory,
+        checkpoint_frequency=checkpoint_frequency)
 
     if trainner_type == TrainnerTypes.IQL:
 
@@ -105,13 +126,16 @@ def create_trainer(
             policy = _create_policy(
                 trainner_type, agents_id,
                 policy_config, models)
-
         trainner = QLearningTranier(
+            type=trainner_type,
             config=executing_config,
             train_fn=_off_policy_train_fn,
             env=env,
             policy=policy,
-            replay_buffer=replay_buffer
+            replay_buffer=replay_buffer,
+            checkpointer=checkpointer,
+            cumulative_train_iteration=executing_config.get(
+                "trained_iteration", 0)
         )
         return trainner
 
@@ -130,7 +154,8 @@ def _create_policy(type, agents_id, config, models):
     if type == TrainnerTypes.IQL:
         for id_ in agents_id:
             model = models[id_]
-            policies[id_] = DQN(
+
+            inner_p = DQN(
                 acting_net=model.get("acting"),
                 target_net=model.get("target"),
                 learning_rate=config.get("learning_rate"),
@@ -138,6 +163,13 @@ def _create_policy(type, agents_id, config, models):
                 update_period=config.get("update_period"),
                 action_space=config.get("action_space"),
                 state_space=config.get("state_space"),
+            )
+            policies[id_] = EpsilonGreedy(
+                inner_policy=inner_p,
+                eps_frame=config.get("eps_frame"),
+                eps_min=config.get("eps_min"),
+                eps_init=config.get("eps_init"),
+                action_space=config.get("action_space"),
             )
         i_learner = ILearnerWrapper(
             agents_id=agents_id,

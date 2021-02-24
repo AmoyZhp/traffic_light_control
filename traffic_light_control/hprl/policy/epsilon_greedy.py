@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List
 
 import numpy as np
 
@@ -17,7 +17,6 @@ class EpsilonGreedy(Policy):
                  eps_init: float,
                  eps_min: float,
                  action_space) -> None:
-        super().__init__()
         self.inner_policy = inner_policy
         self.step = 0
         self.eps_frame = eps_frame
@@ -32,17 +31,29 @@ class EpsilonGreedy(Policy):
                        self.eps_frame, self.eps_min)
         if np.random.rand() < self.eps:
             action = np.random.choice(range(self.action_space), 1).item()
-            return action
-        return super().compute_action(state)
+            return Action(central=action)
+        return self.inner_policy.compute_action(state)
 
     def learn_on_batch(self, batch_data: List[Transition]):
-        return super().learn_on_batch(batch_data)
+        return self.inner_policy.learn_on_batch(batch_data)
 
     def get_weight(self):
-        return super().get_weight()
+        weight = self.inner_policy.get_weight()
+        weight["step"] = self.step
+        return weight
 
-    def set_weight(self, weight):
-        return super().set_weight(weight)
+    def set_weight(self, weight: Dict):
+        self.step = weight.get("step")
+        return self.inner_policy.set_weight(weight)
+
+    def get_config(self):
+        config = {
+            "eps_frame": self.eps_frame,
+            "eps_init": self.eps_init,
+            "eps_min": self.eps_min
+        }
+        config.update(self.inner_policy.get_config())
+        return config
 
     def unwrapped(self):
         return self.inner_policy

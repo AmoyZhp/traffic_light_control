@@ -1,5 +1,5 @@
 import abc
-from typing import Any, Callable
+from typing import Any, Callable, Dict
 
 from hprl.env import MultiAgentEnv
 from hprl.policy import Policy
@@ -19,11 +19,15 @@ class Trainer(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def save_checkpoint(self, checkpoint_dir: str):
+    def save_checkpoint(self, checkpoint_dir: str, filename: str):
         ...
 
     @abc.abstractmethod
-    def load_checkpoint(self, checkpoint_file: str):
+    def get_checkpoint(self):
+        ...
+
+    @abc.abstractmethod
+    def set_weight(self, weight: Dict):
         ...
 
     @abc.abstractmethod

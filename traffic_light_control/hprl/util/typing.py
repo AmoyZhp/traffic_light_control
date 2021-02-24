@@ -27,6 +27,12 @@ class Reward():
 
 
 @dataclass
+class Terminal():
+    central: bool = False
+    local: Dict[str, bool] = field(default_factory=dict)
+
+
+@dataclass
 class Transition():
     state: State
     action: Action

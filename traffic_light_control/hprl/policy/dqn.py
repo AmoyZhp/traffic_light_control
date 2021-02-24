@@ -7,7 +7,7 @@ import torch.optim as optim
 import numpy as np
 
 
-from hprl.util.typing import State, Transition, TransitionTuple, TrainnerTypes
+from hprl.util.typing import Action, State, Transition, TransitionTuple, TrainnerTypes
 from hprl.policy.core import Policy
 from hprl.util.enum import ReplayBufferTypes
 from hprl.policy.nets import CartPole
@@ -21,7 +21,7 @@ def get_default_config():
     eps_init = 1.0
     eps_min = 0.01
     eps_frame = 2000
-    update_period = 100
+    update_period = 50
     action_space = 2
     state_space = 4
 
@@ -40,13 +40,15 @@ def get_default_config():
         "capacity": capacity,
     }
     exec_config = {
-        "batch_size": batch_size
+        "batch_size": batch_size,
+        "base_dir": "records",
+        "check_frequency": 100,
     }
     trainner_config = {
         "type": TrainnerTypes.IQL,
+        "executing": exec_config,
         "policy": policy_config,
         "buffer": buffer_config,
-        "executing": exec_config,
     }
 
     acting_net = CartPole(
@@ -107,7 +109,7 @@ class DQN(Policy):
             value = np.squeeze(value, 0)
         _, index = torch.max(value, 0)
         action = index.item()
-        return action
+        return Action(central=action)
 
     def learn_on_batch(self, batch_data: List[Transition]) -> float:
         if batch_data == None or len(batch_data) == 0:
@@ -172,7 +174,6 @@ class DQN(Policy):
         weight = {
             "net": self.acting_net.state_dict(),
             "optimizer": self.optimizer.state_dict(),
-            "step": self.step,
         }
         return weight
 
@@ -183,3 +184,13 @@ class DQN(Policy):
         self.target_net.load_state_dict(net_w)
         self.optimizer.load_state_dict(optimizer_w)
         self.step = weight["step"]
+
+    def get_config(self):
+        config = {
+            "learning_rate": self.learning_rate,
+            "discount_factor": self.discount_factor,
+            "update_period": self.update_period,
+            "action_space": self.action_space,
+            "state_space": self.state_space,
+        }
+        return config

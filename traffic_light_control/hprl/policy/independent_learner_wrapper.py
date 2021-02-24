@@ -23,7 +23,7 @@ class ILearnerWrapper(Policy):
             action = policy.compute_action(
                 local_state_wrap
             )
-            local_action[id_] = action
+            local_action[id_] = action.central
 
         return Action(local=local_action)
 
@@ -55,10 +55,19 @@ class ILearnerWrapper(Policy):
             )
 
     def get_weight(self):
-        ...
+        weight = {}
+        for k, v in self.policies.items():
+            weight[k] = v.get_weight()
+        return weight
 
-    def set_weight(self, weight):
-        ...
+    def set_weight(self, weight: Dict):
+        for id_, w in weight.items():
+            self.policies[id_].set_weight(w)
+
+    def get_config(self):
+        # all policy has same config setting
+        config = self.policies[self.agents_id[0]].get_config()
+        return config
 
     def unwrapped(self):
         return self.policies

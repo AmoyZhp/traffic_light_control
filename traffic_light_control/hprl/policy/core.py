@@ -22,5 +22,9 @@ class Policy(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
+    def get_config(self):
+        ...
+
+    @abc.abstractmethod
     def unwrapped(self):
         ...

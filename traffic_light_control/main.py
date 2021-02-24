@@ -24,16 +24,24 @@ def new_run():
     env = hprl.GymWrapper(gym.make("CartPole-v1"))
     local_ids = env.get_agents_id()
     config, model = dqn.get_default_config()
-    trainer = hprl.create_trainer(
-        config=config,
+    models = {
+        local_ids[0]: model
+    }
+    trainer = hprl.load_trainer(
         env=env,
-        models={
-            local_ids[0]: model
-        }
+        models=models,
+        checkpoint_dir="records",
+        checkpoint_file="ckpt_400.pth",
     )
-    episode = 1000
+    # trainer = hprl.create_trainer(
+    #     config=config,
+    #     env=env,
+    #     models={
+    #         local_ids[0]: model
+    #     }
+    # )
+    episode = 200
     train_records = trainer.train(episode)
-    print(train_records)
 
 
 if __name__ == "__main__":

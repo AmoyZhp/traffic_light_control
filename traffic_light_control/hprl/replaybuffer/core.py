@@ -25,3 +25,7 @@ class ReplayBuffer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def set_weight(self, weight):
         ...
+
+    @abc.abstractmethod
+    def get_config(self):
+        ...
