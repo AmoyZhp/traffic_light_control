@@ -31,7 +31,7 @@ def new_run():
         env=env,
         models=models,
         checkpoint_dir="records",
-        checkpoint_file="ckpt_400.pth",
+        checkpoint_file="ckpt_600.pth",
     )
     # trainer = hprl.create_trainer(
     #     config=config,
@@ -40,7 +40,7 @@ def new_run():
     #         local_ids[0]: model
     #     }
     # )
-    episode = 200
+    episode = 400
     train_records = trainer.train(episode)
 
 

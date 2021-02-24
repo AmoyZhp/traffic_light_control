@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-from hprl.util.typing import Reward, State, Action, Transition
+from hprl.util.typing import Reward, State, Action, Terminal, Transition
 from hprl.policy.core import Policy
 
 
@@ -40,13 +40,14 @@ class ILearnerWrapper(Policy):
                 action = data.action.local[id_]
                 reward = data.reward.local[id_]
                 next_state = data.next_state.local[id_]
+                terminal = data.terminal.local[id_]
                 agents_batch_data[id_].append(
                     Transition(
                         state=State(central=state),
                         action=Action(central=action),
                         reward=Reward(central=reward),
                         next_state=State(central=next_state),
-                        terminal=data.terminal
+                        terminal=Terminal(central=terminal),
                     )
                 )
         for id in self.agents_id:

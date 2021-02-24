@@ -38,7 +38,7 @@ class Transition():
     action: Action
     reward: Reward
     next_state: State
-    terminal: bool
+    terminal: Terminal
 
 
 @dataclass

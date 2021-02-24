@@ -27,8 +27,6 @@ def _off_policy_train_fn(
     while True:
         action = policy.compute_action(state)
         ns, r, done, _ = env.step(action)
-        ns = ns[0]
-        r = r[0]
 
         trans = Transition(
             state=state,
@@ -44,7 +42,7 @@ def _off_policy_train_fn(
 
         batch_data = replay_buffer.sample(batch_size)
         policy.learn_on_batch(batch_data)
-        if done:
+        if done.central:
             break
     return reward_record
 

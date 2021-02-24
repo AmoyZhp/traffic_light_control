@@ -162,7 +162,7 @@ class DQN(Policy):
                              dtype=torch.float).view(-1, 1),
                 torch.tensor(
                     trans.next_state.central, dtype=torch.float).unsqueeze(0),
-                torch.tensor(trans.terminal, dtype=torch.long)
+                torch.tensor(trans.terminal.central, dtype=torch.long)
             )
             return torch_trans
 

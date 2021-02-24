@@ -4,7 +4,7 @@ import gym
 import numpy as np
 
 from hprl.env.core import MultiAgentEnv
-from hprl.util.typing import Action, Reward, State
+from hprl.util.typing import Action, Reward, State, Terminal
 
 
 class GymWrapper(MultiAgentEnv):
@@ -15,21 +15,20 @@ class GymWrapper(MultiAgentEnv):
 
     def step(self,
              actions: Action
-             ) -> Tuple[State, Reward, bool, Dict]:
+             ) -> Tuple[State, Reward, Terminal, Dict]:
 
         action = actions.local[self.local_ids[0]]
 
         s, r, done, info = self.env.step(action)
 
-        state = State(local={
-            self.local_ids[0]: np.array(s)
-        }),
-        reward = Reward(
-            local={
-                self.local_ids[0]: r,
-            }
-        ),
-        return state, reward, done, info
+        state = State(local={self.local_ids[0]: np.array(s)})
+        reward = Reward(local={self.local_ids[0]: r})
+        termial = Terminal(
+            central=done,
+            local={self.local_ids[0]: done}
+        )
+
+        return state, reward, termial, info
 
     def reset(self) -> State:
         state = self.env.reset()
