@@ -1,18 +1,16 @@
+from hprl.util.plt import save_fig
 import logging
 
-from numpy.lib.utils import info
-from trainer.independent_traffic_trainer import RECORDS_ROOT_DIR
 from hprl.util.enum import TrainnerTypes
 from hprl.util.checkpointer import Checkpointer
 from typing import Any, Dict, List
-
-import torch
 
 from hprl.util.typing import Reward, TrainingRecord
 from hprl.trainer.core import Log_Record_Fn_Type, Train_Fn_Type, Trainer
 from hprl.env import MultiAgentEnv
 from hprl.policy import Policy
 from hprl.replaybuffer import ReplayBuffer
+from hprl.trainer.support_fn import _cal_cumulative_reward, _cal_avg_reward
 
 
 class CommonTrainer(Trainer):
@@ -39,8 +37,8 @@ class CommonTrainer(Trainer):
 
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
-        self.train_records = {}
-        self.eval_records = {}
+        self.train_records: Dict[int, TrainingRecord] = {}
+        self.eval_records: Dict[int, TrainingRecord] = {}
 
     def train(self, episode: int) -> Dict[int, TrainingRecord]:
 
@@ -137,4 +135,36 @@ class CommonTrainer(Trainer):
             checkpointer.save(checkpoint, filename)
 
     def log_result(self, log_dir: str):
-        raise NotImplementedError
+        culumative_rewards: List[Reward] = []
+        for r in self.train_records.values():
+            culumative_rewards.append(
+                _cal_cumulative_reward(r.rewards)
+            )
+        central_reward = []
+
+        agents_id = self.env.get_agents_id()
+        local_reward = {id_: [] for id_ in agents_id}
+        for r in culumative_rewards:
+            central_reward.append(r.central)
+            for id in agents_id:
+                local_reward[id].append(r.local[id])
+        episodes = list(self.train_records.keys())
+        save_fig(
+            x=episodes,
+            y=central_reward,
+            x_lable="episodes",
+            y_label="training central reward",
+            title="training central reward",
+            dir=log_dir,
+            img_name="training_central_reward",
+        )
+        for id in agents_id:
+            save_fig(
+                x=episodes,
+                y=local_reward[id],
+                x_lable="episodes",
+                y_label="training local {} reward".format(id),
+                title="training local {} reward".format(id),
+                dir=log_dir,
+                img_name="training_local_{}_reward".format(id),
+            )
