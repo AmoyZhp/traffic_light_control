@@ -22,9 +22,8 @@ def load_trainer(
     checkpoint = Checkpointer(checkpoint_dir)
     data = checkpoint.load(checkpoint_file)
     config = data.get("config")
-    weight = data.get("weight")
     trainer = create_trainer(config, env, models)
-    trainer.set_weight(weight)
+    trainer.load_checkpoint(data)
     return trainer
 
 

@@ -92,20 +92,20 @@ def on_policy_train_fn(
 
 def default_log_record_fn(record: TrainingRecord, logger: logging.Logger):
 
-    avg_reward = _cal_avg_reward(record.rewards)
+    avg_reward = cal_avg_reward(record.rewards)
     logger.info("avg reward : ")
     logger.info("    central {}".format(avg_reward.central))
     for k, v in avg_reward.local.items():
         logger.info("    agent {} reward is {:.3f} ".format(k, v))
 
-    cumulative_reward = _cal_cumulative_reward(record.rewards)
+    cumulative_reward = cal_cumulative_reward(record.rewards)
     logger.info("cumulative reward : ")
     logger.info("    central {}".format(cumulative_reward.central))
     for k, v in cumulative_reward.local.items():
         logger.info("    agent {} reward is {:.3f} ".format(k, v))
 
 
-def _cal_cumulative_reward(rewards: List[Reward]) -> Reward:
+def cal_cumulative_reward(rewards: List[Reward]) -> Reward:
     length = len(rewards)
     ret = Reward(central=0.0, local={})
     if length == 0:
@@ -122,7 +122,7 @@ def _cal_cumulative_reward(rewards: List[Reward]) -> Reward:
     return ret
 
 
-def _cal_avg_reward(rewards: List[Reward]) -> Reward:
+def cal_avg_reward(rewards: List[Reward]) -> Reward:
     length = len(rewards)
     ret = Reward(central=0.0, local={})
     if length == 0:

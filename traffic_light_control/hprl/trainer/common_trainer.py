@@ -10,7 +10,7 @@ from hprl.trainer.core import Log_Record_Fn_Type, Train_Fn_Type, Trainer
 from hprl.env import MultiAgentEnv
 from hprl.policy import Policy
 from hprl.replaybuffer import ReplayBuffer
-from hprl.trainer.support_fn import _cal_cumulative_reward, _cal_avg_reward
+from hprl.trainer.support_fn import cal_cumulative_reward, cal_avg_reward
 
 
 class CommonTrainer(Trainer):
@@ -38,12 +38,13 @@ class CommonTrainer(Trainer):
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
         self.train_records: Dict[int, TrainingRecord] = {}
-        self.eval_records: Dict[int, TrainingRecord] = {}
+        self.eval_records: Dict[int, Dict[int, TrainingRecord]] = {}
 
     def train(self, episode: int) -> Dict[int, TrainingRecord]:
 
         for ep in range(episode):
-            self.logger.info("=== train episode {} begin ===".format(ep))
+            self.logger.info("=== train episode {} begin ===".format(
+                self.cumulative_train_iteration))
             rewards, infos = self.train_fn(
                 self.env,
                 self.policy,
@@ -53,7 +54,7 @@ class CommonTrainer(Trainer):
             self.cumulative_train_iteration += 1
 
             record = TrainingRecord(rewards, infos)
-            self.train_records[ep] = record
+            self.train_records[self.cumulative_train_iteration] = record
 
             self.log_record_fn(record, self.logger)
 
@@ -61,7 +62,8 @@ class CommonTrainer(Trainer):
                 data=self.get_checkpoint(),
                 iteration=self.cumulative_train_iteration,
             )
-            self.logger.info("=== train episode {} end   ===".format(ep))
+            self.logger.info("=== train episode {} end   ===".format(
+                self.cumulative_train_iteration))
 
         return self.train_records
 
@@ -73,6 +75,7 @@ class CommonTrainer(Trainer):
         # if policy is not wrapped, method should return itself
         eval_policy = self.policy.unwrapped()
 
+        eval_records = {}
         for ep in range(episode):
             self.logger.info("+++ eval episode {} begin +++".format(ep))
             state = self.env.reset()
@@ -91,18 +94,26 @@ class CommonTrainer(Trainer):
                     break
 
             record = TrainingRecord(rewards, infos)
-            self.eval_records[ep] = record
+            eval_records[ep] = record
             self.log_record_fn(record, self.logger)
 
             self.logger.info("+++ eval episode {} end   +++".format(ep))
 
+        self.eval_records[self.cumulative_train_iteration] = eval_records
+
         return self.eval_records
 
-    def set_weight(self, weight: Dict):
+    def load_checkpoint(self, checkpoint: Dict):
+        weight = checkpoint["weight"]
+        records = checkpoint["records"]
+
         policy_w = weight.get("policy")
         buffer_w = weight.get("buffer")
         self.policy.set_weight(policy_w)
         self.replay_buffer.set_weight(buffer_w)
+
+        self.train_records = records["train_records"]
+        self.eval_records = records["eval_records"]
 
     def get_checkpoint(self):
         self.config["trained_iteration"] = self.cumulative_train_iteration
@@ -117,9 +128,15 @@ class CommonTrainer(Trainer):
             "buffer": self.replay_buffer.get_weight()
         }
 
+        records = {
+            "train_records": self.train_records,
+            "eval_records": self.eval_records,
+        }
+
         checkpoint = {
             "config": config,
             "weight": weight,
+            "records": records,
         }
         return checkpoint
 
@@ -135,10 +152,16 @@ class CommonTrainer(Trainer):
             checkpointer.save(checkpoint, filename)
 
     def log_result(self, log_dir: str):
+        self._log_train_culumative_reward(log_dir)
+        self._log_train_avg_reward(log_dir)
+        self._log_eval_avg_reward(log_dir)
+        self._log_eval_culumative_reward(log_dir)
+
+    def _log_train_culumative_reward(self, log_dir: str):
         culumative_rewards: List[Reward] = []
         for r in self.train_records.values():
             culumative_rewards.append(
-                _cal_cumulative_reward(r.rewards)
+                cal_cumulative_reward(r.rewards)
             )
         central_reward = []
 
@@ -153,18 +176,127 @@ class CommonTrainer(Trainer):
             x=episodes,
             y=central_reward,
             x_lable="episodes",
-            y_label="training central reward",
-            title="training central reward",
+            y_label="reward",
+            title="training culumative central reward",
             dir=log_dir,
-            img_name="training_central_reward",
+            img_name="training_culumative_central_reward",
         )
         for id in agents_id:
             save_fig(
                 x=episodes,
                 y=local_reward[id],
                 x_lable="episodes",
-                y_label="training local {} reward".format(id),
-                title="training local {} reward".format(id),
+                y_label="reward",
+                title="training culumative local {} reward".format(id),
                 dir=log_dir,
-                img_name="training_local_{}_reward".format(id),
+                img_name="training_culumative_local_{}_reward".format(id),
+            )
+
+    def _log_train_avg_reward(self, log_dir: str):
+        avg_reward: List[Reward] = []
+        for r in self.train_records.values():
+            avg_reward.append(
+                cal_avg_reward(r.rewards)
+            )
+        central_reward = []
+
+        agents_id = self.env.get_agents_id()
+        local_reward = {id_: [] for id_ in agents_id}
+        for r in avg_reward:
+            central_reward.append(r.central)
+            for id in agents_id:
+                local_reward[id].append(r.local[id])
+        episodes = list(self.train_records.keys())
+        save_fig(
+            x=episodes,
+            y=central_reward,
+            x_lable="episodes",
+            y_label="reward",
+            title="training avg central reward",
+            dir=log_dir,
+            img_name="training_avg_central_reward",
+        )
+        for id in agents_id:
+            save_fig(
+                x=episodes,
+                y=local_reward[id],
+                x_lable="episodes",
+                y_label="reward",
+                title="training avg local {} reward".format(id),
+                dir=log_dir,
+                img_name="training_avg_local_{}_reward".format(id),
+            )
+
+    def _log_eval_avg_reward(self, log_dir: str):
+        avg_reward: List[Reward] = []
+        for one_eval_turn in self.eval_records.values():
+            avg_reward_one_turn = []
+            for r in one_eval_turn.values():
+                avg_reward_one_turn.append(cal_avg_reward(r.rewards))
+            avg_reward.append(cal_avg_reward(avg_reward_one_turn))
+        central_reward = []
+
+        agents_id = self.env.get_agents_id()
+        local_reward = {id_: [] for id_ in agents_id}
+        for r in avg_reward:
+            central_reward.append(r.central)
+            for id in agents_id:
+                local_reward[id].append(r.local[id])
+        episodes = list(self.eval_records.keys())
+        save_fig(
+            x=episodes,
+            y=central_reward,
+            x_lable="episodes",
+            y_label="reward",
+            title="eval avg central reward",
+            dir=log_dir,
+            img_name="eval_avg_central_reward",
+        )
+        for id in agents_id:
+            save_fig(
+                x=episodes,
+                y=local_reward[id],
+                x_lable="episodes",
+                y_label="reward",
+                title="eval avg local {} reward".format(id),
+                dir=log_dir,
+                img_name="eval_avg_local_{}_reward".format(id),
+            )
+
+    def _log_eval_culumative_reward(self, log_dir: str):
+        culumative_reward: List[Reward] = []
+        for one_eval_turn in self.eval_records.values():
+            culumative_reward_one_turn = []
+            for r in one_eval_turn.values():
+                culumative_reward_one_turn.append(
+                    cal_cumulative_reward(r.rewards))
+            culumative_reward.append(
+                cal_cumulative_reward(culumative_reward_one_turn))
+        central_reward = []
+
+        agents_id = self.env.get_agents_id()
+        local_reward = {id_: [] for id_ in agents_id}
+        for r in culumative_reward:
+            central_reward.append(r.central)
+            for id in agents_id:
+                local_reward[id].append(r.local[id])
+        episodes = list(self.eval_records.keys())
+        save_fig(
+            x=episodes,
+            y=central_reward,
+            x_lable="episodes",
+            y_label="reward",
+            title="eval culumative central reward",
+            dir=log_dir,
+            img_name="eval_culumative_central_reward",
+        )
+        for id in agents_id:
+            save_fig(
+                x=episodes,
+                y=local_reward[id],
+                x_lable="episodes",
+                y_label="reward",
+                title="eval culumative local {} reward".format(id),
+                dir=log_dir,
+                img_name="eval_culumative_local_{}_reward".format(id),
             )

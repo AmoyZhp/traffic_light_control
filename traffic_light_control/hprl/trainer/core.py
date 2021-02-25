@@ -31,7 +31,7 @@ class Trainer(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def set_weight(self, weight: Dict):
+    def load_checkpoint(self, checkpoint: Dict):
         ...
 
     @abc.abstractmethod
