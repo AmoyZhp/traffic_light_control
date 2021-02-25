@@ -1,5 +1,5 @@
 
-class Logger(object):
+class TrainnLogger(object):
     def __init__(self,
                  log_dir: str) -> None:
         self._log_dir = log_dir

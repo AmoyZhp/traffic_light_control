@@ -5,7 +5,7 @@ from hprl.util.enum import TrainnerTypes
 from hprl.util.typing import TrainingRecord
 import torch.nn as nn
 
-from hprl.trainer.core import Train_Fn_Type
+from hprl.trainer.core import Log_Record_Fn_Type, Train_Fn_Type
 from hprl.trainer.common_trainer import CommonTrainer
 from hprl.env import MultiAgentEnv
 from hprl.policy import Policy
@@ -21,6 +21,7 @@ class QLearningTranier(CommonTrainer):
                  policy: Policy,
                  replay_buffer: ReplayBuffer,
                  checkpointer: Checkpointer,
+                 log_record_fn: Log_Record_Fn_Type,
                  cumulative_train_iteration: int = 0) -> None:
         super().__init__(
             type=type,
@@ -30,6 +31,7 @@ class QLearningTranier(CommonTrainer):
             policy=policy,
             replay_buffer=replay_buffer,
             checkpointer=checkpointer,
+            log_record_fn=log_record_fn,
             cumulative_train_iteration=cumulative_train_iteration
         )
 

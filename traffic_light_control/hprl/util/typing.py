@@ -43,7 +43,8 @@ class Transition():
 
 @dataclass
 class TrainingRecord():
-    rewards: Dict[int, Reward]
+    rewards: List[Reward] = field(default_factory=list)
+    inofs: List[Dict] = field(default_factory=list)
 
 
 TransitionTuple = namedtuple(

@@ -1,3 +1,7 @@
+import logging
+
+from numpy.lib.utils import info
+from trainer.independent_traffic_trainer import RECORDS_ROOT_DIR
 from hprl.util.enum import TrainnerTypes
 from hprl.util.checkpointer import Checkpointer
 from typing import Any, Dict, List
@@ -5,7 +9,7 @@ from typing import Any, Dict, List
 import torch
 
 from hprl.util.typing import Reward, TrainingRecord
-from hprl.trainer.core import Train_Fn_Type, Trainer
+from hprl.trainer.core import Log_Record_Fn_Type, Train_Fn_Type, Trainer
 from hprl.env import MultiAgentEnv
 from hprl.policy import Policy
 from hprl.replaybuffer import ReplayBuffer
@@ -20,6 +24,7 @@ class CommonTrainer(Trainer):
                  policy: Policy,
                  replay_buffer: ReplayBuffer,
                  checkpointer: Checkpointer,
+                 log_record_fn: Log_Record_Fn_Type,
                  cumulative_train_iteration: int = 0) -> None:
 
         self.type = type
@@ -29,47 +34,63 @@ class CommonTrainer(Trainer):
         self.replay_buffer = replay_buffer
         self.train_fn = train_fn
         self.checkpointer = checkpointer
+        self.log_record_fn = log_record_fn
         self.cumulative_train_iteration = max(0, cumulative_train_iteration)
 
-    def train(self, episode: int) -> TrainingRecord:
+        self.logger = logging.getLogger(__name__)
+        self.logger.setLevel(logging.INFO)
+        self.train_records = {}
+        self.eval_records = {}
 
-        record = TrainingRecord({})
+    def train(self, episode: int) -> Dict[int, TrainingRecord]:
 
         for ep in range(episode):
-            rewards = self.train_fn(
-                self.env, self.policy,
-                self.replay_buffer, self.config)
+            self.logger.info("=== episode {} begin ===".format(ep))
+            rewards, infos = self.train_fn(
+                self.env,
+                self.policy,
+                self.replay_buffer,
+                self.config,
+                self.logger)
             self.cumulative_train_iteration += 1
 
-            unwarp_r = self._unwrap_reward(rewards)
-            print(unwarp_r)
-            record.rewards[ep] = unwarp_r
+            record = TrainingRecord(rewards, infos)
+            self.train_records[ep] = record
+
+            self.log_record_fn(record, self.logger)
 
             self.checkpointer.periodic_save(
                 data=self.get_checkpoint(),
                 iteration=self.cumulative_train_iteration,
             )
+            self.logger.info("=== episode {} end   ===".format(ep))
 
-        return record
+        return self.train_records
 
-    def eval(self, episode: int) -> TrainingRecord:
-
-        record = TrainingRecord({})
+    def eval(self, episode: int) -> Dict[int, TrainingRecord]:
 
         for ep in episode:
             state = self.env.reset()
             rewards = []
+            infos = []
 
             while True:
                 action = self.policy.compute_action(state)
-                ns, r, done, _ = self.env.step(action)
-                state = ns[0]
-                rewards.append(r[0])
+                ns, r, done, info = self.env.step(action)
+
+                state = ns
+
+                rewards.append(r)
+                infos.append(info)
+
                 if done:
                     break
 
-            record.rewards[ep] = self._unwrap_reward(rewards)
-        return record
+            record = TrainingRecord(rewards, infos)
+            self.eval_records[ep] = record
+            self.log_record_fn(record, self.logger)
+
+        return self.eval_records
 
     def set_weight(self, weight: Dict):
         policy_w = weight.get("policy")
@@ -110,7 +131,7 @@ class CommonTrainer(Trainer):
     def log_result(self, log_dir: str):
         raise NotImplementedError
 
-    def _unwrap_reward(self, rewards: List[Reward]):
+    def _unwrap_reward(self, rewards: List[Reward]) -> Reward:
         length = len(rewards)
         ret = Reward(central=0.0, local={})
         if length == 0:
