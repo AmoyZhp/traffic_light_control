@@ -45,7 +45,7 @@ class CommonTrainer(Trainer):
     def train(self, episode: int) -> Dict[int, TrainingRecord]:
 
         for ep in range(episode):
-            self.logger.info("=== episode {} begin ===".format(ep))
+            self.logger.info("=== train episode {} begin ===".format(ep))
             rewards, infos = self.train_fn(
                 self.env,
                 self.policy,
@@ -63,32 +63,40 @@ class CommonTrainer(Trainer):
                 data=self.get_checkpoint(),
                 iteration=self.cumulative_train_iteration,
             )
-            self.logger.info("=== episode {} end   ===".format(ep))
+            self.logger.info("=== train episode {} end   ===".format(ep))
 
         return self.train_records
 
     def eval(self, episode: int) -> Dict[int, TrainingRecord]:
 
-        for ep in episode:
+        # like DQN policy is wrapped by eplison greedy
+        # but eplison greedy should not be applied at eval time
+        # the unwrapped function unwrap the policy
+        # if policy is not wrapped, method should return itself
+        eval_policy = self.policy.unwrapped()
+
+        for ep in range(episode):
+            self.logger.info("+++ eval episode {} begin +++".format(ep))
             state = self.env.reset()
             rewards = []
             infos = []
 
             while True:
-                action = self.policy.compute_action(state)
+                action = eval_policy.compute_action(state)
                 ns, r, done, info = self.env.step(action)
 
                 state = ns
 
                 rewards.append(r)
                 infos.append(info)
-
-                if done:
+                if done.central:
                     break
 
             record = TrainingRecord(rewards, infos)
             self.eval_records[ep] = record
             self.log_record_fn(record, self.logger)
+
+            self.logger.info("+++ eval episode {} end   +++".format(ep))
 
         return self.eval_records
 
@@ -130,22 +138,3 @@ class CommonTrainer(Trainer):
 
     def log_result(self, log_dir: str):
         raise NotImplementedError
-
-    def _unwrap_reward(self, rewards: List[Reward]) -> Reward:
-        length = len(rewards)
-        ret = Reward(central=0.0, local={})
-        if length == 0:
-            return ret
-        agents_id = self.env.get_agents_id()
-        for k in agents_id:
-            ret.local[k] = 0.0
-
-        for r in rewards:
-            ret.central += r.central
-            for k, v in r.local.items():
-                ret.local[k] += v
-
-        ret.central /= length
-        for k in r.local.keys():
-            r.local[k] /= length
-        return ret

@@ -71,4 +71,7 @@ class ILearnerWrapper(Policy):
         return config
 
     def unwrapped(self):
-        return self.policies
+        unwrap_policy = {}
+        for id, policy in self.policies.items():
+            unwrap_policy[id] = policy.unwrapped()
+        return ILearnerWrapper(self.agents_id, unwrap_policy)

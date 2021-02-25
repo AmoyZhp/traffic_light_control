@@ -1,11 +1,12 @@
 import logging
 from typing import Dict, List
 
+
+from hprl.trainer.common_trainer import CommonTrainer
 from hprl.util.enum import ReplayBufferTypes, TrainnerTypes
 from hprl.policy import Policy, DQN, ILearnerWrapper, EpsilonGreedy
 from hprl.env import MultiAgentEnv
 from hprl.replaybuffer import ReplayBuffer, CommonBuffer
-from hprl.trainer.qlearning_trainer import QLearningTranier
 from hprl.trainer.core import Trainer
 from hprl.util.checkpointer import Checkpointer
 from hprl.trainer.support_fn import default_log_record_fn, off_policy_train_fn
@@ -62,7 +63,7 @@ def create_trainer(
         if log_record_fn is None:
             log_record_fn = default_log_record_fn
 
-        trainner = QLearningTranier(
+        trainner = CommonTrainer(
             type=trainner_type,
             config=executing_config,
             train_fn=off_policy_train_fn,
