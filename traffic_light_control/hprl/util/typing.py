@@ -42,6 +42,14 @@ class Transition():
 
 
 @dataclass
+class Trajectory():
+    states: List[State]
+    actions: List[Action]
+    rewards: List[Reward]
+    terminal: Terminal
+
+
+@dataclass
 class TrainingRecord():
     rewards: List[Reward] = field(default_factory=list)
     inofs: List[Dict] = field(default_factory=list)

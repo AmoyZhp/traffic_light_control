@@ -116,7 +116,7 @@ class DQN(Policy):
             return
         batch_size = len(batch_data)
 
-        batch = self.__to_torch_batch(batch_data)
+        batch = self._to_torch_batch(batch_data)
 
         mask_batch = torch.tensor(tuple(map(lambda d: not d, batch.terminal)),
                                   device=self.device, dtype=torch.bool)
@@ -147,10 +147,7 @@ class DQN(Policy):
             self.target_net.load_state_dict(self.acting_net.state_dict())
             self.update_count = 0
 
-    def unwrapped(self):
-        return self
-
-    def __to_torch_batch(self, batch_data: List[Transition]):
+    def _to_torch_batch(self, batch_data: List[Transition]):
 
         def np_to_torch(trans: Transition):
             torch_trans = TransitionTuple(
@@ -194,3 +191,6 @@ class DQN(Policy):
             "state_space": self.state_space,
         }
         return config
+
+    def unwrapped(self):
+        return self

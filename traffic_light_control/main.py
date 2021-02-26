@@ -27,20 +27,20 @@ def new_run():
     models = {
         local_ids[0]: model
     }
-    trainer = hprl.load_trainer(
-        env=env,
-        models=models,
-        checkpoint_dir="records",
-        checkpoint_file="ckpt_100.pth",
-    )
-    # trainer = hprl.create_trainer(
-    #     config=config,
+    # trainer = hprl.load_trainer(
     #     env=env,
-    #     models={
-    #         local_ids[0]: model
-    #     }
+    #     models=models,
+    #     checkpoint_dir="records",
+    #     checkpoint_file="ckpt_100.pth",
     # )
-    episode = 50
+    trainer = hprl.create_trainer(
+        config=config,
+        env=env,
+        models={
+            local_ids[0]: model
+        }
+    )
+    episode = 100
     train_records = trainer.train(episode)
     trainer.eval(10)
     train_records = trainer.train(episode)

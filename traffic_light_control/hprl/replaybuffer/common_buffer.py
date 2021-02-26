@@ -1,10 +1,11 @@
 from collections import deque
+from typing import List, Union
 from hprl.util.enum import ReplayBufferTypes
 import random
 from shutil import Error
 
 from hprl.replaybuffer.core import ReplayBuffer
-from hprl.util.typing import Transition
+from hprl.util.typing import Trajectory, Transition
 
 
 class CommonBuffer(ReplayBuffer):
@@ -14,10 +15,10 @@ class CommonBuffer(ReplayBuffer):
         self.capacity = capacity
         self.buffer = deque(maxlen=capacity)
 
-    def store(self, transition: Transition):
-        self.buffer.append(transition)
+    def store(self, data: Union[Transition, Trajectory]):
+        self.buffer.append(data)
 
-    def sample(self, batch_size: int):
+    def sample(self, batch_size: int) -> Union[List[Transition], List[Trajectory]]:
         if batch_size > len(self.buffer):
             return []
         return random.sample(self.buffer, batch_size)

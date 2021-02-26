@@ -1,7 +1,7 @@
 import abc
-from typing import Dict, List
+from typing import Dict, List, Union
 
-from hprl.util.typing import Action, State, Transition
+from hprl.util.typing import Action, State, Trajectory, Transition
 
 
 class Policy(metaclass=abc.ABCMeta):
@@ -10,7 +10,8 @@ class Policy(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def learn_on_batch(self, batch_data: List[Transition]):
+    def learn_on_batch(self, batch_data: Union[List[Transition],
+                                               List[Trajectory]]):
         ...
 
     @abc.abstractmethod
