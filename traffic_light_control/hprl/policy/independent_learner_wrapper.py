@@ -1,6 +1,6 @@
-from typing import Dict, List
+from typing import Dict, List, Union
 
-from hprl.util.typing import Reward, State, Action, Terminal, Transition
+from hprl.util.typing import Reward, State, Action, Terminal, Trajectory, Transition
 from hprl.policy.core import Policy
 
 
@@ -27,29 +27,49 @@ class ILearnerWrapper(Policy):
 
         return Action(local=local_action)
 
-    def learn_on_batch(self, batch_data: List[Transition]):
+    def learn_on_batch(self, batch_data):
         if len(batch_data) == 0 or batch_data == None:
             return
-        agents_batch_data: Dict[str, List[Transition]] = {}
+        agents_batch_data: Dict[str, List] = {}
         for id_ in self.agents_id:
             agents_batch_data[id_] = []
-
-        for data in batch_data:
-            for id_ in self.agents_id:
-                state = data.state.local[id_]
-                action = data.action.local[id_]
-                reward = data.reward.local[id_]
-                next_state = data.next_state.local[id_]
-                terminal = data.terminal.local[id_]
-                agents_batch_data[id_].append(
-                    Transition(
-                        state=State(central=state),
-                        action=Action(central=action),
-                        reward=Reward(central=reward),
-                        next_state=State(central=next_state),
-                        terminal=Terminal(central=terminal),
+        data_slice = batch_data[0]
+        if isinstance(data_slice, Transition):
+            for data in batch_data:
+                for id_ in self.agents_id:
+                    state = data.state.local[id_]
+                    action = data.action.local[id_]
+                    reward = data.reward.local[id_]
+                    next_state = data.next_state.local[id_]
+                    terminal = data.terminal.local[id_]
+                    agents_batch_data[id_].append(
+                        Transition(
+                            state=State(central=state),
+                            action=Action(central=action),
+                            reward=Reward(central=reward),
+                            next_state=State(central=next_state),
+                            terminal=Terminal(central=terminal),
+                        )
                     )
-                )
+        elif isinstance(data_slice, Trajectory):
+            for data in batch_data:
+                for id_ in self.agents_id:
+                    states = map(lambda s: State(central=s.local[id_]),
+                                 data.states)
+                    actions = map(lambda a: Action(central=a.local[id_]),
+                                  data.actions)
+                    rewards = map(lambda r: Reward(central=r.local[id_]),
+                                  data.rewards)
+                    agents_batch_data[id_].append(
+                        Trajectory(
+                            states=list(states),
+                            actions=list(actions),
+                            rewards=list(rewards),
+                            terminal=data.terminal,
+                        )
+                    )
+        else:
+            raise("data type error")
         for id in self.agents_id:
             self.policies[id].learn_on_batch(
                 agents_batch_data[id_]

@@ -2,6 +2,7 @@ import gym
 from policy import net
 import hprl
 import hprl.policy.dqn as dqn
+import hprl.policy.actor_critic as ac
 import trainer
 import cityflow
 
@@ -23,7 +24,7 @@ def rl_train():
 def new_run():
     env = hprl.GymWrapper(gym.make("CartPole-v1"))
     local_ids = env.get_agents_id()
-    config, model = dqn.get_default_config()
+    config, model = ac.get_ac_default_config()
     models = {
         local_ids[0]: model
     }
@@ -36,11 +37,9 @@ def new_run():
     trainer = hprl.create_trainer(
         config=config,
         env=env,
-        models={
-            local_ids[0]: model
-        }
+        models=models,
     )
-    episode = 100
+    episode = 500
     train_records = trainer.train(episode)
     trainer.eval(10)
     train_records = trainer.train(episode)

@@ -2,7 +2,7 @@ import logging
 import time
 from typing import Dict, List
 
-from hprl.util.typing import Reward, TrainingRecord, Transition
+from hprl.util.typing import Reward, Terminal, TrainingRecord, Trajectory, Transition
 from hprl.policy import Policy
 from hprl.env import MultiAgentEnv
 from hprl.replaybuffer import ReplayBuffer
@@ -64,30 +64,57 @@ def on_policy_train_fn(
         logger: logging.Logger):
 
     batch_size = config["batch_size"]
-    reward_record = []
 
-    state = env.reset()
+    reward_records = []
+    info_records = []
+    sim_time_cost = 0.0
+    learn_time_cost = 0.0
+    batch_data: List[Trajectory] = []
 
-    while True:
-        action = policy.compute_action(state)
-        ns, r, done, _ = env.step(action)
+    for _ in range(batch_size):
 
-        trans = Transition(
-            state=state,
-            action=action,
-            reward=r,
-            next_state=ns,
-            terminal=done,
-        )
-        replay_buffer.store(trans)
+        reward_record = []
+        info_record = []
+        states = []
+        actions = []
+        rewards = []
 
-        state = ns
-        reward_record.append(r)
+        state = env.reset()
+        while True:
+            states.append(state)
+            action = policy.compute_action(state)
 
-        if done:
-            batch_data = replay_buffer.sample(batch_size)
-            policy.learn_on_batch(batch_data)
-            break
+            sim_begin = time.time()
+            ns, r, done, info = env.step(action)
+            sim_end = time.time()
+            sim_time_cost += (sim_end - sim_begin)
+            state = ns
+
+            actions.append(action)
+            rewards.append(r)
+
+            reward_record.append(r)
+            info_record.append(info)
+
+            if done.central:
+                trajecotry = Trajectory(
+                    states=states,
+                    actions=actions,
+                    rewards=rewards,
+                    terminal=done,
+                )
+                batch_data.append(trajecotry)
+                reward_records.append(reward_record)
+                info_records.append(info_record)
+                break
+    learn_begin = time.time()
+    policy.learn_on_batch(batch_data)
+    learn_end = time.time()
+    learn_time_cost += (learn_end - learn_begin)
+
+    logger.info("simulation time cost : {:.3f}s".format(sim_time_cost))
+    logger.info("learning time cost : {:.3f}s".format(learn_time_cost))
+    return reward_records[0], info_records[0]
 
 
 def default_log_record_fn(record: TrainingRecord, logger: logging.Logger):

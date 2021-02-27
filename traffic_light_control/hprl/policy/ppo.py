@@ -1,4 +1,4 @@
-from hprl.util.typing import Action, State, Transition
+from hprl.util.typing import Action, State, Trajectory, Transition
 from typing import List
 import torch
 import torch.nn as nn
@@ -57,7 +57,7 @@ class PPO(Policy):
             action = m.sample()
             return Action(central=action.item())
 
-    def learn_on_batch(self, batch_data: List[Transition]):
+    def learn_on_batch(self, batch_data: List[Trajectory]):
         batch_size = len(batch_data)
         if batch_size == 0:
             return 0.0

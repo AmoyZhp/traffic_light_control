@@ -3,6 +3,8 @@ from enum import Enum, auto
 
 class TrainnerTypes(Enum):
     IQL = "IQL"
+    PPO = "PPO"
+    IAC = "IAC"
 
 
 class ReplayBufferTypes(Enum):
@@ -11,3 +13,8 @@ class ReplayBufferTypes(Enum):
 
 class PolicyTypes(Enum):
     DQN = "DQN"
+
+
+class AdvantageTypes(Enum):
+    RewardToGO = auto()
+    QMinusV = auto()
