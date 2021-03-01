@@ -7,6 +7,7 @@ from torch import optim
 import torch
 import torch.nn as nn
 from hprl.policy.core import Policy
+from hprl.policy.core import to_tensor_for_trajectory, compute_reward_to_go
 from torch.distributions import Categorical
 
 
@@ -127,7 +128,9 @@ class ActorCritic(Policy):
                 traj_len_equal = False
                 break
 
-        states, actions, rewards = self._to_tensor(batch_data)
+        states, actions, rewards = to_tensor_for_trajectory(
+            batch_data,
+            self.device)
         critic_loss = 0.0
         actor_loss = 0.0
         if traj_len_equal:
@@ -169,51 +172,15 @@ class ActorCritic(Policy):
                 self.critic_net.state_dict())
         return critic_loss.item()
 
-    def _to_tensor(self, batch_data: List[Trajectory]):
-        def np_to_tensor(data: Trajectory):
-            states = map(
-                lambda s: torch.tensor(
-                    s.central, dtype=torch.float).to(self.device).unsqueeze(0),
-                data.states,
-            )
-            actions = map(
-                lambda a: torch.tensor(
-                    a.central, dtype=torch.long).to(self.device).view(-1, 1),
-                data.actions
-            )
-            rewards = map(
-                lambda r: torch.tensor(
-                    r.central, dtype=torch.float).to(self.device).view(-1, 1),
-                data.rewards
-            )
-            return Trajectory(
-                states=list(states),
-                actions=list(actions),
-                rewards=list(rewards),
-                terminal=data.terminal
-            )
-        batch_data = list(map(np_to_tensor, batch_data))
-        states = []
-        actions = []
-        rewards = []
-        for data in batch_data:
-            # cated shape is 1 * seq_len * data_space
-            seq_s = torch.cat(data.states, 0).unsqueeze(0)
-            seq_a = torch.cat(data.actions, 0).unsqueeze(0)
-            seq_r = torch.cat(data.rewards, 0).unsqueeze(0)
-            states.append(seq_s)
-            actions.append(seq_a)
-            rewards.append(seq_r)
-
-        # why not cat here because they done have equal length
-        return states, actions, rewards
-
     def _traj_len_equal_learn(self,
                               states: torch.tensor,
                               actions: torch.tensor,
                               rewards: torch.tensor):
         # states; actions and rewards shape
         # are batch_size * seq_length * data_space
+        states.to(self.device)
+        actions.to(self.device)
+        rewards.to(self.device)
 
         q_vals = self.critic_net(states)
 
@@ -240,7 +207,8 @@ class ActorCritic(Policy):
                 dim=2).unsqueeze(-1)
             advantage = selected_q_v - state_values
         elif self.advantage_type == AdvantageTypes.RewardToGO:
-            advantage = self._compute_reward_to_go(rewards) - selected_q_v
+            advantage = compute_reward_to_go(
+                rewards, self.device) - selected_q_v
         else:
             raise ValueError(f"advantage type invalid {self.advantage_type}")
         log_prob = torch.log(action_prob).gather(2, actions)
@@ -249,16 +217,6 @@ class ActorCritic(Policy):
         actor_loss = (-torch.mean(log_prob *
                                   advantage.detach()))
         return critic_loss, actor_loss
-
-    def _compute_reward_to_go(self, rewards):
-        weight = torch.triu(torch.ones(
-            (rewards.shape[0],
-             rewards.shape[1],
-             rewards.shape[1]),
-            device=self.device))
-        rtg = weight.matmul(rewards)
-
-        return rtg
 
     def _compute_critic_loss(self, input, target):
         return torch.mean((input - target) ** 2)

@@ -132,7 +132,8 @@ def _create_policy(type, agents_id, config, models):
                 discount_factor=config["discount_factor"],
                 update_period=config["update_period"],
                 action_space=config["action_space"],
-                state_space=config["state_space"]
+                state_space=config["state_space"],
+                clip_param=config["clip_param"],
             )
             i_learner = ILearnerWrapper(
                 agents_id=agents_id,
