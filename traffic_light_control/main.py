@@ -1,3 +1,4 @@
+from runner.runner import Runner
 import gym
 from policy import net
 import hprl
@@ -50,5 +51,10 @@ def new_run():
     trainer.log_result("records")
 
 
+def main():
+    runner = Runner()
+    runner.run()
+
+
 if __name__ == "__main__":
-    new_run()
+    main()

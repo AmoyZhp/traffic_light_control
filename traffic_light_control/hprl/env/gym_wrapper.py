@@ -38,3 +38,12 @@ class GymWrapper(MultiAgentEnv):
 
     def get_agents_id(self) -> List[str]:
         return self.local_ids
+
+    def get_local_action_space(self):
+        ...
+
+    def get_local_state_space(self):
+        ...
+
+    def get_central_state_space(self):
+        ...

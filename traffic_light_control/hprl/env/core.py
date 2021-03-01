@@ -19,3 +19,19 @@ class MultiAgentEnv(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_agents_id(self) -> List[str]:
         ...
+
+    @abc.abstractmethod
+    def get_central_action_space(self):
+        ...
+
+    @abc.abstractmethod
+    def get_local_action_space(self):
+        ...
+
+    @abc.abstractmethod
+    def get_central_state_space(self):
+        ...
+
+    @abc.abstractmethod
+    def get_local_state_space(self):
+        ...

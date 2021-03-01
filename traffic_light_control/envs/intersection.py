@@ -1,14 +1,12 @@
-import math
-from pickle import INST
 import numpy as np
 from envs.road import Road
 from typing import Dict, List
-from util.enum import GraphDirection, TrafficStreamDirection
+from envs.enum import Movement, Stream
 
 
 class Intersection():
     def __init__(self, id: str, phase_plan: List[List[int]],
-                 roadlinks: List[Dict[GraphDirection, Road]],
+                 roadlinks: List[Dict[Stream, Road]],
                  init_phase_index: int = 0) -> None:
         self.id = id
         self.phase_plan = phase_plan
@@ -38,7 +36,7 @@ class Intersection():
     def get_waiting_rate(self) -> float:
         waiting_rate = 0.0
         for road in self.roads.values():
-            for stream in TrafficStreamDirection:
+            for stream in Movement:
                 capacity = road.get_capacity(stream)
                 if capacity == 0:
                     continue
@@ -52,9 +50,9 @@ class Intersection():
         cnt = 0
         for rlink in self.roadlinks:
             r_pressure = 0.0
-            out_road = rlink[GraphDirection.OUT]
-            in_road = rlink[GraphDirection.IN]
-            for dir_ in TrafficStreamDirection:
+            out_road = rlink[Stream.OUT]
+            in_road = rlink[Stream.IN]
+            for dir_ in Movement:
                 if (in_road.get_capacity(dir_) == 0
                         or out_road.get_capacity(dir_) == 0):
                     continue
@@ -109,5 +107,4 @@ class Intersection():
         tensor = np.hstack(
             (tensor, next_phase_tensor)
         )
-        tensor = np.expand_dims(tensor, axis=0)
         return tensor
