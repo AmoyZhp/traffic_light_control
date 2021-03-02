@@ -5,7 +5,7 @@ from hprl.replaybuffer.core import ReplayBuffer
 from hprl.policy.core import Policy
 from hprl.trainer.core import Trainer
 from hprl.trainer.factory import create_trainer, load_trainer
-from hprl.util.enum import TrainnerTypes, ReplayBufferTypes
+from hprl.util.enum import TrainnerTypes, ReplayBufferTypes,AdvantageTypes
 
 
 __all__ = [
@@ -23,4 +23,5 @@ __all__ = [
     "GymWrapper",
     "TrainnerTypes",
     "ReplayBufferTypes"
+    "AdvantageTypes",
 ]

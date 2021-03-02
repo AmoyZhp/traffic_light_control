@@ -4,7 +4,7 @@ from typing import Dict, List
 
 
 from hprl.trainer.common_trainer import CommonTrainer
-from hprl.util.enum import ReplayBufferTypes, TrainnerTypes
+from hprl.util.enum import AdvantageTypes, ReplayBufferTypes, TrainnerTypes
 from hprl.policy import Policy, DQN, ILearnerWrapper, EpsilonGreedy, PPO
 from hprl.env import MultiAgentEnv
 from hprl.replaybuffer import ReplayBuffer, CommonBuffer
@@ -135,6 +135,7 @@ def _create_policy(type, agents_id, config, models):
                 action_space=config["action_space"],
                 state_space=config["state_space"],
                 clip_param=config["clip_param"],
+                advantage_type=config["advantage_type"] ,
             )
             i_learner = ILearnerWrapper(
                 agents_id=agents_id,
@@ -153,7 +154,8 @@ def _create_policy(type, agents_id, config, models):
                 discount_factor=config["discount_factor"],
                 update_period=config["update_period"],
                 action_space=config["action_space"],
-                state_space=config["state_space"]
+                state_space=config["state_space"],
+                advantage_type=config["advantage_type"],
             )
             i_learner = ILearnerWrapper(
                 agents_id=agents_id,

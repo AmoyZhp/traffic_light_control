@@ -85,7 +85,7 @@ def compute_reward_to_go(rewards: torch.tensor, device=None):
     weight = torch.triu(torch.ones(
         (rewards.shape[0],
          rewards.shape[1],
-         rewards.shape[1])))
+         rewards.shape[1]))).to(device)
     rtg = weight.matmul(rewards)
 
     return rtg

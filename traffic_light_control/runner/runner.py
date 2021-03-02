@@ -1,10 +1,9 @@
-import argparse
 import datetime
-from hprl.util.enum import TrainnerTypes
 import os
+import logging
+
 import hprl
 import envs
-import logging
 from runner.nets import IActor, ICritic
 from runner.args_paraser import create_paraser, args_validity_check
 
@@ -30,6 +29,7 @@ BASE_RECORDS_DIR = "records"
 CHEKCPOINT_DIR_SUFFIX = "checkpoints"
 CONFIG_DIR_SUFFIX = "configs"
 LOG_DIR_SUFFIX = "log"
+ADVANTAGE_TYPE = hprl.AdvantageTypes.QMinusV
 
 
 def run():
@@ -149,6 +149,7 @@ def _get_trainer_config(args, action_space, state_space, checkpoint_dir, record_
         "eps_min": eps_min,
         "inner_epoch": INNER_EPOCH,
         "clip_param": CLIP_PARAM,
+        "advantage_type" : ADVANTAGE_TYPE,
     }
     buffer_config = {
         "type": hprl.ReplayBufferTypes(args.replay_buffer),
