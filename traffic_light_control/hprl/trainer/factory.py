@@ -121,8 +121,8 @@ def _create_policy(type, agents_id, config, models):
         )
         return i_learner
     elif type == TrainnerTypes.PPO:
+        policies = {}
         for id_ in agents_id:
-            policies = {}
             model = models[id_]
             policies[id_] = PPO(
                 critic_net=model["critic_net"],
@@ -135,16 +135,17 @@ def _create_policy(type, agents_id, config, models):
                 action_space=config["action_space"],
                 state_space=config["state_space"],
                 clip_param=config["clip_param"],
-                advantage_type=config["advantage_type"] ,
+                advantage_type=config["advantage_type"],
             )
-            i_learner = ILearnerWrapper(
-                agents_id=agents_id,
-                policies=policies,
-            )
-            return i_learner
+        i_learner = ILearnerWrapper(
+            agents_id=agents_id,
+            policies=policies,
+        )
+        return i_learner
     elif type == TrainnerTypes.IAC:
+
+        policies = {}
         for id_ in agents_id:
-            policies = {}
             model = models[id_]
             policies[id_] = ActorCritic(
                 critic_net=model["critic_net"],
@@ -157,9 +158,9 @@ def _create_policy(type, agents_id, config, models):
                 state_space=config["state_space"],
                 advantage_type=config["advantage_type"],
             )
-            i_learner = ILearnerWrapper(
-                agents_id=agents_id,
-                policies=policies,
-            )
-            return i_learner
+        i_learner = ILearnerWrapper(
+            agents_id=agents_id,
+            policies=policies,
+        )
+        return i_learner
     raise ValueError(f'policy type {type} is invalid')

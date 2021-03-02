@@ -28,8 +28,8 @@ class TrafficLightCtrlEnv(hprl.MultiAgentEnv):
              ) -> Tuple[hprl.State, hprl.Reward, hprl.Terminal, Dict]:
 
         for id in self.intersections_id:
-            action = action.local[id]
-            if action == 1:
+            act = action.local[id]
+            if act == 1:
                 # act = 1 表示要切换到下一个状态
                 intersection = self.intersections[id]
                 intersection.move_to_next_phase()
