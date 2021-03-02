@@ -1,6 +1,8 @@
 import datetime
+from hprl.util.enum import TrainnerTypes
 import os
 import logging
+from types import TracebackType
 
 import hprl
 import envs
@@ -38,7 +40,6 @@ def run():
     args = paraser.parse_args()
     if not args_validity_check(args):
         return
-   
 
     env_config = _get_env_config(args)
     env = _make_env(env_config)
@@ -48,10 +49,8 @@ def run():
         env.get_local_action_space(),
     )
     agents_id = env.get_agents_id()
-    models = {}
-    for id in agents_id:
-        models[id] = _make_model(
-            hprl.TrainnerTypes(args.trainer), model_config)
+    models = _make_model(
+        hprl.TrainnerTypes(args.trainer), model_config, agents_id)
 
     mode = args.mode
     if mode == "train":
@@ -160,7 +159,7 @@ def _get_trainer_config(args, action_space, state_space, checkpoint_dir, record_
         "eps_min": eps_min,
         "inner_epoch": INNER_EPOCH,
         "clip_param": CLIP_PARAM,
-        "advantage_type" : ADVANTAGE_TYPE,
+        "advantage_type": ADVANTAGE_TYPE,
     }
     buffer_config = {
         "type": hprl.ReplayBufferTypes(args.replay_buffer),
@@ -206,47 +205,69 @@ def _make_env(config):
     return env
 
 
-def _make_model(trainer_type, config):
-    model = None
+def _make_model(trainer_type, config, agents_id):
     if trainer_type == hprl.TrainnerTypes.IQL:
-        acting_net = ICritic(
-            input_space=config["input_space"],
-            output_space=config["output_space"],
-        )
-        target_net = ICritic(
-            input_space=config["input_space"],
-            output_space=config["output_space"],
-        )
-        model = {
-            "acting": acting_net,
-            "target": target_net,
-        }
+        models = {}
+        for id in agents_id:
+            acting_net = ICritic(
+                input_space=config["input_space"],
+                output_space=config["output_space"],
+            )
+            target_net = ICritic(
+                input_space=config["input_space"],
+                output_space=config["output_space"],
+            )
+            models[id] = {
+                "acting_net": acting_net,
+                "target_net": target_net,
+            }
+        return models
     elif (trainer_type == hprl.TrainnerTypes.IAC or
           trainer_type == hprl.TrainnerTypes.PPO):
 
-        critic_net = ICritic(
-            input_space=config["input_space"],
-            output_space=config["output_space"],
-        )
+        models = {}
+        for id in agents_id:
+            critic_net = ICritic(
+                input_space=config["input_space"],
+                output_space=config["output_space"],
+            )
 
-        critic_target_net = ICritic(
-            input_space=config["input_space"],
-            output_space=config["output_space"],
-        )
+            critic_target_net = ICritic(
+                input_space=config["input_space"],
+                output_space=config["output_space"],
+            )
 
-        actor_net = IActor(
-            input_space=config["input_space"],
-            output_space=config["output_space"],
-        )
+            actor_net = IActor(
+                input_space=config["input_space"],
+                output_space=config["output_space"],
+            )
 
+            models[id] = {
+                "critic_net": critic_net,
+                "critic_target_net": critic_target_net,
+                "actor_net": actor_net
+            }
+        return models
+    elif trainer_type == hprl.TrainnerTypes.VDN:
+        acting_nets = {}
+        target_nets = {}
+        for id in agents_id:
+            acting_nets[id] = ICritic(
+                input_space=config["input_space"],
+                output_space=config["output_space"],
+            )
+            target_nets[id] = ICritic(
+                input_space=config["input_space"],
+                output_space=config["output_space"],
+            )
         model = {
-            "critic_net": critic_net,
-            "critic_target_net": critic_target_net,
-            "actor_net": actor_net
+            "acting_nets": acting_nets,
+            "target_nets": target_nets,
         }
+        return model
+
     else:
         raise ValueError("invalid trainer type {}".format(trainer_type))
-    return model
 
 
 def create_record_dir(root_dir, env_id, policy_id):

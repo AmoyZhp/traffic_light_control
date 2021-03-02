@@ -69,10 +69,7 @@ class VDN(Policy):
         central_reward = transition.reward
         q_val, next_q_val = self._cal_q_val(local_states, local_actions,
                                             local_next_state, terminal)
-        print(q_val.shape)
-        print(next_q_val.shape)
         expected_q_val = (next_q_val * self.discount_factor) + central_reward
-        print(expected_q_val.shape)
         loss = self.loss_func(q_val, expected_q_val)
         self.optimizer.zero_grad()
         loss.backward()
@@ -101,22 +98,23 @@ class VDN(Policy):
                 states[id].append(local_s)
 
                 local_a = torch.tensor(trans.action.local[id],
-                                       dtype=torch.long).unsqueeze(0)
+                                       dtype=torch.long).view(-1, 1)
                 actions[id].append(local_a)
 
                 local_ns = torch.tensor(trans.next_state.local[id],
                                         dtype=torch.float).unsqueeze(0)
                 next_states[id].append(local_ns)
-                central_reward = torch.tensor(trans.reward.central,
-                                              dtype=torch.float).view(-1, 1)
-                rewards.append(central_reward)
+            central_reward = torch.tensor(trans.reward.central,
+                                          dtype=torch.float).view(-1, 1)
+            rewards.append(central_reward)
 
-                central_terminal = torch.tensor(trans.terminal.central,
-                                                dtype=torch.long).view(-1, 1)
-                terminal.append(central_terminal)
-        states = torch.cat(states, 0).to(self.device)
-        actions = torch.cat(actions, 0).to(self.device)
-        next_states = torch.cat(next_states, 0).to(self.device)
+            central_terminal = torch.tensor(trans.terminal.central,
+                                            dtype=torch.long).view(-1, 1)
+            terminal.append(central_terminal)
+        for id in self.agents_id:
+            states[id] = torch.cat(states[id], 0).to(self.device)
+            actions[id] = torch.cat(actions[id], 0).to(self.device)
+            next_states[id] = torch.cat(next_states[id], 0).to(self.device)
         rewards = torch.cat(rewards, 0).to(self.device)
         terminal = torch.cat(terminal, 0).to(self.device)
         return TransitionTuple(states, actions, rewards, next_states, terminal)
@@ -132,8 +130,41 @@ class VDN(Policy):
             ).gather(1, actions[id])
             next_q_val = torch.zeros_like(q_val)
             next_q_val[ns_mask] = self.target_nets[id](
-                next_states[ns_mask]
-            ).max(1)[0].detach().unqueeze(1)
+                next_states[id][ns_mask]
+            ).max(1)[0].detach().unsqueeze(1)
             central_q_val += q_val
             central_next_q_val += next_q_val
         return central_q_val, central_next_q_val
+
+    def get_config(self):
+        config = {
+            "learning_rate": self.learning_rate,
+            "discount_factor": self.discount_factor,
+            "update_period": self.update_period,
+            "action_space": self.action_space,
+            "state_space": self.state_space,
+        }
+        return config
+
+    def get_weight(self):
+        local_weight = {}
+        for id_ in self.agents_id:
+            local_weight[id_] = self.acting_nets[id_].state_dict()
+        weight = {
+            "net": local_weight,
+            "optimizer": self.optimizer.state_dict(),
+        }
+        return weight
+
+    def unwrapped(self):
+        return self
+
+    def set_weight(self, weight):
+        optimizer_w = weight["optimizer"]
+        self.optimizer.load_state_dict(optimizer_w)
+        self.step = weight["step"]
+
+        net_w = weight["net"]
+        for id_ in self.agents_id:
+            self.acting_nets[id_].load_state_dict(net_w[id_])
+            self.target_nets[id_].load_state_dict(net_w[id_])

@@ -16,7 +16,8 @@ class EpsilonGreedy(Policy):
                  eps_frame: int,
                  eps_init: float,
                  eps_min: float,
-                 action_space) -> None:
+                 action_space,
+                 agents_id: List[str] = None) -> None:
         self.inner_policy = inner_policy
         self.step = 0
         self.eps_frame = eps_frame
@@ -24,14 +25,22 @@ class EpsilonGreedy(Policy):
         self.eps_min = eps_min
         self.eps = eps_init
         self.action_space = action_space
+        self.agents_id = agents_id
 
     def compute_action(self, state: State) -> Action:
         self.step = min(self.step + 1, self.eps_frame)
         self.eps = max(self.eps_init - self.step /
                        self.eps_frame, self.eps_min)
         if np.random.rand() < self.eps:
-            action = np.random.choice(range(self.action_space), 1).item()
-            return Action(central=action)
+            if self.agents_id is None:
+                action = np.random.choice(range(self.action_space), 1).item()
+                return Action(central=action)
+            else:
+                actions = {}
+                for id in self.agents_id:
+                    actions[id] = np.random.choice(
+                        range(self.action_space), 1).item()
+                return Action(local=actions)
         return self.inner_policy.compute_action(state)
 
     def learn_on_batch(self, batch_data: List[Transition]):

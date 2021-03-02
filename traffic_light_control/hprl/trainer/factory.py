@@ -1,3 +1,4 @@
+from hprl.policy.vdn import VDN
 from hprl.policy.actor_critic import ActorCritic
 import logging
 from typing import Dict, List
@@ -50,7 +51,8 @@ def create_trainer(
 
     train_fn = None
 
-    if trainner_type == TrainnerTypes.IQL:
+    if (trainner_type == TrainnerTypes.IQL or
+            trainner_type == TrainnerTypes.VDN):
         train_fn = off_policy_train_fn
     elif (trainner_type == TrainnerTypes.PPO
           or trainner_type == TrainnerTypes.IAC):
@@ -100,8 +102,8 @@ def _create_policy(type, agents_id, config, models):
         for id_ in agents_id:
             model = models[id_]
             inner_p = DQN(
-                acting_net=model["acting"],
-                target_net=model["target"],
+                acting_net=model["acting_net"],
+                target_net=model["target_net"],
                 learning_rate=config["learning_rate"],
                 discount_factor=config["discount_factor"],
                 update_period=config["update_period"],
@@ -163,4 +165,29 @@ def _create_policy(type, agents_id, config, models):
             policies=policies,
         )
         return i_learner
+    elif type == TrainnerTypes.VDN:
+        return _create_vdn(config, models, agents_id)
     raise ValueError(f'policy type {type} is invalid')
+
+
+def _create_vdn(config, models, agents_id):
+    inner_p = VDN(
+        agents_id=agents_id,
+        acting_nets=models["acting_nets"],
+        target_nets=models["target_nets"],
+        learning_rate=config["learning_rate"],
+        discount_factor=config["discount_factor"],
+        update_period=config["update_period"],
+        action_space=config["action_space"],
+        state_space=config["state_space"],
+    )
+
+    p = EpsilonGreedy(
+        agents_id=agents_id,
+        inner_policy=inner_p,
+        eps_frame=config["eps_frame"],
+        eps_min=config["eps_min"],
+        eps_init=config["eps_init"],
+        action_space=config["action_space"],
+    )
+    return p
