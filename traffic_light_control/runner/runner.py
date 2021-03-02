@@ -1,11 +1,11 @@
 import argparse
 import datetime
 import os
-from trainer.independent_traffic_trainer import INTERVAL, MAX_TIME, RECORDS_ROOT_DIR
 import hprl
 import envs
 import logging
 from runner.nets import IActor, ICritic
+from runner.args_paraser import create_paraser, args_validity_check
 
 logger = logging.getLogger(__name__)
 
@@ -25,41 +25,79 @@ INNER_EPOCH = 128
 CLIP_PARAM = 0.2
 
 # Run Setting
-DEFAULT_BATCH_SIZE = 16
-BASE_RECORDS_DIR = "records/"
+BASE_RECORDS_DIR = "records"
+CHEKCPOINT_DIR_SUFFIX = "checkpoints"
+CONFIG_DIR_SUFFIX = "configs"
+LOG_DIR_SUFFIX = "log"
 
 
-class Runner(object):
+def run():
 
-    def run(self):
+    paraser = create_paraser()
+    args = paraser.parse_args()
+    if not args_validity_check(args):
+        return
 
-        paraser = create_paraser()
-        args = paraser.parse_args()
-        if not args_validity_check(args):
-            paraser.print_help()
-            return
+    env_config = _get_env_config(args)
+    env = _make_env(env_config)
 
-        env_config = self._get_env_config(args)
-        env = self._make_env(env_config)
+    model_config = _get_model_config(
+        env.get_local_state_space(),
+        env.get_local_action_space(),
+    )
+    agents_id = env.get_agents_id()
+    models = {}
+    for id in agents_id:
+        models[id] = _make_model(model_config)
 
-        model_config = self._get_model_config(
-            env.get_local_state_space(),
-            env.get_local_action_space(),
+    mode = args.mode
+    if mode == "train":
+        _train(args, env, models)
+    elif mode == "test":
+        base_dir = f"{BASE_RECORDS_DIR}/{args.record_dir}"
+        ckpt_dir = f"{base_dir}/{CHEKCPOINT_DIR_SUFFIX}"
+        log_dir = f"{base_dir}/{LOG_DIR_SUFFIX}"
+        trainer = hprl.load_trainer(
+            env=env,
+            models=models,
+            checkpoint_dir=ckpt_dir,
+            checkpoint_file=args.ckpt_file,
         )
-        agents_id = env.get_agents_id()
-        models = {}
-        for id in agents_id:
-            models[id] = self._make_model(model_config)
+        eval_episode = args.eval_episodes
+        trainer.eval(eval_episode)
+        trainer.log_result(log_dir)
 
+
+def _train(args, env, models):
+
+    trainer = None
+    base_dir = ""
+    ckpt_dir = ""
+    log_dir = ""
+    config_dir = ""
+
+    if args.resume:
+        base_dir = f"{BASE_RECORDS_DIR}/{args.record_dir}"
+        ckpt_dir = f"{base_dir}/{CHEKCPOINT_DIR_SUFFIX}"
+        log_dir = f"{base_dir}/{LOG_DIR_SUFFIX}"
+        config_dir = f"{base_dir}/{CONFIG_DIR_SUFFIX}"
+        trainer = hprl.load_trainer(
+            env=env,
+            models=models,
+            checkpoint_dir=ckpt_dir,
+            checkpoint_file=args.ckpt_file
+        )
+    else:
         base_dir, ckpt_dir, log_dir, config_dir = create_record_dir(
-            RECORDS_ROOT_DIR,
+            BASE_RECORDS_DIR,
             args.env,
             args.trainer)
 
-        trainer_config = self._get_trainer_config(
+        trainer_config = _get_trainer_config(
             args=args,
             action_space=env.get_local_action_space(),
             state_space=env.get_local_state_space(),
+            record_base_dir=base_dir,
             checkpoint_dir=ckpt_dir
         )
         trainer = hprl.create_trainer(
@@ -67,208 +105,109 @@ class Runner(object):
             env=env,
             models=models,
         )
+    episode = args.episodes
+    eval_frequency = args.eval_frequency
+    if eval_frequency <= 0:
+        # if eval frequency less than zero
+        # then eval after whole training process
+        eval_frequency = episode + 1
 
-        mode = args.mode
-        if mode == "train":
-            episode = args.episodes
-            eval_frequency = args.eval_frequency
-            if eval_frequency <= 0:
-                # if eval frequency less than zero
-                # then eval after whole training process
-                eval_frequency = episode + 1
-
-            eval_episode = args.eval_episodes
-            trained_time = 0
-            while trained_time < episode:
-                trainer_ep = min(eval_frequency, episode - trained_time)
-                train_records = trainer.train(trainer_ep)
-                eval_records = trainer.eval(eval_episode)
-                trainer.log_result(log_dir)
-                trained_time += trainer_ep
-            trainer.eval(eval_episode)
-            trainer.log_result(log_dir)
-
-    def _get_config(self, args, extra_args):
-        env_config = self._get_env_config(args)
-        model_config = self._get_model_config(args, extra_args)
-        trainer_config = self._get_trainer_config(args, extra_args)
-        run_config = self._get_run_config(args)
-
-        config = {
-            "env": env_config,
-            "model": model_config,
-            "trainer": trainer_config,
-            "run": run_config,
-        }
-        return config
-
-    def _get_trainer_config(self, args, action_space, state_space, checkpoint_dir):
-        capacity = CAPACITY
-        learning_rate = LERNING_RATE
-        batch_size = args.batch_size
-        discount_factor = DISCOUNT_FACTOR
-        eps_init = EPS_INIT
-        eps_min = EPS_MIN
-        eps_frame = EPS_FRAME
-        update_period = UPDATE_PERIOD
-        action_space = action_space
-        state_space = state_space
-        policy_config = {
-            "learning_rate": learning_rate,
-            "discount_factor": discount_factor,
-            "update_period": update_period,
-            "action_space": action_space,
-            "state_space": state_space,
-            "eps_frame": eps_frame,
-            "eps_init": eps_init,
-            "eps_min": eps_min,
-        }
-        buffer_config = {
-            "type": hprl.ReplayBufferTypes(args.replay_buffer),
-            "capacity": capacity,
-        }
-        exec_config = {
-            "batch_size": batch_size,
-            "checkpoint_dir": checkpoint_dir,
-            "check_frequency": args.check_frequency,
-        }
-        trainner_config = {
-            "type": hprl.TrainnerTypes(args.trainer),
-            "executing": exec_config,
-            "policy": policy_config,
-            "buffer": buffer_config,
-        }
-        return trainner_config
-
-    def _get_env_config(self, args):
-        config = {
-            "id": args.env,
-            "max_time": MAX_TIME,
-            "interval": INTERVAL,
-            "thread_num": args.env_thread_num,
-            "save_replay": args.save_replay,
-        }
-        return config
-
-    def _get_model_config(self, input_space, output_space):
-        config = {
-            "input_space": input_space,
-            "output_space": output_space,
-        }
-        return config
-
-    def _get_run_config(self, args, log_dir):
-        eval_frequency = args.eval_frequency
-        if eval_frequency <= 0:
-            # if eval frequency less than zero
-            # then eval after whole training process
-            eval_frequency = args.episode + 1
-        config = {
-            "episode": args.episode,
-            "eval_episode": args.eval_episode,
-            "eval_frequency": eval_frequency,
-            "log_dir": log_dir,
-        }
-        return config
-
-    def _make_env(self, config):
-        env = envs.make(config)
-        return env
-
-    def _make_model(self, config):
-        acting_net = ICritic(
-            input_space=config["input_space"],
-            output_space=config["output_space"],
-        )
-        target_net = ICritic(
-            input_space=config["input_space"],
-            output_space=config["output_space"],
-        )
-        model = {
-            "acting": acting_net,
-            "target": target_net,
-        }
-        return model
+    eval_episode = args.eval_episodes
+    trained_time = 0
+    while trained_time < episode:
+        trainer_ep = min(eval_frequency, episode - trained_time)
+        train_records = trainer.train(trainer_ep)
+        eval_records = trainer.eval(eval_episode)
+        trainer.log_result(log_dir)
+        trained_time += trainer_ep
+    trainer.eval(eval_episode)
+    trainer.log_result(log_dir)
 
 
-def args_validity_check(args):
-    mode = args.mode
-    if mode not in ["train", "test"]:
-        print(" model value invalid !")
-        return False
-    trainer = hprl.TrainnerTypes(args.trainer)
-    if trainer not in hprl.TrainnerTypes:
-        print("trainer type is invalid !")
-        return False
-    return True
+def _get_trainer_config(args, action_space, state_space, checkpoint_dir, record_base_dir):
+    capacity = CAPACITY
+    learning_rate = LERNING_RATE
+    batch_size = args.batch_size
+    discount_factor = DISCOUNT_FACTOR
+    eps_init = EPS_INIT
+    eps_min = EPS_MIN
+    eps_frame = EPS_FRAME
+    update_period = UPDATE_PERIOD
+    action_space = action_space
+    state_space = state_space
+    policy_config = {
+        "learning_rate": learning_rate,
+        "discount_factor": discount_factor,
+        "update_period": update_period,
+        "action_space": action_space,
+        "state_space": state_space,
+        "eps_frame": eps_frame,
+        "eps_init": eps_init,
+        "eps_min": eps_min,
+    }
+    buffer_config = {
+        "type": hprl.ReplayBufferTypes(args.replay_buffer),
+        "capacity": capacity,
+    }
+    exec_config = {
+        "batch_size": batch_size,
+        "checkpoint_dir": checkpoint_dir,
+        "record_base_dir": record_base_dir,
+        "check_frequency": args.check_frequency,
+    }
+    trainner_config = {
+        "type": hprl.TrainnerTypes(args.trainer),
+        "executing": exec_config,
+        "policy": policy_config,
+        "buffer": buffer_config,
+    }
+    return trainner_config
 
 
-def create_paraser():
-    parser = argparse.ArgumentParser()
+def _get_env_config(args):
+    config = {
+        "id": args.env,
+        "max_time": MAX_TIME,
+        "interval": INTERVAL,
+        "thread_num": args.env_thread_num,
+        "save_replay": args.save_replay,
+    }
+    return config
 
-    parser.add_argument(
-        "--mode", type=str, required=True,
-        help="Mode of execution. Include [ train , test ]"
+
+def _get_model_config(input_space, output_space):
+    config = {
+        "input_space": input_space,
+        "output_space": output_space,
+    }
+    return config
+
+
+def _make_env(config):
+    env = envs.make(config)
+    return env
+
+
+def _make_model(config):
+    acting_net = ICritic(
+        input_space=config["input_space"],
+        output_space=config["output_space"],
     )
-
-    parser.add_argument(
-        "--env", type=str, required=True,
-        help="the id of the environment"
+    target_net = ICritic(
+        input_space=config["input_space"],
+        output_space=config["output_space"],
     )
-
-    parser.add_argument(
-        "--trainer", type=str, required=True,
-        help="which trainer to be chosen"
-    )
-
-    parser.add_argument(
-        "--episodes", type=int, default=0,
-        help="episode of train times"
-    )
-
-    parser.add_argument(
-        "--batch_size", type=int, default=DEFAULT_BATCH_SIZE,
-        help="batch size of sample batch"
-    )
-
-    parser.add_argument(
-        "--replay_buffer", type=str, default="Common",
-        help="type of replay buffer chosen "
-    )
-
-    parser.add_argument(
-        "--eval_episodes", type=int, default=1,
-        help="episode of eval times"
-    )
-
-    parser.add_argument(
-        "--eval_frequency", type=int, default=0,
-        help="eval frequency in training process"
-    )
-
-    parser.add_argument(
-        "--check_frequency", type=int, default=0,
-        help="the frequency of saving checkpoint."
-        "if it less than or equal zero, checkpoint would not be saved"
-    )
-
-    parser.add_argument(
-        "--env_thread_num", type=int, default=1,
-        help="thread number of env"
-    )
-
-    parser.add_argument(
-        "save_replay", action="store_true",
-        help="whether cityflow env save replay or not"
-    )
-
-    return parser
+    model = {
+        "acting": acting_net,
+        "target": target_net,
+    }
+    return model
 
 
 def create_record_dir(root_dir, env_id, policy_id):
     # 创建的目录
     date = datetime.datetime.now()
-    sub_dir = "{}_{}_{}_{}_{}_{}_{}_{}/".format(
+    sub_dir = "{}_{}_{}_{}_{}_{}_{}_{}".format(
         env_id,
         policy_id,
         date.year,
@@ -278,28 +217,28 @@ def create_record_dir(root_dir, env_id, policy_id):
         date.minute,
         date.second,
     )
-    record_dir = root_dir + sub_dir
+    record_dir = f"{root_dir}/{sub_dir}"
     if not os.path.exists(record_dir):
         os.mkdir(record_dir)
     else:
         raise ValueError(
             "create record folder error , path exist : ", record_dir)
 
-    checkpoint_path = record_dir + "checkpoints/"
+    checkpoint_path = f"{record_dir}/{CHEKCPOINT_DIR_SUFFIX}"
     if not os.path.exists(checkpoint_path):
         os.mkdir(checkpoint_path)
     else:
         raise ValueError(
             "create record folder error , path exist : ", checkpoint_path)
 
-    log_path = record_dir + "logs/"
+    log_path = f"{record_dir}/{LOG_DIR_SUFFIX}"
     if not os.path.exists(log_path):
         os.mkdir(log_path)
     else:
         raise ValueError(
             "create record folder error , path exist : ", log_path)
 
-    config_path = record_dir + "config/"
+    config_path = f"{record_dir}/{CONFIG_DIR_SUFFIX}"
     if not os.path.exists(config_path):
         os.mkdir(config_path)
     else:

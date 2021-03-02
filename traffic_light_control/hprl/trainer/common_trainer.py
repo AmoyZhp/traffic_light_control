@@ -23,7 +23,9 @@ class CommonTrainer(Trainer):
                  replay_buffer: ReplayBuffer,
                  checkpointer: Checkpointer,
                  log_record_fn: Log_Record_Fn_Type,
-                 cumulative_train_iteration: int = 0) -> None:
+                 record_base_dir: str,
+                 cumulative_train_iteration: int = 0,
+                 ) -> None:
 
         self.type = type
         self.config = config
@@ -37,6 +39,7 @@ class CommonTrainer(Trainer):
 
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
+        self.record_base_dir = record_base_dir
         self.train_records: Dict[int, TrainingRecord] = {}
         self.eval_records: Dict[int, Dict[int, TrainingRecord]] = {}
 

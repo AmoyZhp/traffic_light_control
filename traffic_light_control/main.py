@@ -1,4 +1,4 @@
-from runner.runner import Runner
+import runner
 import gym
 from policy import net
 import hprl
@@ -52,7 +52,6 @@ def new_run():
 
 
 def main():
-    runner = Runner()
     runner.run()
 
 

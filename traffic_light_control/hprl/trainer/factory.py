@@ -67,6 +67,7 @@ def create_trainer(
         replay_buffer=replay_buffer,
         checkpointer=checkpointer,
         log_record_fn=log_record_fn,
+        record_base_dir=executing_config["record_base_dir"],
         cumulative_train_iteration=executing_config.get(
             "trained_iteration", 0)
     )
