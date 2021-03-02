@@ -266,7 +266,16 @@ class PPO(Policy):
         self.critic_optim.load_state_dict(optimizer_w["critic"])
 
     def get_config(self):
-        return super().get_config()
+        config = {
+            "learning_rate": self.learning_rate,
+            "discount_factor": self.discount_factor,
+            "update_period": self.update_period,
+            "action_space": self.action_space,
+            "state_space": self.state_space,
+            "clip_param": self.clip_param,
+            "inner_epoch": self.inner_epoch,
+        }
+        return config
 
     def unwrapped(self):
         return self
