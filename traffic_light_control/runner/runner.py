@@ -1,5 +1,6 @@
 import argparse
 import datetime
+from hprl.util.enum import TrainnerTypes
 import os
 import hprl
 import envs
@@ -21,7 +22,7 @@ EPS_INIT = 1.0
 EPS_MIN = 0.01
 EPS_FRAME = 300000
 UPDATE_PERIOD = 1000
-INNER_EPOCH = 128
+INNER_EPOCH = 16
 CLIP_PARAM = 0.2
 
 # Run Setting
@@ -48,7 +49,8 @@ def run():
     agents_id = env.get_agents_id()
     models = {}
     for id in agents_id:
-        models[id] = _make_model(model_config)
+        models[id] = _make_model(
+            hprl.TrainnerTypes(args.trainer), model_config)
 
     mode = args.mode
     if mode == "train":
@@ -144,6 +146,8 @@ def _get_trainer_config(args, action_space, state_space, checkpoint_dir, record_
         "eps_frame": eps_frame,
         "eps_init": eps_init,
         "eps_min": eps_min,
+        "inner_epoch": INNER_EPOCH,
+        "clip_param": CLIP_PARAM,
     }
     buffer_config = {
         "type": hprl.ReplayBufferTypes(args.replay_buffer),
@@ -161,6 +165,7 @@ def _get_trainer_config(args, action_space, state_space, checkpoint_dir, record_
         "policy": policy_config,
         "buffer": buffer_config,
     }
+
     return trainner_config
 
 
@@ -188,19 +193,46 @@ def _make_env(config):
     return env
 
 
-def _make_model(config):
-    acting_net = ICritic(
-        input_space=config["input_space"],
-        output_space=config["output_space"],
-    )
-    target_net = ICritic(
-        input_space=config["input_space"],
-        output_space=config["output_space"],
-    )
-    model = {
-        "acting": acting_net,
-        "target": target_net,
-    }
+def _make_model(trainer_type, config):
+    model = None
+    if trainer_type == hprl.TrainnerTypes.IQL:
+        acting_net = ICritic(
+            input_space=config["input_space"],
+            output_space=config["output_space"],
+        )
+        target_net = ICritic(
+            input_space=config["input_space"],
+            output_space=config["output_space"],
+        )
+        model = {
+            "acting": acting_net,
+            "target": target_net,
+        }
+    elif (trainer_type == hprl.TrainnerTypes.IAC or
+          trainer_type == hprl.TrainnerTypes.PPO):
+
+        critic_net = ICritic(
+            input_space=config["input_space"],
+            output_space=config["output_space"],
+        )
+
+        critic_target_net = ICritic(
+            input_space=config["input_space"],
+            output_space=config["output_space"],
+        )
+
+        actor_net = IActor(
+            input_space=config["input_space"],
+            output_space=config["output_space"],
+        )
+
+        model = {
+            "critic_net": critic_net,
+            "critic_target_net": critic_target_net,
+            "actor_net": actor_net
+        }
+    else:
+        raise ValueError("invalid trainer type {}".format(trainer_type))
     return model
 
 
