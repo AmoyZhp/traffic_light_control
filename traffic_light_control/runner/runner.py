@@ -38,6 +38,7 @@ def run():
     args = paraser.parse_args()
     if not args_validity_check(args):
         return
+   
 
     env_config = _get_env_config(args)
     env = _make_env(env_config)
@@ -71,6 +72,10 @@ def run():
 
 
 def _train(args, env, models):
+    logger.info("===== ===== =====")
+    logger.info("train process beigin")
+    logger.info(" env is {}".format(args.env))
+    logger.info(" policy is {}".format(args.trainer))
 
     trainer = None
     base_dir = ""
@@ -79,6 +84,9 @@ def _train(args, env, models):
     config_dir = ""
 
     if args.resume:
+        logger.info("resume record dir is {}".format(args.record_dir))
+        logger.info("checkpoint file is {}".format(args.ckpt_file))
+
         base_dir = f"{BASE_RECORDS_DIR}/{args.record_dir}"
         ckpt_dir = f"{base_dir}/{CHEKCPOINT_DIR_SUFFIX}"
         log_dir = f"{base_dir}/{LOG_DIR_SUFFIX}"
@@ -94,6 +102,7 @@ def _train(args, env, models):
             BASE_RECORDS_DIR,
             args.env,
             args.trainer)
+        logger.info("records dir created : {}".format(base_dir))
 
         trainer_config = _get_trainer_config(
             args=args,
@@ -125,6 +134,8 @@ def _train(args, env, models):
         trained_time += trainer_ep
     trainer.eval(eval_episode)
     trainer.log_result(log_dir)
+    logger.info("train end")
+    logger.info("===== ===== =====")
 
 
 def _get_trainer_config(args, action_space, state_space, checkpoint_dir, record_base_dir):
