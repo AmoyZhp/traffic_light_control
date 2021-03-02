@@ -1,3 +1,5 @@
+from enum import Enum
+import json
 from hprl.util.plt import save_fig
 import logging
 
@@ -120,12 +122,7 @@ class CommonTrainer(Trainer):
 
     def get_checkpoint(self):
         self.config["trained_iteration"] = self.cumulative_train_iteration
-        config = {
-            "type": self.type,
-            "policy": self.policy.get_config(),
-            "buffer": self.replay_buffer.get_config(),
-            "executing": self.config,
-        }
+        config = self.get_config()
         weight = {
             "policy": self.policy.get_weight(),
             "buffer": self.replay_buffer.get_weight()
@@ -161,10 +158,26 @@ class CommonTrainer(Trainer):
         self._log_eval_culumative_reward(log_dir)
 
     def log_config(self, log_dir: str):
-        raise NotImplementedError
+        config = self.get_config()
+        config_path = f"{log_dir}/init_config.json"
+
+        class EnumEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, Enum):
+                    return obj.name
+                return json.JSONEncoder.default(self, obj)
+
+        with open(config_path, "w") as f:
+            json.dump(config, f, cls=EnumEncoder)
 
     def get_config(self):
-        raise NotImplementedError
+        config = {
+            "type": self.type,
+            "policy": self.policy.get_config(),
+            "buffer": self.replay_buffer.get_config(),
+            "executing": self.config,
+        }
+        return config
 
     def _log_train_culumative_reward(self, log_dir: str):
         culumative_rewards: List[Reward] = []

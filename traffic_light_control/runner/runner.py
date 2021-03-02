@@ -107,6 +107,7 @@ def _train(args, env, models):
             env=env,
             models=models,
         )
+        trainer.log_config(config_dir)
     episode = args.episodes
     eval_frequency = args.eval_frequency
     if eval_frequency <= 0:
