@@ -6,7 +6,7 @@ import torch
 class Checkpointer(object):
     def __init__(self,
                  base_directory: str,
-                 checkpoint_frequency: int = 1,
+                 checkpoint_frequency: int = 0,
                  checkpoint_file_prefix: str = "ckpt") -> None:
 
         if not base_directory:
@@ -20,6 +20,8 @@ class Checkpointer(object):
         self.checkpoint_frequency = checkpoint_frequency
 
     def periodic_save(self, data, iteration: int):
+        if self.checkpoint_frequency <= 0:
+            return
         if iteration % self.checkpoint_frequency != 0:
             return
         filename = f'{self.checkpoint_file_prefix}_{iteration}.pth'

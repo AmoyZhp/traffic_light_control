@@ -121,13 +121,13 @@ def default_log_record_fn(record: TrainingRecord, logger: logging.Logger):
 
     avg_reward = cal_avg_reward(record.rewards)
     logger.info("avg reward : ")
-    logger.info("    central {}".format(avg_reward.central))
+    logger.info("    central {:.3f}".format(avg_reward.central))
     for k, v in avg_reward.local.items():
         logger.info("    agent {} reward is {:.3f} ".format(k, v))
 
     cumulative_reward = cal_cumulative_reward(record.rewards)
     logger.info("cumulative reward : ")
-    logger.info("    central {}".format(cumulative_reward.central))
+    logger.info("    central {:.3f}".format(cumulative_reward.central))
     for k, v in cumulative_reward.local.items():
         logger.info("    agent {} reward is {:.3f} ".format(k, v))
 

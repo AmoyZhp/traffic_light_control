@@ -157,6 +157,12 @@ class CommonTrainer(Trainer):
         self._log_eval_avg_reward(log_dir)
         self._log_eval_culumative_reward(log_dir)
 
+    def log_config(self, log_dir: str):
+        raise NotImplementedError
+
+    def get_config(self):
+        raise NotImplementedError
+
     def _log_train_culumative_reward(self, log_dir: str):
         culumative_rewards: List[Reward] = []
         for r in self.train_records.values():

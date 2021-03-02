@@ -37,3 +37,11 @@ class Trainer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def log_result(self, log_dir: str):
         ...
+
+    @abc.abstractmethod
+    def log_config(self, log_dir: str):
+        ...
+
+    @abc.abstractmethod
+    def get_config(self):
+        ...

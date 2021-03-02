@@ -29,10 +29,10 @@ def create_trainer(
     executing_config = config["executing"]
 
     agents_id = env.get_agents_id()
-    base_directory = executing_config["base_dir"]
+    checkpoint_dir = executing_config["checkpoint_dir"]
     checkpoint_frequency = executing_config["check_frequency"]
     checkpointer = Checkpointer(
-        base_directory=base_directory,
+        base_directory=checkpoint_dir,
         checkpoint_frequency=checkpoint_frequency)
 
     if replay_buffer is None:
