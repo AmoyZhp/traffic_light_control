@@ -254,11 +254,10 @@ class COMA(Policy):
         batch_size = joint_action_one_hot.shape[0]
         seq_len = joint_action_one_hot.shape[1]
         joint_action_one_hot = joint_action_one_hot.unsqueeze(2).repeat(
-            1, 1, self.agents_count, 1)
-        action_mask = (1 - torch.eye(self.agents_count))
-        action_mask = action_mask.view(-1, 1).repeat(1,
-                                                     self.local_a_space).view(
-                                                         self.agents_count, -1)
+            1, 1, self.agents_count, 1).to(self.device)
+        action_mask = (1 - torch.eye(self.agents_count)).view(-1, 1)
+        action_mask = action_mask.repeat(1, self.local_a_space).view(
+            self.agents_count, -1)
         # traj * n_agent * (n*action_space)
 
         action_mask = action_mask.unsqueeze(0).unsqueeze(0).repeat(
