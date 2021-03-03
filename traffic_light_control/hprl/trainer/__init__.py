@@ -7,15 +7,15 @@ from hprl.trainer.factory import create_trainer, load_trainer
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-ch = logging.StreamHandler()
-ch.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+handler.setLevel(logging.INFO)
 
 formatter = logging.Formatter(
     '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-ch.setFormatter(formatter)
+handler.setFormatter(formatter)
 
-logger.addHandler(ch)
+logger.addHandler(handler)
 
 __all__ = [
     "Trainer",

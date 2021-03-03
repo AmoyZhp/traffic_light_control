@@ -108,7 +108,8 @@ def _train(args, env, models):
             action_space=env.get_local_action_space(),
             state_space=env.get_local_state_space(),
             record_base_dir=base_dir,
-            checkpoint_dir=ckpt_dir
+            checkpoint_dir=ckpt_dir,
+            log_dir=log_dir
         )
         trainer = hprl.create_trainer(
             config=trainer_config,
@@ -137,7 +138,7 @@ def _train(args, env, models):
     logger.info("===== ===== =====")
 
 
-def _get_trainer_config(args, action_space, state_space, checkpoint_dir, record_base_dir):
+def _get_trainer_config(args, action_space, state_space, checkpoint_dir, record_base_dir, log_dir):
     capacity = CAPACITY
     learning_rate = LERNING_RATE
     batch_size = args.batch_size
@@ -169,6 +170,7 @@ def _get_trainer_config(args, action_space, state_space, checkpoint_dir, record_
         "batch_size": batch_size,
         "checkpoint_dir": checkpoint_dir,
         "record_base_dir": record_base_dir,
+        "log_dir": log_dir,
         "check_frequency": args.check_frequency,
     }
     trainner_config = {

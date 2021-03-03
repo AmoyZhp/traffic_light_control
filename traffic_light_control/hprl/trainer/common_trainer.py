@@ -26,6 +26,7 @@ class CommonTrainer(Trainer):
                  checkpointer: Checkpointer,
                  log_record_fn: Log_Record_Fn_Type,
                  record_base_dir: str,
+                 log_dir: str = None,
                  cumulative_train_iteration: int = 0,
                  ) -> None:
 
@@ -41,14 +42,22 @@ class CommonTrainer(Trainer):
 
         self.logger = logging.getLogger(__name__)
         self.logger.setLevel(logging.INFO)
+        self.log_dir = log_dir
+        if log_dir is not None:
+            file_handler = logging.FileHandler(f"{log_dir}/{__name__}.log")
+            formatter = logging.Formatter(
+                '%(asctime)s - %(levelname)s - %(message)s')
+            file_handler.setFormatter(formatter)
+            self.logger.addHandler(file_handler)
         self.record_base_dir = record_base_dir
+
         self.train_records: Dict[int, TrainingRecord] = {}
         self.eval_records: Dict[int, Dict[int, TrainingRecord]] = {}
 
     def train(self, episode: int) -> Dict[int, TrainingRecord]:
 
         for ep in range(episode):
-            self.logger.info("=== train episode {} begin ===".format(
+            self.logger.info("========== train episode {} begin ==========".format(
                 self.cumulative_train_iteration))
             rewards, infos = self.train_fn(
                 self.env,
@@ -67,7 +76,7 @@ class CommonTrainer(Trainer):
                 data=self.get_checkpoint(),
                 iteration=self.cumulative_train_iteration,
             )
-            self.logger.info("=== train episode {} end   ===".format(
+            self.logger.info("========= train episode {} end   =========".format(
                 self.cumulative_train_iteration))
 
         return self.train_records
@@ -82,7 +91,8 @@ class CommonTrainer(Trainer):
 
         eval_records = {}
         for ep in range(episode):
-            self.logger.info("+++ eval episode {} begin +++".format(ep))
+            self.logger.info(
+                "+++++++++ eval episode {} begin +++++++++".format(ep))
             state = self.env.reset()
             rewards = []
             infos = []
@@ -102,7 +112,8 @@ class CommonTrainer(Trainer):
             eval_records[ep] = record
             self.log_record_fn(record, self.logger)
 
-            self.logger.info("+++ eval episode {} end   +++".format(ep))
+            self.logger.info(
+                "+++++++++ eval episode {} end   +++++++++".format(ep))
 
         self.eval_records[self.cumulative_train_iteration] = eval_records
 

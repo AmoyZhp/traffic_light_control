@@ -70,6 +70,7 @@ def create_trainer(
         checkpointer=checkpointer,
         log_record_fn=log_record_fn,
         record_base_dir=executing_config["record_base_dir"],
+        log_dir=executing_config["log_dir"],
         cumulative_train_iteration=executing_config.get(
             "trained_iteration", 0)
     )
