@@ -86,9 +86,12 @@ class COMA(Policy):
 
         batch_seq_data = parase_traj_list(batch_data)
 
-        central_s = batch_seq_data.states["central"]
+        central_s = batch_seq_data.states["central"].to(self.device)
         agents_states = batch_seq_data.states["local"]
         agents_action = batch_seq_data.actions["local"]
+        for id in self.agents_id:
+            agents_states[id].to(self.device)
+            agents_action[id].to(self.device)
 
         logger.debug("agent local state shape is {}".format(
             agents_states[self.agents_id[0]].shape))
@@ -106,8 +109,8 @@ class COMA(Policy):
         selected_old_a_probs = {}
         for id in self.agents_id:
             a_prob = self.actors_net[id](agents_states[id])
-            selected_old_a_probs[id] = a_prob.gather(
-                -1, agents_action[id]).detach()
+            selected_old_a_probs[id] = a_prob.gather(-1, agents_action[id]).to(
+                self.device).detach()
 
         logger.debug("critic states shape is {}".format(
             critic_states[self.agents_id[0]].shape))
