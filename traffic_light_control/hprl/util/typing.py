@@ -2,7 +2,6 @@ from collections import namedtuple
 from dataclasses import dataclass, field
 from typing import Any, Dict, List
 
-
 import numpy as np
 
 from hprl.util.enum import TrainnerTypes
@@ -22,13 +21,13 @@ class Action():
 
 @dataclass
 class Reward():
-    central: float = 0.0
+    central: float = None
     local: Dict[str, float] = field(default_factory=dict)
 
 
 @dataclass
 class Terminal():
-    central: bool = False
+    central: bool = None
     local: Dict[str, bool] = field(default_factory=dict)
 
 
@@ -56,5 +55,6 @@ class TrainingRecord():
 
 
 TransitionTuple = namedtuple(
-    "TransitionTuple",
-    ["state", "action", "reward", "next_state", "terminal"])
+    "TransitionTuple", ["state", "action", "reward", "next_state", "terminal"])
+TrajectoryTuple = namedtuple("TrajectoryTuple",
+                             ["states", "actions", "rewards", "terminals"])

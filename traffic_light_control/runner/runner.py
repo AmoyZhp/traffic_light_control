@@ -2,11 +2,9 @@ import datetime
 from hprl.util.enum import TrainnerTypes
 import os
 import logging
-from types import TracebackType
-
 import hprl
 import envs
-from runner.nets import IActor, ICritic
+from runner.nets import IActor, ICritic, COMACritic
 from runner.args_paraser import create_paraser, args_validity_check
 
 logger = logging.getLogger(__name__)
@@ -44,13 +42,18 @@ def run():
     env_config = _get_env_config(args)
     env = _make_env(env_config)
 
-    model_config = _get_model_config(
-        env.get_local_state_space(),
-        env.get_local_action_space(),
-    )
     agents_id = env.get_agents_id()
+    model_config = {
+        "central_state": env.get_central_state_space(),
+        "local_state": env.get_local_state_space(),
+        "central_action": env.get_central_action_space(),
+        "local_action": env.get_local_action_space(),
+    }
     models = _make_model(
-        hprl.TrainnerTypes(args.trainer), model_config, agents_id)
+        hprl.TrainnerTypes(args.trainer),
+        model_config,
+        agents_id,
+    )
 
     mode = args.mode
     if mode == "train":
@@ -90,17 +93,13 @@ def _train(args, env, models):
         ckpt_dir = f"{base_dir}/{CHEKCPOINT_DIR_SUFFIX}"
         log_dir = f"{base_dir}/{LOG_DIR_SUFFIX}"
         config_dir = f"{base_dir}/{CONFIG_DIR_SUFFIX}"
-        trainer = hprl.load_trainer(
-            env=env,
-            models=models,
-            checkpoint_dir=ckpt_dir,
-            checkpoint_file=args.ckpt_file
-        )
+        trainer = hprl.load_trainer(env=env,
+                                    models=models,
+                                    checkpoint_dir=ckpt_dir,
+                                    checkpoint_file=args.ckpt_file)
     else:
         base_dir, ckpt_dir, log_dir, config_dir = create_record_dir(
-            BASE_RECORDS_DIR,
-            args.env,
-            args.trainer)
+            BASE_RECORDS_DIR, args.env, args.trainer)
         logger.info("records dir created : {}".format(base_dir))
 
         trainer_config = _get_trainer_config(
@@ -109,8 +108,7 @@ def _train(args, env, models):
             state_space=env.get_local_state_space(),
             record_base_dir=base_dir,
             checkpoint_dir=ckpt_dir,
-            log_dir=log_dir
-        )
+            log_dir=log_dir)
         trainer = hprl.create_trainer(
             config=trainer_config,
             env=env,
@@ -138,7 +136,8 @@ def _train(args, env, models):
     logger.info("===== ===== =====")
 
 
-def _get_trainer_config(args, action_space, state_space, checkpoint_dir, record_base_dir, log_dir):
+def _get_trainer_config(args, action_space, state_space, checkpoint_dir,
+                        record_base_dir, log_dir):
     capacity = CAPACITY
     learning_rate = LERNING_RATE
     batch_size = args.batch_size
@@ -194,14 +193,6 @@ def _get_env_config(args):
     return config
 
 
-def _get_model_config(input_space, output_space):
-    config = {
-        "input_space": input_space,
-        "output_space": output_space,
-    }
-    return config
-
-
 def _make_env(config):
     env = envs.make(config)
     return env
@@ -212,36 +203,36 @@ def _make_model(trainer_type, config, agents_id):
         models = {}
         for id in agents_id:
             acting_net = ICritic(
-                input_space=config["input_space"],
-                output_space=config["output_space"],
+                input_space=config["local_state"],
+                output_space=config["local_action"],
             )
             target_net = ICritic(
-                input_space=config["input_space"],
-                output_space=config["output_space"],
+                input_space=config["local_state"],
+                output_space=config["local_action"],
             )
             models[id] = {
                 "acting_net": acting_net,
                 "target_net": target_net,
             }
         return models
-    elif (trainer_type == hprl.TrainnerTypes.IAC or
-          trainer_type == hprl.TrainnerTypes.PPO):
+    elif (trainer_type == hprl.TrainnerTypes.IAC
+          or trainer_type == hprl.TrainnerTypes.PPO):
 
         models = {}
         for id in agents_id:
             critic_net = ICritic(
-                input_space=config["input_space"],
-                output_space=config["output_space"],
+                input_space=config["local_state"],
+                output_space=config["local_action"],
             )
 
             critic_target_net = ICritic(
-                input_space=config["input_space"],
-                output_space=config["output_space"],
+                input_space=config["local_state"],
+                output_space=config["local_action"],
             )
 
             actor_net = IActor(
-                input_space=config["input_space"],
-                output_space=config["output_space"],
+                input_space=config["local_state"],
+                output_space=config["local_action"],
             )
 
             models[id] = {
@@ -255,19 +246,35 @@ def _make_model(trainer_type, config, agents_id):
         target_nets = {}
         for id in agents_id:
             acting_nets[id] = ICritic(
-                input_space=config["input_space"],
-                output_space=config["output_space"],
+                input_space=config["local_state"],
+                output_space=config["local_action"],
             )
             target_nets[id] = ICritic(
-                input_space=config["input_space"],
-                output_space=config["output_space"],
+                input_space=config["local_state"],
+                output_space=config["local_action"],
             )
         model = {
             "acting_nets": acting_nets,
             "target_nets": target_nets,
         }
         return model
-
+    elif trainer_type == hprl.TrainnerTypes.COMA:
+        critic_input_space = (config["central_state"] + config["local_state"] +
+                              len(agents_id) +
+                              len(agents_id) * config["local_action"])
+        critic_net = COMACritic(critic_input_space, config["local_action"])
+        target_critic_net = COMACritic(critic_input_space,
+                                       config["local_action"])
+        actors_net = {}
+        for id in agents_id:
+            actors_net[id] = IActor(config["local_state"],
+                                    config["local_action"])
+        model = {
+            "critic_net": critic_net,
+            "target_critic_net": target_critic_net,
+            "actors_net": actors_net,
+        }
+        return model
     else:
         raise ValueError("invalid trainer type {}".format(trainer_type))
 
@@ -289,28 +296,28 @@ def create_record_dir(root_dir, env_id, policy_id):
     if not os.path.exists(record_dir):
         os.mkdir(record_dir)
     else:
-        raise ValueError(
-            "create record folder error , path exist : ", record_dir)
+        raise ValueError("create record folder error , path exist : ",
+                         record_dir)
 
     checkpoint_path = f"{record_dir}/{CHEKCPOINT_DIR_SUFFIX}"
     if not os.path.exists(checkpoint_path):
         os.mkdir(checkpoint_path)
     else:
-        raise ValueError(
-            "create record folder error , path exist : ", checkpoint_path)
+        raise ValueError("create record folder error , path exist : ",
+                         checkpoint_path)
 
     log_path = f"{record_dir}/{LOG_DIR_SUFFIX}"
     if not os.path.exists(log_path):
         os.mkdir(log_path)
     else:
-        raise ValueError(
-            "create record folder error , path exist : ", log_path)
+        raise ValueError("create record folder error , path exist : ",
+                         log_path)
 
     config_path = f"{record_dir}/{CONFIG_DIR_SUFFIX}"
     if not os.path.exists(config_path):
         os.mkdir(config_path)
     else:
-        raise ValueError(
-            "create record folder error , path exist : ", config_path)
+        raise ValueError("create record folder error , path exist : ",
+                         config_path)
 
     return record_dir, checkpoint_path, log_path, config_path

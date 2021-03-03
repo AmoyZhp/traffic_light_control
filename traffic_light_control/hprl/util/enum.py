@@ -6,6 +6,7 @@ class TrainnerTypes(Enum):
     PPO = "PPO"
     IAC = "IAC"
     VDN = "VDN"
+    COMA = "COMA"
 
 
 class ReplayBufferTypes(Enum):

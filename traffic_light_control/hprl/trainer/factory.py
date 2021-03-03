@@ -1,8 +1,8 @@
+from hprl.policy.coma import COMA
 from hprl.policy.vdn import VDN
 from hprl.policy.actor_critic import ActorCritic
 import logging
 from typing import Dict, List
-
 
 from hprl.trainer.common_trainer import CommonTrainer
 from hprl.util.enum import AdvantageTypes, ReplayBufferTypes, TrainnerTypes
@@ -16,13 +16,12 @@ from hprl.trainer.support_fn import default_log_record_fn, off_policy_train_fn, 
 logger = logging.getLogger(__name__)
 
 
-def create_trainer(
-        config: Dict,
-        env: MultiAgentEnv,
-        models: Dict,
-        replay_buffer: ReplayBuffer = None,
-        policy: Policy = None,
-        log_record_fn=None) -> Trainer:
+def create_trainer(config: Dict,
+                   env: MultiAgentEnv,
+                   models: Dict,
+                   replay_buffer: ReplayBuffer = None,
+                   policy: Policy = None,
+                   log_record_fn=None) -> Trainer:
 
     trainner_type = config["type"]
     buffer_config = config["buffer"]
@@ -32,30 +31,29 @@ def create_trainer(
     agents_id = env.get_agents_id()
     checkpoint_dir = executing_config["checkpoint_dir"]
     checkpoint_frequency = executing_config["check_frequency"]
-    checkpointer = Checkpointer(
-        base_directory=checkpoint_dir,
-        checkpoint_frequency=checkpoint_frequency)
+    checkpointer = Checkpointer(base_directory=checkpoint_dir,
+                                checkpoint_frequency=checkpoint_frequency)
 
     if replay_buffer is None:
         replay_buffer_type = buffer_config["type"]
-        replay_buffer = _create_replay_buffer(
-            replay_buffer_type, buffer_config)
+        replay_buffer = _create_replay_buffer(replay_buffer_type,
+                                              buffer_config)
 
     if policy is None:
-        policy = _create_policy(
-            trainner_type, agents_id,
-            policy_config, models)
+        policy = _create_policy(trainner_type, agents_id, policy_config,
+                                models)
 
     if log_record_fn is None:
         log_record_fn = default_log_record_fn
 
     train_fn = None
 
-    if (trainner_type == TrainnerTypes.IQL or
-            trainner_type == TrainnerTypes.VDN):
+    if (trainner_type == TrainnerTypes.IQL
+            or trainner_type == TrainnerTypes.VDN):
         train_fn = off_policy_train_fn
     elif (trainner_type == TrainnerTypes.PPO
-          or trainner_type == TrainnerTypes.IAC):
+          or trainner_type == TrainnerTypes.IAC
+          or trainner_type == TrainnerTypes.COMA):
         train_fn = on_policy_train_fn
     else:
         raise ValueError("trainner type {} is invalid".format(trainner_type))
@@ -72,16 +70,12 @@ def create_trainer(
         record_base_dir=executing_config["record_base_dir"],
         log_dir=executing_config["log_dir"],
         cumulative_train_iteration=executing_config.get(
-            "trained_iteration", 0)
-    )
+            "trained_iteration", 0))
     return trainner
 
 
-def load_trainer(
-        env: MultiAgentEnv,
-        models: Dict,
-        checkpoint_dir: str,
-        checkpoint_file: str):
+def load_trainer(env: MultiAgentEnv, models: Dict, checkpoint_dir: str,
+                 checkpoint_file: str):
     checkpoint = Checkpointer(checkpoint_dir)
     data = checkpoint.load(checkpoint_file)
     config = data.get("config")
@@ -168,6 +162,8 @@ def _create_policy(type, agents_id, config, models):
         return i_learner
     elif type == TrainnerTypes.VDN:
         return _create_vdn(config, models, agents_id)
+    elif type == TrainnerTypes.COMA:
+        return _create_coma(config, models, agents_id)
     raise ValueError(f'policy type {type} is invalid')
 
 
@@ -182,7 +178,6 @@ def _create_vdn(config, models, agents_id):
         action_space=config["action_space"],
         state_space=config["state_space"],
     )
-
     p = EpsilonGreedy(
         agents_id=agents_id,
         inner_policy=inner_p,
@@ -191,4 +186,22 @@ def _create_vdn(config, models, agents_id):
         eps_init=config["eps_init"],
         action_space=config["action_space"],
     )
+    return p
+
+
+def _create_coma(config, models, agents_id):
+    p = COMA(
+        agents_id=agents_id,
+        critic_net=models["critic_net"],
+        target_critic_net=models["target_critic_net"],
+        actors_net=models["actors_net"],
+        learning_rate=config["learning_rate"],
+        discount_factor=config["discount_factor"],
+        update_period=config["update_period"],
+        clip_param=config["clip_param"],
+        inner_epoch=config["inner_epoch"],
+        local_action_space=config["action_space"],
+        local_state_space=config["state_space"],
+    )
+
     return p

@@ -3,7 +3,7 @@ from typing import Dict, List, Union
 
 import torch
 
-from hprl.util.typing import Action, State, Trajectory, Transition
+from hprl.util.typing import Action, Reward, State, Terminal, Trajectory, Transition
 
 
 class Policy(metaclass=abc.ABCMeta):
@@ -35,31 +35,25 @@ class Policy(metaclass=abc.ABCMeta):
 
 def to_tensor_for_trajectory(batch_data: List[Trajectory], device=None):
     if device is None:
-        device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu")
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     def np_to_tensor(data: Trajectory):
         states = map(
-            lambda s: torch.tensor(
-                s.central, dtype=torch.float).unsqueeze(0).to(device),
+            lambda s: torch.tensor(s.central, dtype=torch.float).unsqueeze(0).
+            to(device),
             data.states,
         )
         actions = map(
-            lambda a: torch.tensor(
-                a.central, dtype=torch.long).view(-1, 1).to(device),
-            data.actions
-        )
+            lambda a: torch.tensor(a.central, dtype=torch.long).view(-1, 1).to(
+                device), data.actions)
         rewards = map(
-            lambda r: torch.tensor(
-                r.central, dtype=torch.float).view(-1, 1).to(device),
-            data.rewards
-        )
-        return Trajectory(
-            states=list(states),
-            actions=list(actions),
-            rewards=list(rewards),
-            terminal=data.terminal
-        )
+            lambda r: torch.tensor(r.central, dtype=torch.float).view(-1, 1).
+            to(device), data.rewards)
+        return Trajectory(states=list(states),
+                          actions=list(actions),
+                          rewards=list(rewards),
+                          terminal=data.terminal)
+
     batch_data = list(map(np_to_tensor, batch_data))
     states = []
     actions = []
@@ -78,14 +72,12 @@ def to_tensor_for_trajectory(batch_data: List[Trajectory], device=None):
 
 
 def compute_reward_to_go(rewards: torch.tensor, device=None):
-        # reward shape is : batch * seq_len * 1
+    # reward shape is : batch * seq_len * 1
     if device is None:
-        device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu")
-    weight = torch.triu(torch.ones(
-        (rewards.shape[0],
-         rewards.shape[1],
-         rewards.shape[1]))).to(device)
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    weight = torch.triu(
+        torch.ones(
+            (rewards.shape[0], rewards.shape[1], rewards.shape[1]))).to(device)
     rtg = weight.matmul(rewards)
 
     return rtg
