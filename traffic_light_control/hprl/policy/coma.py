@@ -87,28 +87,28 @@ class COMA(Policy):
         batch_seq_data = parase_traj_list(batch_data)
 
         central_s = batch_seq_data.states["central"].to(self.device)
-        agents_states = batch_seq_data.states["local"]
+        agents_state = batch_seq_data.states["local"]
         agents_action = batch_seq_data.actions["local"]
         for id in self.agents_id:
-            agents_states[id].to(self.device)
-            agents_action[id].to(self.device)
+            agents_state[id] = agents_state[id].to(self.device)
+            agents_action[id] = agents_action[id].to(self.device)
 
         logger.debug("agent local state shape is {}".format(
-            agents_states[self.agents_id[0]].shape))
+            agents_state[self.agents_id[0]].shape))
         logger.debug("agent action shape is {}".format(
             agents_action[self.agents_id[0]].shape))
         logger.debug("agent central state shape is {}".format(central_s.shape))
 
         critic_states = self._cat_critic_states(
             central_s=central_s,
-            agents_states=agents_states,
+            agents_states=agents_state,
             agents_action=agents_action,
         )
-        central_reward = batch_seq_data.rewards["central"]
+        central_reward = batch_seq_data.rewards["central"].to(self.device)
 
         selected_old_a_probs = {}
         for id in self.agents_id:
-            a_prob = self.actors_net[id](agents_states[id])
+            a_prob = self.actors_net[id](agents_state[id])
             selected_old_a_probs[id] = a_prob.gather(-1, agents_action[id]).to(
                 self.device).detach()
 
@@ -121,7 +121,7 @@ class COMA(Policy):
         for _ in range(self.inner_epoch):
             critic_loss, actor_losses = self._inner_loop(
                 critic_states=critic_states,
-                agents_state=agents_states,
+                agents_state=agents_state,
                 agents_action=agents_action,
                 central_reward=central_reward,
                 selected_old_a_probs=selected_old_a_probs,
