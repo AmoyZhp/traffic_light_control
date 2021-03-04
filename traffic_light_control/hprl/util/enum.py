@@ -7,14 +7,12 @@ class TrainnerTypes(Enum):
     IAC = "IAC"
     VDN = "VDN"
     COMA = "COMA"
+    IQL_PS = "IQL_PS"
+    PPO_PS = "PPO_PS"
 
 
 class ReplayBufferTypes(Enum):
     Common = "Common"
-
-
-class PolicyTypes(Enum):
-    DQN = "DQN"
 
 
 class AdvantageTypes(Enum):

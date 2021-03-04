@@ -49,11 +49,13 @@ def create_trainer(config: Dict,
     train_fn = None
 
     if (trainner_type == TrainnerTypes.IQL
-            or trainner_type == TrainnerTypes.VDN):
+            or trainner_type == TrainnerTypes.VDN
+            or trainner_type == TrainnerTypes.IQL_PS):
         train_fn = off_policy_train_fn
     elif (trainner_type == TrainnerTypes.PPO
           or trainner_type == TrainnerTypes.IAC
-          or trainner_type == TrainnerTypes.COMA):
+          or trainner_type == TrainnerTypes.COMA
+          or trainner_type == TrainnerTypes.PPO_PS):
         train_fn = on_policy_train_fn
     else:
         raise ValueError("trainner type {} is invalid".format(trainner_type))
@@ -92,7 +94,7 @@ def _create_replay_buffer(type, config):
 
 
 def _create_policy(type, agents_id, config, models):
-    if type == TrainnerTypes.IQL:
+    if (type == TrainnerTypes.IQL or type == TrainnerTypes.IQL_PS):
         policies = {}
         for id_ in agents_id:
             model = models[id_]
@@ -117,7 +119,7 @@ def _create_policy(type, agents_id, config, models):
             policies=policies,
         )
         return i_learner
-    elif type == TrainnerTypes.PPO:
+    elif (type == TrainnerTypes.PPO or type == TrainnerTypes.PPO_PS):
         policies = {}
         for id_ in agents_id:
             model = models[id_]

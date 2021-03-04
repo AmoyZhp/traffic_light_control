@@ -20,7 +20,7 @@ EPS_INIT = 1.0
 EPS_MIN = 0.01
 EPS_FRAME = 300000
 UPDATE_PERIOD = 1000
-INNER_EPOCH = 16
+INNER_EPOCH = 32
 CLIP_PARAM = 0.2
 
 # Run Setting
@@ -131,6 +131,7 @@ def _train(args, env, models):
         trained_time += trainer_ep
     trainer.eval(eval_episode)
     trainer.log_records(log_dir)
+    trainer.save_checkpoint(ckpt_dir, "ckpt_ending.pth")
     logger.info("train end")
     logger.info("===== ===== =====")
 
@@ -214,6 +215,22 @@ def _make_model(trainer_type, config, agents_id):
                 "target_net": target_net,
             }
         return models
+    elif trainer_type == hprl.TrainnerTypes.IQL_PS:
+        models = {}
+        acting_net = ICritic(
+            input_space=config["local_state"],
+            output_space=config["local_action"],
+        )
+        target_net = ICritic(
+            input_space=config["local_state"],
+            output_space=config["local_action"],
+        )
+        for id in agents_id:
+            models[id] = {
+                "acting_net": acting_net,
+                "target_net": target_net,
+            }
+        return models
     elif (trainer_type == hprl.TrainnerTypes.IAC
           or trainer_type == hprl.TrainnerTypes.PPO):
 
@@ -234,6 +251,29 @@ def _make_model(trainer_type, config, agents_id):
                 output_space=config["local_action"],
             )
 
+            models[id] = {
+                "critic_net": critic_net,
+                "critic_target_net": critic_target_net,
+                "actor_net": actor_net
+            }
+        return models
+    elif (trainer_type == hprl.TrainnerTypes.PPO_PS):
+        models = {}
+        critic_net = ICritic(
+            input_space=config["local_state"],
+            output_space=config["local_action"],
+        )
+
+        critic_target_net = ICritic(
+            input_space=config["local_state"],
+            output_space=config["local_action"],
+        )
+
+        actor_net = IActor(
+            input_space=config["local_state"],
+            output_space=config["local_action"],
+        )
+        for id in agents_id:
             models[id] = {
                 "critic_net": critic_net,
                 "critic_target_net": critic_target_net,
