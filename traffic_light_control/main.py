@@ -1,6 +1,5 @@
 import runner
 import gym
-from policy import net
 import hprl
 import hprl.policy.dqn as dqn
 import hprl.policy.actor_critic as ac
@@ -27,9 +26,7 @@ def new_run():
     env = hprl.GymWrapper(gym.make("CartPole-v1"))
     local_ids = env.get_agents_id()
     config, model = ppo.get_ppo_default_config()
-    models = {
-        local_ids[0]: model
-    }
+    models = {local_ids[0]: model}
     # trainer = hprl.load_trainer(
     #     env=env,
     #     models=models,
@@ -48,7 +45,7 @@ def new_run():
     trainer.eval(10)
     train_records = trainer.train(episode)
     trainer.eval(10)
-    trainer.log_result("records")
+    trainer.log_records("records")
 
 
 def main():

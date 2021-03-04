@@ -16,19 +16,20 @@ from hprl.trainer.support_fn import cal_cumulative_reward, cal_avg_reward
 
 
 class CommonTrainer(Trainer):
-    def __init__(self,
-                 type: TrainnerTypes,
-                 config: Dict,
-                 train_fn: Train_Fn_Type,
-                 env: MultiAgentEnv,
-                 policy: Policy,
-                 replay_buffer: ReplayBuffer,
-                 checkpointer: Checkpointer,
-                 log_record_fn: Log_Record_Fn_Type,
-                 record_base_dir: str,
-                 log_dir: str = None,
-                 cumulative_train_iteration: int = 0,
-                 ) -> None:
+    def __init__(
+        self,
+        type: TrainnerTypes,
+        config: Dict,
+        train_fn: Train_Fn_Type,
+        env: MultiAgentEnv,
+        policy: Policy,
+        replay_buffer: ReplayBuffer,
+        checkpointer: Checkpointer,
+        log_record_fn: Log_Record_Fn_Type,
+        record_base_dir: str,
+        log_dir: str = None,
+        cumulative_train_iteration: int = 0,
+    ) -> None:
 
         self.type = type
         self.config = config
@@ -57,14 +58,12 @@ class CommonTrainer(Trainer):
     def train(self, episode: int) -> Dict[int, TrainingRecord]:
 
         for ep in range(episode):
-            self.logger.info("========== train episode {} begin ==========".format(
-                self.cumulative_train_iteration))
-            rewards, infos = self.train_fn(
-                self.env,
-                self.policy,
-                self.replay_buffer,
-                self.config,
-                self.logger)
+            self.logger.info(
+                "========== train episode {} begin ==========".format(
+                    self.cumulative_train_iteration))
+            rewards, infos = self.train_fn(self.env, self.policy,
+                                           self.replay_buffer, self.config,
+                                           self.logger)
             self.cumulative_train_iteration += 1
 
             record = TrainingRecord(rewards, infos)
@@ -76,8 +75,9 @@ class CommonTrainer(Trainer):
                 data=self.get_checkpoint(),
                 iteration=self.cumulative_train_iteration,
             )
-            self.logger.info("========= train episode {} end   =========".format(
-                self.cumulative_train_iteration))
+            self.logger.info(
+                "========= train episode {} end   =========".format(
+                    self.cumulative_train_iteration))
 
         return self.train_records
 
@@ -151,22 +151,31 @@ class CommonTrainer(Trainer):
         }
         return checkpoint
 
-    def save_checkpoint(self, checkpoint_dir: str = None, filename: str = None):
+    def save_checkpoint(self,
+                        checkpoint_dir: str = None,
+                        filename: str = None):
         checkpoint = self.get_checkpoint()
         checkpointer = self.checkpointer
         if checkpoint_dir:
             checkpointer = Checkpointer(checkpoint_dir)
         if not filename:
-            checkpointer.periodic_save(
-                self.cumulative_train_iteration, checkpoint)
+            checkpointer.periodic_save(self.cumulative_train_iteration,
+                                       checkpoint)
         else:
             checkpointer.save(checkpoint, filename)
 
-    def log_result(self, log_dir: str):
+    def log_records(self, log_dir: str):
         self._log_train_culumative_reward(log_dir)
         self._log_train_avg_reward(log_dir)
         self._log_eval_avg_reward(log_dir)
         self._log_eval_culumative_reward(log_dir)
+        self._log_record(log_dir)
+
+    def get_records(self):
+        return {
+            "train": self.train_records,
+            "eval": self.eval_records,
+        }
 
     def log_config(self, log_dir: str):
         config = self.get_config()
@@ -190,12 +199,15 @@ class CommonTrainer(Trainer):
         }
         return config
 
+    def _log_record(self, log_dir: str):
+        record_file = f"{log_dir}/records.txt"
+        with open(record_file, "w", encoding="utf-8") as f:
+            f.write(str(self.get_records()))
+
     def _log_train_culumative_reward(self, log_dir: str):
         culumative_rewards: List[Reward] = []
         for r in self.train_records.values():
-            culumative_rewards.append(
-                cal_cumulative_reward(r.rewards)
-            )
+            culumative_rewards.append(cal_cumulative_reward(r.rewards))
         central_reward = []
 
         agents_id = self.env.get_agents_id()
@@ -228,9 +240,7 @@ class CommonTrainer(Trainer):
     def _log_train_avg_reward(self, log_dir: str):
         avg_reward: List[Reward] = []
         for r in self.train_records.values():
-            avg_reward.append(
-                cal_avg_reward(r.rewards)
-            )
+            avg_reward.append(cal_avg_reward(r.rewards))
         central_reward = []
 
         agents_id = self.env.get_agents_id()

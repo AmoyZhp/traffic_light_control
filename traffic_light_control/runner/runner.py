@@ -1,5 +1,4 @@
 import datetime
-from hprl.util.enum import TrainnerTypes
 import os
 import logging
 import hprl
@@ -70,7 +69,7 @@ def run():
         )
         eval_episode = args.eval_episodes
         trainer.eval(eval_episode)
-        trainer.log_result(log_dir)
+        trainer.log_records(log_dir)
 
 
 def _train(args, env, models):
@@ -128,10 +127,10 @@ def _train(args, env, models):
         trainer_ep = min(eval_frequency, episode - trained_time)
         train_records = trainer.train(trainer_ep)
         eval_records = trainer.eval(eval_episode)
-        trainer.log_result(log_dir)
+        trainer.log_records(log_dir)
         trained_time += trainer_ep
     trainer.eval(eval_episode)
-    trainer.log_result(log_dir)
+    trainer.log_records(log_dir)
     logger.info("train end")
     logger.info("===== ===== =====")
 

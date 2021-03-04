@@ -7,13 +7,12 @@ from hprl.policy import Policy
 from hprl.replaybuffer import ReplayBuffer
 from hprl.util.typing import TrainingRecord
 
-Train_Fn_Type = Callable[[MultiAgentEnv, Policy,
-                          ReplayBuffer, Dict, logging.Logger], Any]
+Train_Fn_Type = Callable[
+    [MultiAgentEnv, Policy, ReplayBuffer, Dict, logging.Logger], Any]
 Log_Record_Fn_Type = Callable[[TrainingRecord, logging.Logger], Any]
 
 
 class Trainer(metaclass=abc.ABCMeta):
-
     @abc.abstractmethod
     def train(self, episode: int):
         ...
@@ -35,7 +34,7 @@ class Trainer(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def log_result(self, log_dir: str):
+    def get_config(self):
         ...
 
     @abc.abstractmethod
@@ -43,5 +42,9 @@ class Trainer(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def get_config(self):
+    def get_records(self):
+        ...
+
+    @abc.abstractmethod
+    def log_records(self, log_dir: str):
         ...
