@@ -1,15 +1,16 @@
-from typing import Dict, List, Union
+from typing import Dict, List
 
-from hprl.util.typing import Reward, State, Action, Terminal, Trajectory, Transition
-from hprl.policy.core import Policy
+from hprl.policy.interfaces import Policy
+from hprl.util.typing import Reward, State, Action, Terminal
+from hprl.util.typing import Trajectory, Transition
 
 
-class ILearnerWrapper(Policy):
-    def __init__(self,
-                 agents_id: List[str],
-                 policies: Dict[str, Policy]
-                 ) -> None:
-        super().__init__()
+class IndependentLearner(Policy):
+    def __init__(
+        self,
+        agents_id: List[str],
+        policies: Dict[str, Policy],
+    ) -> None:
         self.agents_id = agents_id
         self.policies = policies
 
@@ -17,18 +18,14 @@ class ILearnerWrapper(Policy):
         local_action = {}
         for id_, policy in self.policies.items():
             local_state_val = state.local.get(id_)
-            local_state_wrap = State(
-                central=local_state_val,
-            )
-            action = policy.compute_action(
-                local_state_wrap
-            )
+            local_state_wrap = State(central=local_state_val, )
+            action = policy.compute_action(local_state_wrap)
             local_action[id_] = action.central
 
         return Action(local=local_action)
 
     def learn_on_batch(self, batch_data):
-        if len(batch_data) == 0 or batch_data == None:
+        if len(batch_data) == 0 or batch_data is None:
             return
         agents_batch_data: Dict[str, List] = {}
         for id_ in self.agents_id:
@@ -49,8 +46,7 @@ class ILearnerWrapper(Policy):
                             reward=Reward(central=reward),
                             next_state=State(central=next_state),
                             terminal=Terminal(central=terminal),
-                        )
-                    )
+                        ))
         elif isinstance(data_slice, Trajectory):
             for data in batch_data:
                 for id_ in self.agents_id:
@@ -66,14 +62,11 @@ class ILearnerWrapper(Policy):
                             actions=list(actions),
                             rewards=list(rewards),
                             terminal=data.terminal,
-                        )
-                    )
+                        ))
         else:
-            raise("data type error")
+            raise ("data type error")
         for id in self.agents_id:
-            self.policies[id].learn_on_batch(
-                agents_batch_data[id_]
-            )
+            self.policies[id].learn_on_batch(agents_batch_data[id_])
 
     def get_weight(self):
         weight = {}
@@ -94,4 +87,4 @@ class ILearnerWrapper(Policy):
         unwrap_policy = {}
         for id, policy in self.policies.items():
             unwrap_policy[id] = policy.unwrapped()
-        return ILearnerWrapper(self.agents_id, unwrap_policy)
+        return IndependentLearner(self.agents_id, unwrap_policy)

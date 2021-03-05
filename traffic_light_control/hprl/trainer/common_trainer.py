@@ -45,7 +45,7 @@ class CommonTrainer(Trainer):
         self.logger.setLevel(logging.INFO)
         self.log_dir = log_dir
         if log_dir is not None:
-            file_handler = logging.FileHandler(f"{log_dir}/{__name__}.log")
+            file_handler = logging.FileHandler(f"{log_dir}/running_info.log")
             formatter = logging.Formatter(
                 '%(asctime)s - %(levelname)s - %(message)s')
             file_handler.setFormatter(formatter)

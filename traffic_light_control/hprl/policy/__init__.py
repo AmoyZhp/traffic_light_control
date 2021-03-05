@@ -1,12 +1,15 @@
-from hprl.policy.core import Policy
-from hprl.policy.dqn import DQN
-from hprl.policy.epsilon_greedy import EpsilonGreedy
-from hprl.policy.independent_learner_wrapper import ILearnerWrapper
-from hprl.policy.actor_critic import ActorCritic
-from hprl.policy.ppo import PPO
-from hprl.policy.vdn import VDN
-from hprl.policy.coma import COMA
+from hprl.policy.interfaces import Policy
+from hprl.policy.single.dqn import DQN
+from hprl.policy.decorator.epsilon_greedy import EpsilonGreedy
+from hprl.policy.decorator.epsilon_greedy import MultiAgentEpsilonGreedy
+from hprl.policy.decorator.independent_learner import IndependentLearner
+from hprl.policy.single.actor_critic import ActorCritic
+from hprl.policy.single.ppo import PPO
+from hprl.policy.multi.vdn import VDN
+from hprl.policy.multi.coma import COMA
+
 import logging
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
@@ -27,5 +30,6 @@ __all__ = [
     "COMA",
     "ActorCritic",
     "EpsilonGreedy",
-    "ILearnerWrapper",
+    "IndependentLearner",
+    "MultiAgentEpsilonGreedy",
 ]

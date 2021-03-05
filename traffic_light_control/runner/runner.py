@@ -123,6 +123,7 @@ def _train(args, env, models):
 
     eval_episode = args.eval_episodes
     trained_time = 0
+
     while trained_time < episode:
         trainer_ep = min(eval_frequency, episode - trained_time)
         train_records = trainer.train(trainer_ep)

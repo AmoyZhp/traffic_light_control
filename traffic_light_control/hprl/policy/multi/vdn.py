@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from hprl.policy.core import Policy
+from hprl.policy.interfaces import Policy
 
 
 class VDN(Policy):
@@ -47,10 +47,9 @@ class VDN(Policy):
     def compute_action(self, state: State) -> Action:
         actions = {}
         for id in self.agents_id:
-            local_state = torch.tensor(
-                state.local[id],
-                dtype=torch.float,
-                device=self.device)
+            local_state = torch.tensor(state.local[id],
+                                       dtype=torch.float,
+                                       device=self.device)
             with torch.no_grad():
                 value = self.acting_nets[id](local_state)
                 value = np.squeeze(value, 0)
@@ -94,7 +93,7 @@ class VDN(Policy):
         for trans in batch_data:
             for id in self.agents_id:
                 local_s = torch.tensor(trans.state.local[id],
-                                       dtype=torch.float) .unsqueeze(0)
+                                       dtype=torch.float).unsqueeze(0)
                 states[id].append(local_s)
 
                 local_a = torch.tensor(trans.action.local[id],
@@ -121,17 +120,15 @@ class VDN(Policy):
 
     def _cal_q_val(self, states, actions, next_states, terminal):
         ns_mask = torch.tensor(tuple(map(lambda d: not d, terminal)),
-                               device=self.device, dtype=torch.bool)
+                               device=self.device,
+                               dtype=torch.bool)
         central_q_val = 0.0
         central_next_q_val = 0.0
         for id in self.agents_id:
-            q_val = self.acting_nets[id](
-                states[id]
-            ).gather(1, actions[id])
+            q_val = self.acting_nets[id](states[id]).gather(1, actions[id])
             next_q_val = torch.zeros_like(q_val)
             next_q_val[ns_mask] = self.target_nets[id](
-                next_states[id][ns_mask]
-            ).max(1)[0].detach().unsqueeze(1)
+                next_states[id][ns_mask]).max(1)[0].detach().unsqueeze(1)
             central_q_val += q_val
             central_next_q_val += next_q_val
         return central_q_val, central_next_q_val

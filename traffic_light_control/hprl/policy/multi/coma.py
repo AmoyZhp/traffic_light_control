@@ -1,7 +1,7 @@
-from hprl.policy.samples_processor import parase_traj_list, parase_trajectory_to_tensor
+from hprl.policy.util import parase_traj_list, parase_trajectory_to_tensor
 from hprl.util.typing import Action, State, Trajectory, TrajectoryTuple
 from typing import Dict, List
-from hprl.policy.core import Policy
+from hprl.policy.interfaces import Policy
 import torch
 import torch.nn as nn
 import torch.optim as optim

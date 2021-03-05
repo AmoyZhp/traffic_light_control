@@ -13,9 +13,7 @@ class GymWrapper(MultiAgentEnv):
         self.env = env
         self.local_ids = ["1"]
 
-    def step(self,
-             actions: Action
-             ) -> Tuple[State, Reward, Terminal, Dict]:
+    def step(self, actions: Action) -> Tuple[State, Reward, Terminal, Dict]:
 
         action = actions.local[self.local_ids[0]]
 
@@ -23,21 +21,19 @@ class GymWrapper(MultiAgentEnv):
 
         state = State(local={self.local_ids[0]: np.array(s)})
         reward = Reward(local={self.local_ids[0]: r})
-        termial = Terminal(
-            central=done,
-            local={self.local_ids[0]: done}
-        )
+        termial = Terminal(central=done, local={self.local_ids[0]: done})
 
         return state, reward, termial, info
 
     def reset(self) -> State:
         state = self.env.reset()
-        return State(local={
-            self.local_ids[0]: np.array(state)
-        })
+        return State(local={self.local_ids[0]: np.array(state)})
 
     def get_agents_id(self) -> List[str]:
         return self.local_ids
+
+    def get_central_action_space(self):
+        ...
 
     def get_local_action_space(self):
         ...

@@ -6,9 +6,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from torch.distributions import Categorical
-
-from hprl.policy.core import Policy
-from hprl.policy.core import to_tensor_for_trajectory, compute_reward_to_go
+from hprl.policy.interfaces import Policy
+from hprl.policy.util import to_tensor_for_trajectory, compute_reward_to_go
 
 
 def get_ppo_default_config():
@@ -47,15 +46,10 @@ def get_ppo_default_config():
         "buffer": buffer_config,
     }
 
-    critic_net = CartPole(
-        input_space=state_space,
-        output_space=action_space
-    )
+    critic_net = CartPole(input_space=state_space, output_space=action_space)
 
-    critic_target_net = CartPole(
-        input_space=state_space,
-        output_space=action_space
-    )
+    critic_target_net = CartPole(input_space=state_space,
+                                 output_space=action_space)
 
     actor_net = CartPolePG(
         input_space=state_space,
@@ -72,18 +66,20 @@ def get_ppo_default_config():
 
 
 class PPO(Policy):
-    def __init__(self,
-                 critic_net: nn.Module,
-                 critic_target_net: nn.Module,
-                 actor_net: nn.Module,
-                 inner_epoch: int,
-                 learning_rate: float,
-                 discount_factor: float,
-                 update_period: int,
-                 action_space,
-                 state_space,
-                 clip_param,
-                 advantage_type: AdvantageTypes = AdvantageTypes.RewardToGO) -> None:
+    def __init__(
+            self,
+            critic_net: nn.Module,
+            critic_target_net: nn.Module,
+            actor_net: nn.Module,
+            inner_epoch: int,
+            learning_rate: float,
+            discount_factor: float,
+            update_period: int,
+            action_space,
+            state_space,
+            clip_param,
+            advantage_type: AdvantageTypes = AdvantageTypes.RewardToGO
+    ) -> None:
 
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu")
@@ -98,10 +94,10 @@ class PPO(Policy):
         self.critic_target_net.to(self.device)
         self.actor_net.to(self.device)
 
-        self.critic_optim = optim.Adam(
-            self.critic_net.parameters(), learning_rate)
-        self.actor_optim = optim.Adam(
-            self.actor_net.parameters(), learning_rate)
+        self.critic_optim = optim.Adam(self.critic_net.parameters(),
+                                       learning_rate)
+        self.actor_optim = optim.Adam(self.actor_net.parameters(),
+                                      learning_rate)
 
         self.discount_factor = discount_factor
         self.learning_rate = learning_rate
@@ -114,8 +110,9 @@ class PPO(Policy):
         self.advantage_type = advantage_type
 
     def compute_action(self, state: State) -> Action:
-        state = torch.tensor(
-            state.central, dtype=torch.float, device=self.device)
+        state = torch.tensor(state.central,
+                             dtype=torch.float,
+                             device=self.device)
         with torch.no_grad():
             value = self.actor_net(state)
             m = Categorical(value)
@@ -157,8 +154,7 @@ class PPO(Policy):
                     states=cat_states,
                     actions=cat_actions,
                     rewards=cat_rewards,
-                    old_a_probs=cat_selected_old_a_prob
-                )
+                    old_a_probs=cat_selected_old_a_prob)
             else:
                 for i in range(batch_size):
                     # because we learn element independetly
@@ -188,44 +184,33 @@ class PPO(Policy):
                 self.critic_target_net.load_state_dict(
                     self.critic_net.state_dict())
 
-    def _inner_loop(self, states: torch.tensor,
-                    actions: torch.tensor,
-                    rewards: torch.tensor,
-                    old_a_probs: torch.tensor):
+    def _inner_loop(self, states: torch.tensor, actions: torch.tensor,
+                    rewards: torch.tensor, old_a_probs: torch.tensor):
 
         q_vals = self.critic_net(states)
 
-        selected_q_v = q_vals.gather(
-            2, actions).to(self.device)
+        selected_q_v = q_vals.gather(2, actions).to(self.device)
 
         # calculated critic loss
-        next_sel_q_v = torch.zeros_like(
-            selected_q_v, device=self.device)
-        next_sel_q_v[:-1] = self.critic_target_net(
-            states[1:]).gather(
+        next_sel_q_v = torch.zeros_like(selected_q_v, device=self.device)
+        next_sel_q_v[:-1] = self.critic_target_net(states[1:]).gather(
             2, actions[1:])
-        target_values = (next_sel_q_v * self.discount_factor
-                         + rewards)
-        critic_loss = self._critic_loss(
-            selected_q_v, target_values.detach())
+        target_values = (next_sel_q_v * self.discount_factor + rewards)
+        critic_loss = self._critic_loss(selected_q_v, target_values.detach())
 
         # calculated actor loss
         action_prob = self.actor_net(states)
         sel_action_prob = action_prob.gather(2, actions)
 
-        state_values = torch.sum(
-            q_vals * action_prob,
-            dim=2).unsqueeze(-1)
+        state_values = torch.sum(q_vals * action_prob, dim=2).unsqueeze(-1)
 
         advantage = 0.0
         if self.advantage_type == AdvantageTypes.QMinusV:
-            state_values = torch.sum(
-                q_vals * action_prob,
-                dim=2).unsqueeze(-1)
+            state_values = torch.sum(q_vals * action_prob, dim=2).unsqueeze(-1)
             advantage = selected_q_v - state_values
         elif self.advantage_type == AdvantageTypes.RewardToGO:
-            advantage = compute_reward_to_go(
-                rewards, self.device) - selected_q_v
+            advantage = compute_reward_to_go(rewards,
+                                             self.device) - selected_q_v
         else:
             raise ValueError(f"advantage type invalid {self.advantage_type}")
         advantage = advantage.detach()
@@ -242,7 +227,7 @@ class PPO(Policy):
         return critic_loss, actor_loss
 
     def _critic_loss(self, input, target):
-        return torch.mean((input - target) ** 2)
+        return torch.mean((input - target)**2)
 
     def get_weight(self):
         weight = {

@@ -1,17 +1,18 @@
-from hprl.policy.coma import COMA
-from hprl.policy.vdn import VDN
-from hprl.policy.actor_critic import ActorCritic
 import logging
 from typing import Dict, List
 
-from hprl.trainer.common_trainer import CommonTrainer
-from hprl.util.enum import AdvantageTypes, ReplayBufferTypes, TrainnerTypes
-from hprl.policy import Policy, DQN, ILearnerWrapper, EpsilonGreedy, PPO
 from hprl.env import MultiAgentEnv
+from hprl.policy import Policy, DQN, PPO, ActorCritic
+from hprl.policy import IndependentLearner, EpsilonGreedy
+from hprl.policy import MultiAgentEpsilonGreedy
+from hprl.policy import COMA, VDN
 from hprl.replaybuffer import ReplayBuffer, CommonBuffer
 from hprl.trainer.core import Trainer
+from hprl.trainer.common_trainer import CommonTrainer
 from hprl.util.checkpointer import Checkpointer
-from hprl.trainer.support_fn import default_log_record_fn, off_policy_train_fn, on_policy_train_fn
+from hprl.util.enum import AdvantageTypes, ReplayBufferTypes, TrainnerTypes
+from hprl.trainer.support_fn import off_policy_train_fn, on_policy_train_fn
+from hprl.trainer.support_fn import default_log_record_fn
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +115,7 @@ def _create_policy(type, agents_id, config, models):
                 eps_init=config["eps_init"],
                 action_space=config["action_space"],
             )
-        i_learner = ILearnerWrapper(
+        i_learner = IndependentLearner(
             agents_id=agents_id,
             policies=policies,
         )
@@ -136,7 +137,7 @@ def _create_policy(type, agents_id, config, models):
                 clip_param=config["clip_param"],
                 advantage_type=config["advantage_type"],
             )
-        i_learner = ILearnerWrapper(
+        i_learner = IndependentLearner(
             agents_id=agents_id,
             policies=policies,
         )
@@ -157,7 +158,7 @@ def _create_policy(type, agents_id, config, models):
                 state_space=config["state_space"],
                 advantage_type=config["advantage_type"],
             )
-        i_learner = ILearnerWrapper(
+        i_learner = IndependentLearner(
             agents_id=agents_id,
             policies=policies,
         )
@@ -180,7 +181,7 @@ def _create_vdn(config, models, agents_id):
         action_space=config["action_space"],
         state_space=config["state_space"],
     )
-    p = EpsilonGreedy(
+    p = MultiAgentEpsilonGreedy(
         agents_id=agents_id,
         inner_policy=inner_p,
         eps_frame=config["eps_frame"],

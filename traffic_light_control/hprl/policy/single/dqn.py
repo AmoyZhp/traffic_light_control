@@ -1,4 +1,5 @@
-from typing import List
+from dataclasses import dataclass
+from typing import Any, List
 
 import torch
 import torch.nn as nn
@@ -6,7 +7,7 @@ import torch.optim as optim
 import numpy as np
 
 from hprl.util.typing import Action, State, Transition, TransitionTuple, TrainnerTypes
-from hprl.policy.core import Policy
+from hprl.policy.interfaces import Policy
 from hprl.util.enum import ReplayBufferTypes
 from hprl.policy.nets import CartPole
 
@@ -59,6 +60,18 @@ def get_default_config():
     }
 
     return trainner_config, model
+
+
+@dataclass
+class DQNConfig():
+    acting_net: nn.Module
+    target_net: nn.Module
+    learning_rate: float
+    discount_facotr: float
+    update_period: int
+    action_space: Any
+    state_space: Any
+    device: torch.device
 
 
 class DQN(Policy):
