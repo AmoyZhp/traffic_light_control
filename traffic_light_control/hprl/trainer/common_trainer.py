@@ -1,18 +1,18 @@
 from enum import Enum
 import json
-from hprl.util.plt import save_fig
 import logging
 
 from hprl.util.enum import TrainnerTypes
 from hprl.util.checkpointer import Checkpointer
-from typing import Any, Dict, List
+from typing import Dict, List
 
 from hprl.util.typing import Reward, TrainingRecord
-from hprl.trainer.core import Log_Record_Fn_Type, Train_Fn_Type, Trainer
+from hprl.trainer.trainer import Log_Record_Fn_Type, Train_Fn_Type, Trainer
 from hprl.env import MultiAgentEnv
 from hprl.policy import Policy
 from hprl.replaybuffer import ReplayBuffer
-from hprl.trainer.support_fn import cal_cumulative_reward, cal_avg_reward
+from hprl.util.support_fn import cal_cumulative_reward, cal_avg_reward
+from hprl.util.plt import save_fig
 
 
 class CommonTrainer(Trainer):

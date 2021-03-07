@@ -108,7 +108,7 @@ def _train(args, env, models):
             record_base_dir=base_dir,
             checkpoint_dir=ckpt_dir,
             log_dir=log_dir)
-        trainer = hprl.create_trainer(
+        trainer = hprl.build_trainer(
             config=trainer_config,
             env=env,
             models=models,

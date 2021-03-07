@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from hprl.policy.interfaces import Policy
+from hprl.policy.policy import Policy
 
 
 class VDN(Policy):

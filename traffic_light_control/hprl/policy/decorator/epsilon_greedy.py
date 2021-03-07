@@ -3,7 +3,7 @@ from typing import Dict, List
 import numpy as np
 
 from hprl.util.typing import Action, State, Transition
-from hprl.policy.interfaces import Policy
+from hprl.policy.policy import Policy
 
 
 class EpsilonGreedy(Policy):

@@ -1,7 +1,8 @@
+from dataclasses import dataclass
 from hprl.policy.util import parase_traj_list, parase_trajectory_to_tensor
 from hprl.util.typing import Action, State, Trajectory, TrajectoryTuple
 from typing import Dict, List
-from hprl.policy.interfaces import Policy
+from hprl.policy.policy import Policy
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -16,7 +17,7 @@ class COMA(Policy):
     def __init__(self,
                  agents_id: List[str],
                  critic_net: nn.Module,
-                 target_critic_net: nn.Module,
+                 critic_target_net: nn.Module,
                  actors_net: Dict[str, nn.Module],
                  learning_rate: float,
                  discount_factor: float,
@@ -40,10 +41,10 @@ class COMA(Policy):
             self.ids_map[self.agents_id[i]] = i
 
         self.critic_net = critic_net
-        self.target_critic_net = target_critic_net
-        self.target_critic_net.load_state_dict(self.critic_net.state_dict())
+        self.critic_target_net = critic_target_net
+        self.critic_target_net.load_state_dict(self.critic_net.state_dict())
         self.critic_net.to(self.device)
-        self.target_critic_net.to(self.device)
+        self.critic_target_net.to(self.device)
 
         self.actors_net = actors_net
         for net in self.actors_net.values():
@@ -137,7 +138,7 @@ class COMA(Policy):
             self.update_count += 1
             if self.update_count > self.update_period:
                 self.update_count = 0
-                self.target_critic_net.load_state_dict(
+                self.critic_target_net.load_state_dict(
                     self.critic_net.state_dict())
 
     def _inner_loop(self, critic_states: Dict[str, torch.Tensor],
@@ -181,7 +182,7 @@ class COMA(Policy):
             selected_q_val = q_val.gather(-1, local_a)
 
             next_selected_q_v = torch.zeros_like(q_val, device=self.device)
-            next_selected_q_v[:-1] = self.target_critic_net(
+            next_selected_q_v[:-1] = self.critic_target_net(
                 agent_s[1:]).gather(-1, local_a[1:])
 
             expected_q_v = (next_selected_q_v * self.discount_factor + rewards)
@@ -298,7 +299,7 @@ class COMA(Policy):
             self.actors_optim[id_].load_state_dict(optimizer_w["actors"][id_])
 
         self.critic_net.load_state_dict(net_w["critic"])
-        self.target_critic_net.load_state_dict(net_w["critic"])
+        self.critic_target_net.load_state_dict(net_w["critic"])
         self.critic_optim.load_state_dict(optimizer_w["critic"])
 
     def get_config(self):

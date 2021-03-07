@@ -1,6 +1,6 @@
 from typing import Dict, List
 
-from hprl.policy.interfaces import Policy
+from hprl.policy.policy import Policy
 from hprl.util.typing import Reward, State, Action, Terminal
 from hprl.util.typing import Trajectory, Transition
 

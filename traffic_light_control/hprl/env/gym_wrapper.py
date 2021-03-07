@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple
 import gym
 import numpy as np
 
-from hprl.env.core import MultiAgentEnv
+from hprl.env.multi_agent_env import MultiAgentEnv
 from hprl.util.typing import Action, Reward, State, Terminal
 
 

@@ -4,12 +4,11 @@ from hprl.env import GymWrapper
 from hprl.replaybuffer import ReplayBuffer
 from hprl.policy import Policy
 from hprl.trainer import Trainer
-from hprl.trainer import create_trainer, load_trainer
 from hprl.util.enum import TrainnerTypes, ReplayBufferTypes, AdvantageTypes
-from hprl.test import test
+from hprl.build import build_trainer, load_trainer
 __all__ = [
     "load_trainer",
-    "create_trainer",
+    "build_trainer",
     "Trainer",
     "Policy",
     "ReplayBuffer",

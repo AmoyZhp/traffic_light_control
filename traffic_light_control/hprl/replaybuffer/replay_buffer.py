@@ -5,13 +5,13 @@ from hprl.util.typing import Trajectory, Transition
 
 
 class ReplayBuffer(metaclass=abc.ABCMeta):
-
     @abc.abstractmethod
     def store(self, data: Union[Transition, Trajectory]):
         ...
 
     @abc.abstractmethod
-    def sample(self, batch_size: int) -> Union[List[Transition], List[Trajectory]]:
+    def sample(self,
+               batch_size: int) -> Union[List[Transition], List[Trajectory]]:
         ...
 
     @abc.abstractmethod

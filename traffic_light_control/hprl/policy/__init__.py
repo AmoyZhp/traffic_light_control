@@ -1,4 +1,4 @@
-from hprl.policy.interfaces import Policy
+from hprl.policy.policy import Policy
 from hprl.policy.single.dqn import DQN
 from hprl.policy.decorator.epsilon_greedy import EpsilonGreedy
 from hprl.policy.decorator.epsilon_greedy import MultiAgentEpsilonGreedy

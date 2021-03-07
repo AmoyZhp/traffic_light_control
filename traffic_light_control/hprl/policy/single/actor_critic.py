@@ -1,64 +1,14 @@
-from hprl.policy.nets import CartPole, CartPolePG
-from hprl.util.enum import AdvantageTypes, TrainnerTypes, ReplayBufferTypes
-from hprl.util.typing import Action, State, Trajectory
 from typing import List
-from torch import optim
+
 import torch
 import torch.nn as nn
-from hprl.policy.interfaces import Policy
-from hprl.policy.util import to_tensor_for_trajectory, compute_reward_to_go
 from torch.distributions import Categorical
+from torch import optim
 
-
-def get_ac_default_config():
-    capacity = 4000
-    learning_rate = 1e-3
-    batch_size = 16
-    discount_factor = 0.99
-    update_period = 50
-    action_space = 2
-    state_space = 4
-
-    policy_config = {
-        "learning_rate": learning_rate,
-        "discount_factor": discount_factor,
-        "update_period": update_period,
-        "action_space": action_space,
-        "state_space": state_space,
-    }
-    buffer_config = {
-        "type": ReplayBufferTypes.Common,
-        "capacity": capacity,
-    }
-    exec_config = {
-        "batch_size": batch_size,
-        "base_dir": "records",
-        "check_frequency": 100,
-    }
-    trainner_config = {
-        "type": TrainnerTypes.IAC,
-        "executing": exec_config,
-        "policy": policy_config,
-        "buffer": buffer_config,
-    }
-
-    critic_net = CartPole(input_space=state_space, output_space=action_space)
-
-    critic_target_net = CartPole(input_space=state_space,
-                                 output_space=action_space)
-
-    actor_net = CartPolePG(
-        input_space=state_space,
-        output_space=action_space,
-    )
-
-    model = {
-        "critic_net": critic_net,
-        "critic_target_net": critic_target_net,
-        "actor_net": actor_net
-    }
-
-    return trainner_config, model
+from hprl.policy.policy import Policy
+from hprl.policy.util import to_tensor_for_trajectory, compute_reward_to_go
+from hprl.util.enum import AdvantageTypes
+from hprl.util.typing import Action, State, Trajectory
 
 
 class ActorCritic(Policy):

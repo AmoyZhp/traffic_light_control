@@ -1,77 +1,12 @@
-from dataclasses import dataclass
-from typing import Any, List
+from typing import List
 
 import torch
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 
-from hprl.util.typing import Action, State, Transition, TransitionTuple, TrainnerTypes
-from hprl.policy.interfaces import Policy
-from hprl.util.enum import ReplayBufferTypes
-from hprl.policy.nets import CartPole
-
-
-def get_default_config():
-    capacity = 4000
-    learning_rate = 1e-3
-    batch_size = 16
-    discount_factor = 0.99
-    eps_init = 1.0
-    eps_min = 0.01
-    eps_frame = 2000
-    update_period = 50
-    action_space = 2
-    state_space = 4
-
-    policy_config = {
-        "learning_rate": learning_rate,
-        "discount_factor": discount_factor,
-        "update_period": update_period,
-        "action_space": action_space,
-        "state_space": state_space,
-        "eps_frame": eps_frame,
-        "eps_init": eps_init,
-        "eps_min": eps_min,
-    }
-    buffer_config = {
-        "type": ReplayBufferTypes.Common,
-        "capacity": capacity,
-    }
-    exec_config = {
-        "batch_size": batch_size,
-        "base_dir": "records",
-        "check_frequency": 100,
-    }
-    trainner_config = {
-        "type": TrainnerTypes.IQL,
-        "executing": exec_config,
-        "policy": policy_config,
-        "buffer": buffer_config,
-    }
-
-    acting_net = CartPole(input_space=state_space, output_space=action_space)
-
-    target_net = CartPole(input_space=state_space, output_space=action_space)
-
-    model = {
-        "acting": acting_net,
-        "target": target_net,
-    }
-
-    return trainner_config, model
-
-
-@dataclass
-class DQNConfig():
-    acting_net: nn.Module
-    target_net: nn.Module
-    learning_rate: float
-    discount_facotr: float
-    update_period: int
-    action_space: Any
-    state_space: Any
-    device: torch.device
+from hprl.util.typing import Action, State, Transition, TransitionTuple
+from hprl.policy.policy import Policy
 
 
 class DQN(Policy):
