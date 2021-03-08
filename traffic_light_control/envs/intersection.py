@@ -3,11 +3,17 @@ from envs.road import Road
 from typing import Dict, List
 from envs.enum import Movement, Stream
 
+PHASE_SPACE = 12
+
 
 class Intersection():
-    def __init__(self, id: str, phase_plan: List[List[int]],
-                 roadlinks: List[Dict[Stream, Road]],
-                 init_phase_index: int = 0) -> None:
+    def __init__(
+        self,
+        id: str,
+        phase_plan: List[List[int]],
+        roadlinks: List[Dict[Stream, Road]],
+        init_phase_index: int = 0,
+    ) -> None:
         self.id = id
         self.phase_plan = phase_plan
         self.current_phase_index = init_phase_index
@@ -17,6 +23,16 @@ class Intersection():
             for road in rlink.values():
                 if road.id not in self.roads:
                     self.roads[road.id] = road
+        # first phase space is current phase
+        # second belong to next phase
+        self.state_space = 0
+        self.phase_space = len(self.roadlinks)
+        for road in self.roads.values():
+            self.state_space += road.get_state_space()
+        self.state_space += 2 * self.phase_space
+
+    def get_state_space(self):
+        return self.state_space
 
     def get_id(self) -> str:
         return self.id
@@ -56,8 +72,8 @@ class Intersection():
                 if (in_road.get_capacity(dir_) == 0
                         or out_road.get_capacity(dir_) == 0):
                     continue
-                in_density = in_road.get_vehicles(
-                    dir_) / in_road.get_capacity(dir_)
+                in_density = in_road.get_vehicles(dir_) / in_road.get_capacity(
+                    dir_)
                 out_density = out_road.get_vehicles(
                     dir_) / out_road.get_capacity(dir_)
                 traffic_mov_pres = in_density - out_density
@@ -73,38 +89,30 @@ class Intersection():
         return pressure
 
     def move_to_next_phase(self):
-        self.current_phase_index = (
-            self.current_phase_index + 1) % len(self.phase_plan)
+        self.current_phase_index = (self.current_phase_index + 1) % len(
+            self.phase_plan)
 
     def to_tensor(self) -> np.ndarray:
         tensor = np.array([], dtype=np.float)
         for id_ in sorted(self.roads.keys()):
             road = self.roads[id_]
-            tensor = np.hstack(
-                (tensor,
-                 road.to_tensor())
-            )
+            tensor = np.hstack((tensor, road.to_tensor()))
 
-        current_phase = self.phase_plan[
-            self.current_phase_index]
+        current_phase = self.phase_plan[self.current_phase_index]
 
-        current_phase_tensor = np.zeros(12)
+        current_phase_tensor = np.zeros(self.phase_space)
         for i in current_phase:
             current_phase_tensor[i] = 1
 
-        tensor = np.hstack(
-            (tensor, current_phase_tensor)
-        )
+        tensor = np.hstack((tensor, current_phase_tensor))
 
-        next_phase_index = (
-            self.current_phase_index + 1) % len(self.phase_plan)
+        next_phase_index = (self.current_phase_index + 1) % len(
+            self.phase_plan)
 
         next_phase = self.phase_plan[next_phase_index]
-        next_phase_tensor = np.zeros(12)
+        next_phase_tensor = np.zeros(self.phase_space)
         for i in next_phase:
             next_phase_tensor[i] = 1
 
-        tensor = np.hstack(
-            (tensor, next_phase_tensor)
-        )
+        tensor = np.hstack((tensor, next_phase_tensor))
         return tensor

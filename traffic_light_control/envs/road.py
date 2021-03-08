@@ -6,8 +6,7 @@ from envs.enum import Movement
 
 
 class Road():
-    def __init__(self, id: str,
-                 lanes: Dict[Movement, List[Lane]],
+    def __init__(self, id: str, lanes: Dict[Movement, List[Lane]],
                  eng: cityflow.Engine) -> None:
         self.id = id
         self.eng = eng
@@ -20,6 +19,8 @@ class Road():
         for direction, directed_lanes in self.lanes.items():
             for lane in directed_lanes:
                 self.stream_capacity[direction] += lane.get_capacity()
+        # each dim reprensent one movement
+        self.state_space = 3
 
     def get_capacity(self, streamDir: Movement) -> int:
         if streamDir not in self.lanes.keys():
@@ -50,6 +51,9 @@ class Road():
                 vehicles += vehicles_dict[lane.get_id()]
         return vehicles
 
+    def get_state_space(self):
+        return self.state_space
+
     def to_tensor(self) -> np.ndarray:
         tensor = np.zeros(3)
         dire = Movement.LEFT
@@ -68,8 +72,6 @@ class Road():
     def __repr__(self) -> str:
         str_ = "Road[ \n"
         for dir_, lane in self.lanes.items():
-            str_ += " {} [{}] \n".format(
-                dir_, lane
-            )
+            str_ += " {} [{}] \n".format(dir_, lane)
         str_ += "]"
         return str_

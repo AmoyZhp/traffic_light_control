@@ -111,15 +111,15 @@ def _create_iql(config, models, agents_id):
             learning_rate=config["learning_rate"],
             discount_factor=config["discount_factor"],
             update_period=config["update_period"],
-            action_space=config["action_space"],
-            state_space=config["state_space"],
+            action_space=config["action_space"][id_],
+            state_space=config["state_space"][id_],
         )
         policies[id_] = EpsilonGreedy(
             inner_policy=inner_p,
             eps_frame=config["eps_frame"],
             eps_min=config["eps_min"],
             eps_init=config["eps_init"],
-            action_space=config["action_space"],
+            action_space=config["action_space"][id_],
         )
     i_learner = IndependentLearner(
         agents_id=agents_id,

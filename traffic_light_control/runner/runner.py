@@ -42,6 +42,7 @@ def run():
     env = _make_env(env_config)
 
     agents_id = env.get_agents_id()
+    print(agents_id)
     model_config = {
         "central_state": env.get_central_state_space(),
         "local_state": env.get_local_state_space(),
@@ -201,120 +202,18 @@ def _make_env(config):
 
 def _make_model(trainer_type, config, agents_id):
     if trainer_type == hprl.TrainnerTypes.IQL:
-        models = {}
-        for id in agents_id:
-            acting_net = ICritic(
-                input_space=config["local_state"],
-                output_space=config["local_action"],
-            )
-            target_net = ICritic(
-                input_space=config["local_state"],
-                output_space=config["local_action"],
-            )
-            models[id] = {
-                "acting_net": acting_net,
-                "target_net": target_net,
-            }
-        return models
+        return _make_iql_model(config, agents_id)
     elif trainer_type == hprl.TrainnerTypes.IQL_PS:
-        models = {}
-        acting_net = ICritic(
-            input_space=config["local_state"],
-            output_space=config["local_action"],
-        )
-        target_net = ICritic(
-            input_space=config["local_state"],
-            output_space=config["local_action"],
-        )
-        for id in agents_id:
-            models[id] = {
-                "acting_net": acting_net,
-                "target_net": target_net,
-            }
-        return models
+        return _make_iql_ps_model(config, agents_id)
     elif (trainer_type == hprl.TrainnerTypes.IAC
           or trainer_type == hprl.TrainnerTypes.PPO):
-
-        models = {}
-        for id in agents_id:
-            critic_net = ICritic(
-                input_space=config["local_state"],
-                output_space=config["local_action"],
-            )
-
-            critic_target_net = ICritic(
-                input_space=config["local_state"],
-                output_space=config["local_action"],
-            )
-
-            actor_net = IActor(
-                input_space=config["local_state"],
-                output_space=config["local_action"],
-            )
-
-            models[id] = {
-                "critic_net": critic_net,
-                "critic_target_net": critic_target_net,
-                "actor_net": actor_net
-            }
-        return models
+        return _make_ac_model(config, agents_id)
     elif (trainer_type == hprl.TrainnerTypes.PPO_PS):
-        models = {}
-        critic_net = ICritic(
-            input_space=config["local_state"],
-            output_space=config["local_action"],
-        )
-
-        critic_target_net = ICritic(
-            input_space=config["local_state"],
-            output_space=config["local_action"],
-        )
-
-        actor_net = IActor(
-            input_space=config["local_state"],
-            output_space=config["local_action"],
-        )
-        for id in agents_id:
-            models[id] = {
-                "critic_net": critic_net,
-                "critic_target_net": critic_target_net,
-                "actor_net": actor_net
-            }
-        return models
+        return _make_ppo_ps_model(config, agents_id)
     elif trainer_type == hprl.TrainnerTypes.VDN:
-        acting_nets = {}
-        target_nets = {}
-        for id in agents_id:
-            acting_nets[id] = ICritic(
-                input_space=config["local_state"],
-                output_space=config["local_action"],
-            )
-            target_nets[id] = ICritic(
-                input_space=config["local_state"],
-                output_space=config["local_action"],
-            )
-        model = {
-            "acting_nets": acting_nets,
-            "target_nets": target_nets,
-        }
-        return model
+        return _make_vdn_model(config, agents_id)
     elif trainer_type == hprl.TrainnerTypes.COMA:
-        critic_input_space = (config["central_state"] + config["local_state"] +
-                              len(agents_id) +
-                              len(agents_id) * config["local_action"])
-        critic_net = COMACritic(critic_input_space, config["local_action"])
-        target_critic_net = COMACritic(critic_input_space,
-                                       config["local_action"])
-        actors_net = {}
-        for id in agents_id:
-            actors_net[id] = IActor(config["local_state"],
-                                    config["local_action"])
-        model = {
-            "critic_net": critic_net,
-            "target_critic_net": target_critic_net,
-            "actors_net": actors_net,
-        }
-        return model
+        return _make_coma_model(config, agents_id)
     else:
         raise ValueError("invalid trainer type {}".format(trainer_type))
 
@@ -361,3 +260,127 @@ def create_record_dir(root_dir, env_id, policy_id):
                          config_path)
 
     return record_dir, checkpoint_path, log_path, config_path
+
+
+def _make_iql_model(config, agents_id):
+    models = {}
+    print(f"iql model config {config}")
+    for id in agents_id:
+        acting_net = ICritic(
+            input_space=config["local_state"][id],
+            output_space=config["local_action"][id],
+        )
+        target_net = ICritic(
+            input_space=config["local_state"][id],
+            output_space=config["local_action"][id],
+        )
+        models[id] = {
+            "acting_net": acting_net,
+            "target_net": target_net,
+        }
+    return models
+
+
+def _make_iql_ps_model(config, agents_id):
+    models = {}
+    acting_net = ICritic(
+        input_space=config["local_state"],
+        output_space=config["local_action"],
+    )
+    target_net = ICritic(
+        input_space=config["local_state"],
+        output_space=config["local_action"],
+    )
+    for id in agents_id:
+        models[id] = {
+            "acting_net": acting_net,
+            "target_net": target_net,
+        }
+    return models
+
+
+def _make_ac_model(config, agents_id):
+    models = {}
+    for id in agents_id:
+        critic_net = ICritic(
+            input_space=config["local_state"],
+            output_space=config["local_action"],
+        )
+
+        critic_target_net = ICritic(
+            input_space=config["local_state"],
+            output_space=config["local_action"],
+        )
+
+        actor_net = IActor(
+            input_space=config["local_state"],
+            output_space=config["local_action"],
+        )
+
+        models[id] = {
+            "critic_net": critic_net,
+            "critic_target_net": critic_target_net,
+            "actor_net": actor_net
+        }
+    return models
+
+
+def _make_ppo_ps_model(config, agents_id):
+    models = {}
+    critic_net = ICritic(
+        input_space=config["local_state"],
+        output_space=config["local_action"],
+    )
+
+    critic_target_net = ICritic(
+        input_space=config["local_state"],
+        output_space=config["local_action"],
+    )
+
+    actor_net = IActor(
+        input_space=config["local_state"],
+        output_space=config["local_action"],
+    )
+    for id in agents_id:
+        models[id] = {
+            "critic_net": critic_net,
+            "critic_target_net": critic_target_net,
+            "actor_net": actor_net
+        }
+    return models
+
+
+def _make_vdn_model(config, agents_id):
+    acting_nets = {}
+    target_nets = {}
+    for id in agents_id:
+        acting_nets[id] = ICritic(
+            input_space=config["local_state"],
+            output_space=config["local_action"],
+        )
+        target_nets[id] = ICritic(
+            input_space=config["local_state"],
+            output_space=config["local_action"],
+        )
+    model = {
+        "acting_nets": acting_nets,
+        "target_nets": target_nets,
+    }
+    return model
+
+
+def _make_coma_model(config, agents_id):
+    critic_input_space = (config["central_state"] + config["local_state"] +
+                          len(agents_id) +
+                          len(agents_id) * config["local_action"])
+    critic_net = COMACritic(critic_input_space, config["local_action"])
+    target_critic_net = COMACritic(critic_input_space, config["local_action"])
+    actors_net = {}
+    for id in agents_id:
+        actors_net[id] = IActor(config["local_state"], config["local_action"])
+    model = {
+        "critic_net": critic_net,
+        "target_critic_net": target_critic_net,
+        "actors_net": actors_net,
+    }
+    return model

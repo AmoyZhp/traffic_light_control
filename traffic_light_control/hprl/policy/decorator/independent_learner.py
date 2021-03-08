@@ -18,7 +18,7 @@ class IndependentLearner(Policy):
         local_action = {}
         for id_, policy in self.policies.items():
             local_state_val = state.local.get(id_)
-            local_state_wrap = State(central=local_state_val, )
+            local_state_wrap = State(central=local_state_val)
             action = policy.compute_action(local_state_wrap)
             local_action[id_] = action.central
 
@@ -28,18 +28,18 @@ class IndependentLearner(Policy):
         if len(batch_data) == 0 or batch_data is None:
             return
         agents_batch_data: Dict[str, List] = {}
-        for id_ in self.agents_id:
-            agents_batch_data[id_] = []
+        for id in self.agents_id:
+            agents_batch_data[id] = []
         data_slice = batch_data[0]
         if isinstance(data_slice, Transition):
             for data in batch_data:
-                for id_ in self.agents_id:
-                    state = data.state.local[id_]
-                    action = data.action.local[id_]
-                    reward = data.reward.local[id_]
-                    next_state = data.next_state.local[id_]
-                    terminal = data.terminal.local[id_]
-                    agents_batch_data[id_].append(
+                for id in self.agents_id:
+                    state = data.state.local[id]
+                    action = data.action.local[id]
+                    reward = data.reward.local[id]
+                    next_state = data.next_state.local[id]
+                    terminal = data.terminal.local[id]
+                    agents_batch_data[id].append(
                         Transition(
                             state=State(central=state),
                             action=Action(central=action),
@@ -49,14 +49,14 @@ class IndependentLearner(Policy):
                         ))
         elif isinstance(data_slice, Trajectory):
             for data in batch_data:
-                for id_ in self.agents_id:
-                    states = map(lambda s: State(central=s.local[id_]),
+                for id in self.agents_id:
+                    states = map(lambda s: State(central=s.local[id]),
                                  data.states)
-                    actions = map(lambda a: Action(central=a.local[id_]),
+                    actions = map(lambda a: Action(central=a.local[id]),
                                   data.actions)
-                    rewards = map(lambda r: Reward(central=r.local[id_]),
+                    rewards = map(lambda r: Reward(central=r.local[id]),
                                   data.rewards)
-                    agents_batch_data[id_].append(
+                    agents_batch_data[id].append(
                         Trajectory(
                             states=list(states),
                             actions=list(actions),
@@ -66,7 +66,7 @@ class IndependentLearner(Policy):
         else:
             raise ("data type error")
         for id in self.agents_id:
-            self.policies[id].learn_on_batch(agents_batch_data[id_])
+            self.policies[id].learn_on_batch(agents_batch_data[id])
 
     def get_weight(self):
         weight = {}

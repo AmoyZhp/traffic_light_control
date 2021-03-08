@@ -9,11 +9,12 @@ from hprl.replaybuffer import ReplayBuffer
 
 
 def off_policy_train_fn(
-        env: MultiAgentEnv,
-        policy: Policy,
-        replay_buffer: ReplayBuffer,
-        config: Dict,
-        logger: logging.Logger) -> List[Reward]:
+    env: MultiAgentEnv,
+    policy: Policy,
+    replay_buffer: ReplayBuffer,
+    config: Dict,
+    logger: logging.Logger,
+) -> List[Reward]:
 
     batch_size = config["batch_size"]
 
@@ -57,11 +58,12 @@ def off_policy_train_fn(
 
 
 def on_policy_train_fn(
-        env: MultiAgentEnv,
-        policy: Policy,
-        replay_buffer: ReplayBuffer,
-        config: Dict,
-        logger: logging.Logger):
+    env: MultiAgentEnv,
+    policy: Policy,
+    replay_buffer: ReplayBuffer,
+    config: Dict,
+    logger: logging.Logger,
+):
 
     batch_size = config["batch_size"]
 

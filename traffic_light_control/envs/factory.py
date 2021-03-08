@@ -7,6 +7,7 @@ import cityflow
 import json
 import math
 from envs.enum import Stream, Movement
+import os
 
 CITYFLOW_CONFIG_ROOT_DIR = "cityflow_config/"
 
@@ -34,6 +35,7 @@ def get_default_config_for_multi():
 
 
 def make(config):
+
     return _get_env_by_roadnet(config)
 
 
@@ -52,28 +54,33 @@ def _get_env_by_roadnet(config):
     id_ = _id_shortcut_parased(config["id"])
     cityflow_config_dir = CITYFLOW_CONFIG_ROOT_DIR + id_ + "/"
     cityflow_config_file = cityflow_config_dir + "config.json"
-
-    eng = cityflow.Engine(cityflow_config_file, config["thread_num"])
-    eng.set_save_replay(config["save_replay"])
+    try:
+        eng = cityflow.Engine(cityflow_config_file, config["thread_num"])
+        eng.set_save_replay(config["save_replay"])
+    except Exception as ex:
+        raise ex
 
     roadnet_file = cityflow_config_dir + "roadnet.json"
     flow_file = cityflow_config_dir + "flow.json"
 
-    intersections = _parse_cityflow_file(
-        roadnet_file=roadnet_file,
-        flow_file=flow_file, config_file=cityflow_config_dir, eng=eng)
+    try:
+        intersections = _parse_cityflow_file(roadnet_file=roadnet_file,
+                                             flow_file=flow_file,
+                                             config_file=cityflow_config_dir,
+                                             eng=eng)
+    except Exception as ex:
+        raise ex
 
-    env = TrafficLightCtrlEnv(
-        id_=config["id"],
-        eng=eng, max_time=config["max_time"],
-        interval=config["interval"], intersections=intersections)
+    env = TrafficLightCtrlEnv(id_=config["id"],
+                              eng=eng,
+                              max_time=config["max_time"],
+                              interval=config["interval"],
+                              intersections=intersections)
     return env
 
 
-def _parse_cityflow_file(roadnet_file,
-                         flow_file,
-                         config_file, eng) -> Dict[str, Intersection]:
-
+def _parse_cityflow_file(roadnet_file, flow_file, config_file,
+                         eng) -> Dict[str, Intersection]:
     flow_json = json.load(open(flow_file))
     flow_info = _parase_flow_info(flow_json)
 
@@ -86,27 +93,26 @@ def _parse_cityflow_file(roadnet_file,
     for inter_json in roadnet_json["intersections"]:
         if inter_json['virtual']:
             continue
-
-        roadlinks = _parase_roadlink(inter_json["roadLinks"], roads_info, eng)
-
         phase_plan = _parase_phase_plan(
             inter_json["trafficLight"]["lightphases"])
+        if len(phase_plan) == 1:
+            continue
+        roadlinks = _parase_roadlink(inter_json["roadLinks"], roads_info, eng)
 
         inter_id = inter_json["id"]
 
-        inters[inter_id] = Intersection(
-            id=inter_id, roadlinks=roadlinks, phase_plan=phase_plan)
+        inters[inter_id] = Intersection(id=inter_id,
+                                        roadlinks=roadlinks,
+                                        phase_plan=phase_plan)
     return inters
 
 
 def _parase_flow_info(flow_json):
     flow = {}
     vehicle_json = flow_json[0]["vehicle"]
-    vehicle_proportion = float(
-        vehicle_json["length"]) + float(vehicle_json["minGap"])
-    flow["vehicle"] = {
-        "proportion": vehicle_proportion
-    }
+    vehicle_proportion = float(vehicle_json["length"]) + float(
+        vehicle_json["minGap"])
+    flow["vehicle"] = {"proportion": vehicle_proportion}
 
     return flow
 
@@ -120,13 +126,9 @@ def _parase_roads_info(roads_json):
         y1 = float(points[0]["y"])
         x2 = float(points[1]["x"])
         y2 = float(points[1]["y"])
-        length = math.sqrt(
-            math.pow((x1-x2), 2) + math.pow((y1-y2), 2)
-        )
+        length = math.sqrt(math.pow((x1 - x2), 2) + math.pow((y1 - y2), 2))
 
-        roads_info[id_] = {
-            "length": length
-        }
+        roads_info[id_] = {"length": length}
 
     return roads_info
 
@@ -143,10 +145,7 @@ def _parase_roadlink(roadlinks_json, roads_info, eng):
 
         out_road_id = roadlink_json["startRoad"]
         in_road_id = roadlink_json["endRoad"]
-        roadlinks_temp.append({
-            Stream.OUT: out_road_id,
-            Stream.IN: in_road_id
-        })
+        roadlinks_temp.append({Stream.OUT: out_road_id, Stream.IN: in_road_id})
 
         link_type = Movement(roadlink_json["type"])
         lanelinks = roadlink_json["laneLinks"]
@@ -176,16 +175,8 @@ def _parase_roadlink(roadlinks_json, roads_info, eng):
         out_lanes = roads_lanes_temp[out_id]
         in_lanes = roads_lanes_temp[in_id]
         rlink = {
-            Stream.OUT: Road(
-                id=out_id,
-                lanes=out_lanes,
-                eng=eng
-            ),
-            Stream.IN: Road(
-                id=in_id,
-                lanes=in_lanes,
-                eng=eng
-            )
+            Stream.OUT: Road(id=out_id, lanes=out_lanes, eng=eng),
+            Stream.IN: Road(id=in_id, lanes=in_lanes, eng=eng)
         }
         roadlinks.append(rlink)
     return roadlinks
