@@ -42,7 +42,6 @@ def run():
     env = _make_env(env_config)
 
     agents_id = env.get_agents_id()
-    print(agents_id)
     model_config = {
         "central_state": env.get_central_state_space(),
         "local_state": env.get_local_state_space(),
@@ -267,12 +266,12 @@ def _make_iql_model(config, agents_id):
     print(f"iql model config {config}")
     for id in agents_id:
         acting_net = ICritic(
-            input_space=config["local_state"][id],
-            output_space=config["local_action"][id],
+            input_space=config["local_state"][id][id],
+            output_space=config["local_action"][id][id],
         )
         target_net = ICritic(
-            input_space=config["local_state"][id],
-            output_space=config["local_action"][id],
+            input_space=config["local_state"][id][id],
+            output_space=config["local_action"][id][id],
         )
         models[id] = {
             "acting_net": acting_net,
@@ -284,12 +283,12 @@ def _make_iql_model(config, agents_id):
 def _make_iql_ps_model(config, agents_id):
     models = {}
     acting_net = ICritic(
-        input_space=config["local_state"],
-        output_space=config["local_action"],
+        input_space=config["local_state"][id],
+        output_space=config["local_action"][id],
     )
     target_net = ICritic(
-        input_space=config["local_state"],
-        output_space=config["local_action"],
+        input_space=config["local_state"][id],
+        output_space=config["local_action"][id],
     )
     for id in agents_id:
         models[id] = {
@@ -303,18 +302,18 @@ def _make_ac_model(config, agents_id):
     models = {}
     for id in agents_id:
         critic_net = ICritic(
-            input_space=config["local_state"],
-            output_space=config["local_action"],
+            input_space=config["local_state"][id],
+            output_space=config["local_action"][id],
         )
 
         critic_target_net = ICritic(
-            input_space=config["local_state"],
-            output_space=config["local_action"],
+            input_space=config["local_state"][id],
+            output_space=config["local_action"][id],
         )
 
         actor_net = IActor(
-            input_space=config["local_state"],
-            output_space=config["local_action"],
+            input_space=config["local_state"][id],
+            output_space=config["local_action"][id],
         )
 
         models[id] = {
@@ -328,18 +327,18 @@ def _make_ac_model(config, agents_id):
 def _make_ppo_ps_model(config, agents_id):
     models = {}
     critic_net = ICritic(
-        input_space=config["local_state"],
-        output_space=config["local_action"],
+        input_space=config["local_state"][id],
+        output_space=config["local_action"][id],
     )
 
     critic_target_net = ICritic(
-        input_space=config["local_state"],
-        output_space=config["local_action"],
+        input_space=config["local_state"][id],
+        output_space=config["local_action"][id],
     )
 
     actor_net = IActor(
-        input_space=config["local_state"],
-        output_space=config["local_action"],
+        input_space=config["local_state"][id],
+        output_space=config["local_action"][id],
     )
     for id in agents_id:
         models[id] = {
@@ -355,12 +354,12 @@ def _make_vdn_model(config, agents_id):
     target_nets = {}
     for id in agents_id:
         acting_nets[id] = ICritic(
-            input_space=config["local_state"],
-            output_space=config["local_action"],
+            input_space=config["local_state"][id],
+            output_space=config["local_action"][id],
         )
         target_nets[id] = ICritic(
-            input_space=config["local_state"],
-            output_space=config["local_action"],
+            input_space=config["local_state"][id],
+            output_space=config["local_action"][id],
         )
     model = {
         "acting_nets": acting_nets,
@@ -370,14 +369,16 @@ def _make_vdn_model(config, agents_id):
 
 
 def _make_coma_model(config, agents_id):
-    critic_input_space = (config["central_state"] + config["local_state"] +
+    critic_input_space = (config["central_state"] + config["local_state"][id] +
                           len(agents_id) +
-                          len(agents_id) * config["local_action"])
-    critic_net = COMACritic(critic_input_space, config["local_action"])
-    target_critic_net = COMACritic(critic_input_space, config["local_action"])
+                          len(agents_id) * config["local_action"][id])
+    critic_net = COMACritic(critic_input_space, config["local_action"][id])
+    target_critic_net = COMACritic(critic_input_space,
+                                   config["local_action"][id])
     actors_net = {}
     for id in agents_id:
-        actors_net[id] = IActor(config["local_state"], config["local_action"])
+        actors_net[id] = IActor(config["local_state"][id],
+                                config["local_action"][id])
     model = {
         "critic_net": critic_net,
         "target_critic_net": target_critic_net,
