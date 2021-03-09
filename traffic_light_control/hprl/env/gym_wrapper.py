@@ -43,3 +43,6 @@ class GymWrapper(MultiAgentEnv):
 
     def get_central_state_space(self):
         ...
+
+    def get_env_name(self):
+        ...

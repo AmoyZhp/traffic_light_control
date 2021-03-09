@@ -5,11 +5,8 @@ from hprl.util.typing import Action, Reward, State, Terminal
 
 
 class MultiAgentEnv(metaclass=abc.ABCMeta):
-
     @abc.abstractmethod
-    def step(self,
-             actions: Action
-             ) -> Tuple[State, Reward, Terminal, Dict]:
+    def step(self, actions: Action) -> Tuple[State, Reward, Terminal, Dict]:
         ...
 
     @abc.abstractmethod
@@ -34,4 +31,8 @@ class MultiAgentEnv(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_local_state_space(self):
+        ...
+
+    @abc.abstractmethod
+    def get_env_name(self):
         ...

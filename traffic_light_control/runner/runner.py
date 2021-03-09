@@ -137,8 +137,14 @@ def _train(args, env, models):
     logger.info("===== ===== =====")
 
 
-def _get_trainer_config(args, action_space, state_space, checkpoint_dir,
-                        record_base_dir, log_dir):
+def _get_trainer_config(
+    args,
+    action_space,
+    state_space,
+    checkpoint_dir,
+    record_base_dir,
+    log_dir,
+):
     capacity = CAPACITY
     learning_rate = LERNING_RATE
     batch_size = args.batch_size

@@ -205,6 +205,7 @@ class PPO(Policy):
             "state_space": self.state_space,
             "clip_param": self.clip_param,
             "inner_epoch": self.inner_epoch,
+            "advantage_type": self.advantage_type,
         }
         return config
 

@@ -6,8 +6,12 @@ from envs.enum import Movement
 
 
 class Road():
-    def __init__(self, id: str, lanes: Dict[Movement, List[Lane]],
-                 eng: cityflow.Engine) -> None:
+    def __init__(
+        self,
+        id: str,
+        lanes: Dict[Movement, List[Lane]],
+        eng: cityflow.Engine,
+    ) -> None:
         self.id = id
         self.eng = eng
         self.lanes = lanes

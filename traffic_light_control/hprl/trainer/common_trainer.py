@@ -45,7 +45,7 @@ class CommonTrainer(Trainer):
         self.logger.setLevel(logging.INFO)
         self.log_dir = log_dir
         if log_dir is not None:
-            file_handler = logging.FileHandler(f"{log_dir}/running_info.log")
+            file_handler = logging.FileHandler(f"{log_dir}/{__name__}.log")
             formatter = logging.Formatter(
                 '%(asctime)s - %(levelname)s - %(message)s')
             file_handler.setFormatter(formatter)
@@ -75,6 +75,7 @@ class CommonTrainer(Trainer):
                 data=self.get_checkpoint(),
                 iteration=self.cumulative_train_iteration,
             )
+            self.log_records(self.log_dir)
             self.logger.info(
                 "========= train episode {} end   =========".format(
                     self.cumulative_train_iteration))
@@ -130,6 +131,15 @@ class CommonTrainer(Trainer):
 
         self.train_records = records["train_records"]
         self.eval_records = records["eval_records"]
+
+    def get_config(self):
+        config = {
+            "type": self.type,
+            "policy": self.policy.get_config(),
+            "buffer": self.replay_buffer.get_config(),
+            "executing": self.config,
+        }
+        return config
 
     def get_checkpoint(self):
         self.config["trained_iteration"] = self.cumulative_train_iteration
@@ -189,15 +199,6 @@ class CommonTrainer(Trainer):
 
         with open(config_path, "w") as f:
             json.dump(config, f, cls=EnumEncoder)
-
-    def get_config(self):
-        config = {
-            "type": self.type,
-            "policy": self.policy.get_config(),
-            "buffer": self.replay_buffer.get_config(),
-            "executing": self.config,
-        }
-        return config
 
     def _log_record(self, log_dir: str):
         record_file = f"{log_dir}/records.txt"
