@@ -24,7 +24,9 @@ class Road():
             for lane in directed_lanes:
                 self.stream_capacity[direction] += lane.get_capacity()
         # each dim reprensent one movement
-        self.state_space = 3
+        self.state_space = 0
+        for mov in Movement:
+            self.state_space += len(self.lanes[mov])
 
     def get_capacity(self, streamDir: Movement) -> int:
         if streamDir not in self.lanes.keys():
@@ -59,18 +61,24 @@ class Road():
         return self.state_space
 
     def to_tensor(self) -> np.ndarray:
-        tensor = np.zeros(3)
-        dire = Movement.LEFT
-        tensor[0] = (0 if self.get_capacity(dire) == 0 else
-                     self.get_vehicles(dire) / self.get_capacity(dire))
+        tensor = np.zeros(self.state_space)
+        cnt = 0
+        for mov in Movement:
+            lanes = self.lanes[mov]
+            for lane in lanes:
+                tensor[cnt] = lane.get_vehicles() / lane.get_capacity()
+                cnt += 1
+        # dire = Movement.LEFT
+        # tensor[0] = (0 if self.get_capacity(dire) == 0 else
+        #              self.get_vehicles(dire) / self.get_capacity(dire))
 
-        dire = Movement.STRAIGHT
-        tensor[1] = (0 if self.get_capacity(dire) == 0 else
-                     self.get_vehicles(dire) / self.get_capacity(dire))
+        # dire = Movement.STRAIGHT
+        # tensor[1] = (0 if self.get_capacity(dire) == 0 else
+        #              self.get_vehicles(dire) / self.get_capacity(dire))
 
-        dire = Movement.RIGHT
-        tensor[2] = (0 if self.get_capacity(dire) == 0 else
-                     self.get_vehicles(dire) / self.get_capacity(dire))
+        # dire = Movement.RIGHT
+        # tensor[2] = (0 if self.get_capacity(dire) == 0 else
+        #              self.get_vehicles(dire) / self.get_capacity(dire))
         return tensor
 
     def __repr__(self) -> str:
