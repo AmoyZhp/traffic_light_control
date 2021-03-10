@@ -104,3 +104,6 @@ class TrafficLightCtrlEnv(hprl.MultiAgentEnv):
 
     def get_agents_id(self) -> List[str]:
         return self.intersections_id
+
+    def get_env_name(self):
+        return self.id_

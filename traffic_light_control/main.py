@@ -8,7 +8,8 @@ def main():
 
 
 def static_test():
-    path = "cityflow_config/{}/config.json".format("LA_1x4")
+    path = "cityflow_config/{}/config.json".format(
+        "hangzhou_1x1_bc-tyc_18041607_1h")
     max_time = 360
     eng = cityflow.Engine(path, thread_num=1)
     eng.set_save_replay(True)

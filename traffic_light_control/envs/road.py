@@ -25,8 +25,8 @@ class Road():
                 self.stream_capacity[direction] += lane.get_capacity()
         # each dim reprensent one movement
         self.state_space = 0
-        for mov in Movement:
-            self.state_space += len(self.lanes[mov])
+        for lane in self.lanes.values():
+            self.state_space += len(lane)
 
     def get_capacity(self, streamDir: Movement) -> int:
         if streamDir not in self.lanes.keys():
@@ -64,7 +64,9 @@ class Road():
         tensor = np.zeros(self.state_space)
         cnt = 0
         for mov in Movement:
-            lanes = self.lanes[mov]
+            lanes = self.lanes.get(mov)
+            if lanes is None:
+                continue
             for lane in lanes:
                 tensor[cnt] = lane.get_vehicles() / lane.get_capacity()
                 cnt += 1
