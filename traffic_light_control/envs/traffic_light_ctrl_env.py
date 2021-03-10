@@ -10,14 +10,14 @@ class TrafficLightCtrlEnv(hprl.MultiAgentEnv):
     def __init__(
         self,
         eng,
-        id_: str,
+        name: str,
         max_time: int,
         interval: int,
         intersections: Dict[str, Intersection],
     ):
         super().__init__()
         self.eng = eng
-        self.id_ = id_
+        self.name = name
         self.intersections = intersections
         self.intersections_id = sorted(list(self.intersections.keys()))
         self.interval = interval
@@ -63,9 +63,9 @@ class TrafficLightCtrlEnv(hprl.MultiAgentEnv):
 
         state = {}
         central_state = []
-        for id_ in self.intersections_id:
-            item = self.intersections[id_]
-            state[id_] = item.to_tensor()
+        for id in self.intersections_id:
+            item = self.intersections[id]
+            state[id] = item.to_tensor()
             central_state.append(item.to_tensor())
         central_state = np.hstack(central_state)
 
@@ -104,3 +104,6 @@ class TrafficLightCtrlEnv(hprl.MultiAgentEnv):
 
     def get_agents_id(self) -> List[str]:
         return self.intersections_id
+
+    def get_env_name(self):
+        return self.name

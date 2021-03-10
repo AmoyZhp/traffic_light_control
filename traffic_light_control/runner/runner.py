@@ -272,12 +272,12 @@ def _make_iql_model(config, agents_id):
     print(f"iql model config {config}")
     for id in agents_id:
         acting_net = ICritic(
-            input_space=config["local_state"][id][id],
-            output_space=config["local_action"][id][id],
+            input_space=config["local_state"][id],
+            output_space=config["local_action"][id],
         )
         target_net = ICritic(
-            input_space=config["local_state"][id][id],
-            output_space=config["local_action"][id][id],
+            input_space=config["local_state"][id],
+            output_space=config["local_action"][id],
         )
         models[id] = {
             "acting_net": acting_net,

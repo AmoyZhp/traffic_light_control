@@ -71,11 +71,13 @@ def _get_env_by_roadnet(config):
     except Exception as ex:
         raise ex
 
-    env = TrafficLightCtrlEnv(id_=config["id"],
-                              eng=eng,
-                              max_time=config["max_time"],
-                              interval=config["interval"],
-                              intersections=intersections)
+    env = TrafficLightCtrlEnv(
+        name=config["id"],
+        eng=eng,
+        max_time=config["max_time"],
+        interval=config["interval"],
+        intersections=intersections,
+    )
     return env
 
 
@@ -151,15 +153,21 @@ def _parase_roadlink(roadlinks_json, roads_info, eng):
         lanelinks = roadlink_json["laneLinks"]
         out_lanes = []
         in_lanes = []
+        out_lane_ids = []
+        in_lane_ids = []
         for lane_json in lanelinks:
             start_index = lane_json["startLaneIndex"]
             end_index = lane_json["endLaneIndex"]
             out_lane_id = "{}_{}".format(out_road_id, start_index)
             in_lane_id = "{}_{}".format(in_road_id, end_index)
-            out_lanes.append(
-                Lane(out_lane_id, roads_info[out_road_id]["capacity"]))
-            in_lanes.append(
-                Lane(in_lane_id, roads_info[in_road_id]["capacity"]))
+            if out_lane_id not in out_lane_ids:
+                out_lane_ids.append(out_lane_id)
+                out_lanes.append(
+                    Lane(out_lane_id, roads_info[out_road_id]["capacity"]))
+            if in_lane_id not in in_lane_ids:
+                in_lane_ids.append(in_lane_id)
+                in_lanes.append(
+                    Lane(in_lane_id, roads_info[in_road_id]["capacity"]))
 
         if out_road_id not in roads_lanes_temp.keys():
             roads_lanes_temp[out_road_id] = {}
