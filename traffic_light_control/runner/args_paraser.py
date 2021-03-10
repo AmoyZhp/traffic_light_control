@@ -1,6 +1,18 @@
 import argparse
 import hprl
 
+# Agent Setting
+CAPACITY = 200000
+CRITIC_LR = 1e-4
+ACTOR_LR = 1e-4
+DISCOUNT_FACTOR = 0.99
+EPS_INIT = 1.0
+EPS_MIN = 0.01
+EPS_FRAME = 300000
+UPDATE_PERIOD = 1000
+INNER_EPOCH = 32
+CLIP_PARAM = 0.2
+
 
 def args_validity_check(args):
     mode = args.mode
@@ -100,5 +112,57 @@ def create_paraser():
                         type=str,
                         default=None,
                         help="name of checkpoint file")
+    parser.add_argument(
+        "--update_period",
+        type=int,
+        default=UPDATE_PERIOD,
+        help="update peirod of dqn",
+    )
+
+    parser.add_argument(
+        "--inner_epoch",
+        type=int,
+        default=INNER_EPOCH,
+        help="inner train epoch of ppo",
+    )
+
+    parser.add_argument(
+        "--critic_lr",
+        type=float,
+        default=CRITIC_LR,
+        help="learning rate of critic net work",
+    )
+
+    parser.add_argument(
+        "--actor_lr",
+        type=float,
+        default=ACTOR_LR,
+        help="learning rate of actor",
+    )
+
+    parser.add_argument(
+        "--capacity",
+        type=int,
+        default=CAPACITY,
+        help="capacity of replay buffer",
+    )
+    parser.add_argument(
+        "--clip_param",
+        type=float,
+        default=CLIP_PARAM,
+        help="clip param of ppo",
+    )
+    parser.add_argument(
+        "--eps_frame",
+        type=int,
+        default=EPS_FRAME,
+        help="framed has be taken to eps min",
+    )
+    parser.add_argument(
+        "--gamma",
+        type=float,
+        default=DISCOUNT_FACTOR,
+        help="discount factor of rl",
+    )
 
     return parser

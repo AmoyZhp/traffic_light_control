@@ -1,6 +1,9 @@
 import datetime
 import os
 import logging
+import time
+
+from torch import cos_
 import hprl
 import envs
 from runner.nets import IActor, ICritic, COMACritic
@@ -124,6 +127,7 @@ def _train(args, env, models):
 
     eval_episode = args.eval_episodes
     trained_time = 0
+    begin_time = time.time()
 
     while trained_time < episode:
         trainer_ep = min(eval_frequency, episode - trained_time)
@@ -134,6 +138,8 @@ def _train(args, env, models):
     trainer.eval(eval_episode)
     trainer.log_records(log_dir)
     trainer.save_checkpoint(ckpt_dir, "ckpt_ending.pth")
+    cost_time = (time.time() - begin_time) / 3600
+    logger.info("total time cost {:.3f} h ".format(cost_time))
     logger.info("train end")
     logger.info("===== ===== =====")
 
@@ -146,18 +152,22 @@ def _get_trainer_config(
     record_base_dir,
     log_dir,
 ):
-    capacity = CAPACITY
-    learning_rate = LERNING_RATE
+    capacity = args.capacity
+    critic_lr = args.critic_lr
+    actor_lr = args.actor_lr
     batch_size = args.batch_size
-    discount_factor = DISCOUNT_FACTOR
+    discount_factor = args.gamma
     eps_init = EPS_INIT
     eps_min = EPS_MIN
-    eps_frame = EPS_FRAME
-    update_period = UPDATE_PERIOD
+    eps_frame = args.eps_frame
+    update_period = args.update_period
+    inner_epoch = args.inner_epoch
+    clip_param = args.clip_param
     action_space = action_space
     state_space = state_space
     policy_config = {
-        "learning_rate": learning_rate,
+        "critic_lr": critic_lr,
+        "actor_lr": actor_lr,
         "discount_factor": discount_factor,
         "update_period": update_period,
         "action_space": action_space,
@@ -165,8 +175,8 @@ def _get_trainer_config(
         "eps_frame": eps_frame,
         "eps_init": eps_init,
         "eps_min": eps_min,
-        "inner_epoch": INNER_EPOCH,
-        "clip_param": CLIP_PARAM,
+        "inner_epoch": inner_epoch,
+        "clip_param": clip_param,
         "advantage_type": ADVANTAGE_TYPE,
     }
     buffer_config = {

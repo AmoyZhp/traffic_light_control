@@ -18,7 +18,8 @@ class PPO(Policy):
         critic_target_net: nn.Module,
         actor_net: nn.Module,
         inner_epoch: int,
-        learning_rate: float,
+        critic_lr: float,
+        actor_lr: float,
         discount_factor: float,
         update_period: int,
         action_space,
@@ -40,13 +41,12 @@ class PPO(Policy):
         self.critic_target_net.to(self.device)
         self.actor_net.to(self.device)
 
-        self.critic_optim = optim.Adam(self.critic_net.parameters(),
-                                       learning_rate)
-        self.actor_optim = optim.Adam(self.actor_net.parameters(),
-                                      learning_rate)
+        self.critic_optim = optim.Adam(self.critic_net.parameters(), critic_lr)
+        self.actor_optim = optim.Adam(self.actor_net.parameters(), actor_lr)
 
         self.discount_factor = discount_factor
-        self.learning_rate = learning_rate
+        self.critic_lr = critic_lr
+        self.actor_lr = actor_lr
         self.action_space = action_space
         self.state_space = state_space
         self.update_count = 0
@@ -198,7 +198,7 @@ class PPO(Policy):
 
     def get_config(self):
         config = {
-            "learning_rate": self.learning_rate,
+            "learning_rate": self.critic_lr,
             "discount_factor": self.discount_factor,
             "update_period": self.update_period,
             "action_space": self.action_space,

@@ -19,7 +19,8 @@ class COMA(Policy):
                  critic_net: nn.Module,
                  critic_target_net: nn.Module,
                  actors_net: Dict[str, nn.Module],
-                 learning_rate: float,
+                 critic_lr: float,
+                 actor_lr: float,
                  discount_factor: float,
                  update_period: int,
                  clip_param: float,
@@ -50,16 +51,16 @@ class COMA(Policy):
         for net in self.actors_net.values():
             net.to(self.device)
 
-        self.critic_optim = optim.Adam(self.critic_net.parameters(),
-                                       learning_rate)
+        self.critic_lr = critic_lr
+        self.actor_lr = actor_lr
+        self.critic_optim = optim.Adam(self.critic_net.parameters(), critic_lr)
         self.actors_optim = {}
         for id in self.agents_id:
             self.actors_optim[id] = optim.Adam(
-                self.actors_net[id].parameters(), learning_rate)
+                self.actors_net[id].parameters(), actor_lr)
 
         self.discount_factor = discount_factor
         self.update_period = update_period
-        self.learning_rate = learning_rate
         self.clip_param = clip_param
         self.inner_epoch = inner_epoch
         self.local_s_space = local_state_space
@@ -304,7 +305,7 @@ class COMA(Policy):
 
     def get_config(self):
         config = {
-            "learning_rate": self.learning_rate,
+            "learning_rate": self.critic_lr,
             "discount_factor": self.discount_factor,
             "update_period": self.update_period,
             "local_action_space": self.local_a_space,

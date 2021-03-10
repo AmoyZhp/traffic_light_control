@@ -1,5 +1,4 @@
 from hprl.util.typing import Action
-from trainer.independent_traffic_trainer import ACTION_SPACE
 from envs.intersection import Intersection
 from typing import Dict, List, Tuple
 import hprl
@@ -7,6 +6,9 @@ import numpy as np
 
 
 class TrafficLightCtrlEnv(hprl.MultiAgentEnv):
+
+    ACTION_SPACE = 2
+
     def __init__(
         self,
         eng,
@@ -24,14 +26,15 @@ class TrafficLightCtrlEnv(hprl.MultiAgentEnv):
         self.max_time = max_time
         self.time = 0
         self.central_state_space = 0
-        self.central_action_space = len(self.intersections_id) * ACTION_SPACE
+        self.central_action_space = len(
+            self.intersections_id) * self.ACTION_SPACE
         self.local_action_space = {}
         self.local_state_space = {}
         for id in self.intersections_id:
             s_space = self.intersections[id].get_state_space()
             self.central_state_space += s_space
             self.local_state_space[id] = s_space
-            self.local_action_space[id] = ACTION_SPACE
+            self.local_action_space[id] = self.ACTION_SPACE
 
     def step(
         self, action: hprl.Action

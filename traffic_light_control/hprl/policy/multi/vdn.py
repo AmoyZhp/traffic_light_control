@@ -12,7 +12,7 @@ class VDN(Policy):
                  agents_id: List[str],
                  acting_nets: Dict[str, nn.Module],
                  target_nets: Dict[str, nn.Module],
-                 learning_rate: int,
+                 critic_lr: int,
                  discount_factor: float,
                  update_period: int,
                  action_space,
@@ -35,10 +35,10 @@ class VDN(Policy):
         self.acting_nets = acting_nets
         self.target_nets = target_nets
 
-        self.optimizer = optim.Adam(params, learning_rate)
+        self.optimizer = optim.Adam(params, critic_lr)
         self.loss_func = nn.MSELoss()
         self.update_count = 0
-        self.learning_rate = learning_rate
+        self.critic_lr = critic_lr
         self.discount_factor = discount_factor
         self.update_period = update_period
         self.action_space = action_space
@@ -135,7 +135,7 @@ class VDN(Policy):
 
     def get_config(self):
         config = {
-            "learning_rate": self.learning_rate,
+            "learning_rate": self.critic_lr,
             "discount_factor": self.discount_factor,
             "update_period": self.update_period,
             "action_space": self.action_space,
