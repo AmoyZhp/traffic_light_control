@@ -19,16 +19,17 @@ class Intersection():
         self.current_phase_index = init_phase_index
         self.roadlinks = roadlinks
         self.roads = {}
+
+        self.state_space = 0
         for rlink in self.roadlinks:
             for road in rlink.values():
+
+                self.state_space += road.get_state_space()
                 if road.id not in self.roads:
                     self.roads[road.id] = road
         # first phase space is current phase
         # second belong to next phase
-        self.state_space = 0
         self.phase_space = len(self.roadlinks)
-        for road in self.roads.values():
-            self.state_space += road.get_state_space()
         self.state_space += 2 * self.phase_space
 
     def get_state_space(self):
@@ -94,9 +95,11 @@ class Intersection():
 
     def to_tensor(self) -> np.ndarray:
         tensor = np.array([], dtype=np.float)
-        for id_ in sorted(self.roads.keys()):
-            road = self.roads[id_]
-            tensor = np.hstack((tensor, road.to_tensor()))
+        for rlink in self.roadlinks:
+            in_road = rlink[Stream.IN]
+            tensor = np.hstack((tensor, in_road.to_tensor()))
+            out_road = rlink[Stream.OUT]
+            tensor = np.hstack((tensor, out_road.to_tensor()))
 
         current_phase = self.phase_plan[self.current_phase_index]
 
