@@ -48,6 +48,7 @@ def run():
         "central_action": env.get_central_action_space(),
         "local_action": env.get_local_action_space(),
     }
+    print(model_config)
     models = _make_model(
         hprl.TrainnerTypes(args.trainer),
         model_config,
