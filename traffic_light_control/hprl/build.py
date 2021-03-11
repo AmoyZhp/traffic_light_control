@@ -108,7 +108,7 @@ def _create_iql(config, models, agents_id):
         inner_p = DQN(
             acting_net=model["acting_net"],
             target_net=model["target_net"],
-            learning_rate=config["critic_lr"],
+            critic_lr=config["critic_lr"],
             discount_factor=config["discount_factor"],
             update_period=config["update_period"],
             action_space=config["action_space"][id_],

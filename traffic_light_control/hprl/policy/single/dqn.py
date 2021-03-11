@@ -14,7 +14,7 @@ class DQN(Policy):
         self,
         acting_net: nn.Module,
         target_net: nn.Module,
-        learning_rate: int,
+        critic_lr: int,
         discount_factor: float,
         update_period: int,
         action_space,
@@ -35,11 +35,10 @@ class DQN(Policy):
         self.target_net.to(self.device)
         self.acting_net.to(self.device)
 
-        self.optimizer = optim.Adam(self.acting_net.parameters(),
-                                    learning_rate)
+        self.optimizer = optim.Adam(self.acting_net.parameters(), critic_lr)
         self.loss_func = nn.MSELoss()
         self.update_count = 0
-        self.learning_rate = learning_rate
+        self.critic_lr = critic_lr
         self.discount_factor = discount_factor
         self.update_period = update_period
         self.action_space = action_space
@@ -128,7 +127,7 @@ class DQN(Policy):
 
     def get_config(self):
         config = {
-            "learning_rate": self.learning_rate,
+            "critic_lr": self.critic_lr,
             "discount_factor": self.discount_factor,
             "update_period": self.update_period,
             "action_space": self.action_space,

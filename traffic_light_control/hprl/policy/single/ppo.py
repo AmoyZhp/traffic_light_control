@@ -198,7 +198,8 @@ class PPO(Policy):
 
     def get_config(self):
         config = {
-            "learning_rate": self.critic_lr,
+            "critic_lr": self.critic_lr,
+            "actor_lr": self.actor_lr,
             "discount_factor": self.discount_factor,
             "update_period": self.update_period,
             "action_space": self.action_space,

@@ -305,7 +305,8 @@ class COMA(Policy):
 
     def get_config(self):
         config = {
-            "learning_rate": self.critic_lr,
+            "critic_lr": self.critic_lr,
+            "actor": self.actor_lr,
             "discount_factor": self.discount_factor,
             "update_period": self.update_period,
             "local_action_space": self.local_a_space,
