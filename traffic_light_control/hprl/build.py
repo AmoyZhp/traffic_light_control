@@ -33,7 +33,7 @@ def build_trainer(config: Dict,
     buffer_config = config["buffer"]
     policy_config = config["policy"]
     executing_config = config["executing"]
-    if trainer_type == TrainnerTypes.IQL_PER:
+    if trainer_type == TrainnerTypes.IQL_PER or trainer_type == TrainnerTypes.IQL:
         trainer = build_iql_trainer(config, env, models)
     else:
         if replay_buffer is None:

@@ -43,7 +43,7 @@ class CommonBuffer(ReplayBuffer):
         return len(self.buffer)
 
 
-class SingleAgentCommBuffer(SingleAgentReplayBuffer):
+class SingleAgentCommnBuffer(SingleAgentReplayBuffer):
     def __init__(self, capacity: int):
         self.type = ReplayBufferTypes.Common
         self.capacity = capacity
@@ -54,7 +54,7 @@ class SingleAgentCommBuffer(SingleAgentReplayBuffer):
 
     def sample(self, batch_size: int, beta: float = None) -> SampleBatch:
         if batch_size > len(self.buffer):
-            return []
+            return None
         trans = random.sample(self.buffer, batch_size)
         return SampleBatch(transitions=trans)
 

@@ -39,6 +39,45 @@ def off_policy_train_fn(
 
         learn_begin = time.time()
         sample_data = replay_buffer_sample(buffers, batch_size, beta)
+        policy_learn(policies, sample_data)
+        learn_cost += time.time() - learn_begin
+
+        record.append_reward(r)
+        record.append_info(info)
+
+        if done.central:
+            logger.info("simulation time cost : {:.3f}s".format(sim_cost))
+            logger.info("learning time cost : {:.3f}s".format(learn_cost))
+            break
+    return record
+
+
+def off_policy_per_train_fn(
+    env: MultiAgentEnv,
+    policies: Dict[str, SingleAgentPolicy],
+    buffers: Dict[str, SingleAgentReplayBuffer],
+    config: ExecutingConfig,
+    logger: logging.Logger,
+):
+    batch_size = config["batch_size"]
+    beta = config["per_beta"]
+
+    sim_cost = 0.0
+    learn_cost = 0.0
+
+    state = env.reset()
+    record = TrainingRecord()
+    while True:
+        action = compute_action(policies, state)
+
+        sim_begin = time.time()
+        next_s, r, done, info = env.step(action)
+        sim_cost += time.time() - sim_begin
+
+        replay_buffer_store(buffers, state, action, r, next_s, done)
+
+        learn_begin = time.time()
+        sample_data = replay_buffer_sample(buffers, batch_size, beta)
         priorities = policy_learn(policies, sample_data)
         idxes = {}
         for id, element in sample_data.items():
