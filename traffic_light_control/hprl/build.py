@@ -33,7 +33,7 @@ def build_trainer(config: Dict,
     buffer_config = config["buffer"]
     policy_config = config["policy"]
     executing_config = config["executing"]
-    if trainer_type == TrainnerTypes.IQL_PER or trainer_type == TrainnerTypes.IQL:
+    if trainer_type == TrainnerTypes.IQL_PER:
         trainer = build_iql_trainer(config, env, models)
     else:
         if replay_buffer is None:
@@ -49,7 +49,7 @@ def build_trainer(config: Dict,
 
         checkpointer = build_checkpointer(
             executing_config["checkpoint_dir"],
-            executing_config["check_frequency"],
+            executing_config["ckpt_frequency"],
         )
 
         trainer = CommonTrainer(

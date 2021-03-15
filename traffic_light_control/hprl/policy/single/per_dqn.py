@@ -35,6 +35,7 @@ def build_iql_trainer(
     buffers = {}
     capacity = buffer_config["capacity"]
     train_fn = None
+    logger.info("replay buffer type is {}".format(buffer_type))
     if buffer_type == ReplayBufferTypes.Prioritized:
         alpha = buffer_config["alpha"]
         train_fn = off_policy_per_train_fn

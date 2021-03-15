@@ -66,7 +66,7 @@ class CommonTrainer(Trainer):
                                            self.logger)
             self.cumulative_train_iteration += 1
 
-            record = TrainingRecord(rewards, infos)
+            record = TrainingRecord(rewards=rewards, infos=infos, episode=ep)
             self.train_records[self.cumulative_train_iteration] = record
 
             self.log_record_fn(record, self.logger)
@@ -75,7 +75,7 @@ class CommonTrainer(Trainer):
                 data=self.get_checkpoint(),
                 iteration=self.cumulative_train_iteration,
             )
-            self.log_records(self.log_dir)
+            self.save_records(self.log_dir)
             self.logger.info(
                 "========= train episode {} end   =========".format(
                     self.cumulative_train_iteration))
@@ -109,7 +109,7 @@ class CommonTrainer(Trainer):
                 if done.central:
                     break
 
-            record = TrainingRecord(rewards, infos)
+            record = TrainingRecord(rewards=rewards, infos=infos, episode=ep)
             eval_records[ep] = record
             self.log_record_fn(record, self.logger)
 
@@ -174,7 +174,7 @@ class CommonTrainer(Trainer):
         else:
             checkpointer.save(checkpoint, filename)
 
-    def log_records(self, log_dir: str):
+    def save_records(self, log_dir: str):
         self._log_train_culumative_reward(log_dir)
         self._log_train_avg_reward(log_dir)
         self._log_eval_avg_reward(log_dir)
@@ -187,7 +187,7 @@ class CommonTrainer(Trainer):
             "eval": self.eval_records,
         }
 
-    def log_config(self, log_dir: str):
+    def save_config(self, log_dir: str):
         config = self.get_config()
         config_path = f"{log_dir}/init_config.json"
 

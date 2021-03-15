@@ -54,8 +54,9 @@ class PrioritizedReplayBuffer(SingleAgentReplayBuffer):
     def update_priorities(self, idxes: List[int], priorities: List[float]):
         assert len(idxes) == len(priorities)
         for idx, priority in zip(idxes, priorities):
-            self._sum_tree[idx] = priority**self._alpha
-            self._min_tree[idx] = priority**self._alpha
+            # plus to prevent from being zero
+            self._sum_tree[idx] = priority**self._alpha + 1e-8
+            self._min_tree[idx] = priority**self._alpha + 1e-8
             self._max_priority = max(priority, self._max_priority)
 
     def get_weight(self):

@@ -73,7 +73,7 @@ def create_paraser():
 
     parser.add_argument("--replay_buffer",
                         type=str,
-                        default="PER",
+                        default="Common",
                         help="type of replay buffer chosen ")
 
     parser.add_argument("--eval_episodes",

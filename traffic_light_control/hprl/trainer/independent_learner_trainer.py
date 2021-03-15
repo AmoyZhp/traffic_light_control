@@ -22,7 +22,6 @@ def off_policy_train_fn(
 ):
     batch_size = config["batch_size"]
     beta = config["per_beta"]
-
     sim_cost = 0.0
     learn_cost = 0.0
 
@@ -190,9 +189,9 @@ class IndependentLearnerTrainer(Trainer):
             self.recorder.print_record(record, logger)
             if (ckpt_frequency != 0
                     and self.trained_iteration % ckpt_frequency == 0):
-                self.recorder.save_ckpt(
+                self.recorder.write_ckpt(
                     ckpt=self.get_checkpoint(),
-                    filename=f"ckpt_{self.trained_iteration}",
+                    filename=f"ckpt_{self.trained_iteration}.pth",
                 )
                 self.recorder.write_records()
             logger.info("========= train episode {} end   =========".format(
