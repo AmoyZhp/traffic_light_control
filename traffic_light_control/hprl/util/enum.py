@@ -1,4 +1,5 @@
 from enum import Enum, auto
+from hprl.replaybuffer.prioritized_replay_buffer import PrioritizedReplayBuffer
 
 
 class TrainnerTypes(Enum):
@@ -9,10 +10,12 @@ class TrainnerTypes(Enum):
     COMA = "COMA"
     IQL_PS = "IQL_PS"
     PPO_PS = "PPO_PS"
+    IQL_PER = "IQL_PER"
 
 
 class ReplayBufferTypes(Enum):
     Common = "Common"
+    Prioritized = "PER"
 
 
 class AdvantageTypes(Enum):

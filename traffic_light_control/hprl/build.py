@@ -1,3 +1,7 @@
+from hprl.policy.decorator.epsilon_greedy import SingleEpsilonGreedy
+from hprl.recorder.torch_recorder import TorchRecorder
+from hprl.policy.single.per_dqn import PERDQN, build_iql_trainer
+from hprl.replaybuffer.prioritized_replay_buffer import PrioritizedReplayBuffer
 import logging
 from typing import Dict, List
 
@@ -9,7 +13,7 @@ from hprl.policy import IndependentLearner, EpsilonGreedy
 from hprl.policy import MultiAgentEpsilonGreedy
 from hprl.policy import COMA, VDN
 from hprl.replaybuffer import ReplayBuffer, CommonBuffer
-from hprl.trainer import Trainer, CommonTrainer
+from hprl.trainer import Trainer, CommonTrainer, IndependentLearnerTrainer
 from hprl.util.checkpointer import Checkpointer
 from hprl.util.enum import AdvantageTypes, ReplayBufferTypes, TrainnerTypes
 from hprl.util.support_fn import off_policy_train_fn, on_policy_train_fn
@@ -25,49 +29,59 @@ def build_trainer(config: Dict,
                   policy: Policy = None,
                   log_record_fn=None) -> Trainer:
 
-    trainner_type = config["type"]
+    trainer_type = config["type"]
     buffer_config = config["buffer"]
     policy_config = config["policy"]
     executing_config = config["executing"]
+    if trainer_type == TrainnerTypes.IQL_PER:
+        trainer = build_iql_trainer(config, env, models)
+    else:
+        if replay_buffer is None:
+            replay_buffer = build_replay_buffer(buffer_config["type"],
+                                                buffer_config)
+        if policy is None:
+            agents_id = env.get_agents_id()
+            policy, train_fn = build_policy(trainer_type, agents_id,
+                                            policy_config, models)
 
-    if replay_buffer is None:
-        replay_buffer = build_replay_buffer(buffer_config["type"],
-                                            buffer_config)
-    if policy is None:
-        agents_id = env.get_agents_id()
-        policy, train_fn = build_policy(trainner_type, agents_id,
-                                        policy_config, models)
+        if log_record_fn is None:
+            log_record_fn = default_log_record_fn
 
-    if log_record_fn is None:
-        log_record_fn = default_log_record_fn
+        checkpointer = build_checkpointer(
+            executing_config["checkpoint_dir"],
+            executing_config["check_frequency"],
+        )
 
-    checkpointer = build_checkpointer(
-        executing_config["checkpoint_dir"],
-        executing_config["check_frequency"],
-    )
-
-    trainner = CommonTrainer(
-        type=trainner_type,
-        config=executing_config,
-        train_fn=train_fn,
-        env=env,
-        policy=policy,
-        replay_buffer=replay_buffer,
-        checkpointer=checkpointer,
-        log_record_fn=log_record_fn,
-        record_base_dir=executing_config["record_base_dir"],
-        log_dir=executing_config["log_dir"],
-        cumulative_train_iteration=executing_config.get(
-            "trained_iteration", 1))
-    return trainner
+        trainer = CommonTrainer(
+            type=trainer_type,
+            config=executing_config,
+            train_fn=train_fn,
+            env=env,
+            policy=policy,
+            replay_buffer=replay_buffer,
+            checkpointer=checkpointer,
+            log_record_fn=log_record_fn,
+            record_base_dir=executing_config["record_base_dir"],
+            log_dir=executing_config["log_dir"],
+            cumulative_train_iteration=executing_config.get(
+                "trained_iteration", 1))
+    return trainer
 
 
-def load_trainer(env: MultiAgentEnv, models: Dict, checkpoint_dir: str,
-                 checkpoint_file: str):
+def load_trainer(
+    env: MultiAgentEnv,
+    models: Dict,
+    checkpoint_dir: str,
+    checkpoint_file: str,
+):
     checkpoint = Checkpointer(checkpoint_dir)
     data = checkpoint.load(checkpoint_file)
     config = data.get("config")
-    trainer = build_trainer(config, env, models)
+    trainer_type = config["type"]
+    if trainer_type == TrainnerTypes.IQL_PER:
+        trainer = build_iql_trainer(config, env, models)
+    else:
+        trainer = build_trainer(config, env, models)
     trainer.load_checkpoint(data)
     return trainer
 
@@ -84,6 +98,10 @@ def build_replay_buffer(type, config):
     if type == ReplayBufferTypes.Common:
         capacity = config["capacity"]
         return CommonBuffer(capacity)
+    elif type == ReplayBufferTypes.Prioritized:
+        capacity = config["capacity"]
+        alpha = config["alpha"]
+        return PrioritizedReplayBuffer(capacity, alpha)
     raise ValueError("replay buffer type {} is invalid".format(type))
 
 

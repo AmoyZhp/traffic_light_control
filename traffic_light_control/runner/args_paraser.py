@@ -2,7 +2,7 @@ import argparse
 import hprl
 
 # Agent Setting
-CAPACITY = 200000
+CAPACITY = 16384
 CRITIC_LR = 1e-4
 ACTOR_LR = 1e-4
 DISCOUNT_FACTOR = 0.99
@@ -12,6 +12,8 @@ EPS_FRAME = 300000
 UPDATE_PERIOD = 1000
 INNER_EPOCH = 32
 CLIP_PARAM = 0.2
+PER_BETA = 0.4
+PER_ALPHA = 0.6
 
 
 def args_validity_check(args):
@@ -71,7 +73,7 @@ def create_paraser():
 
     parser.add_argument("--replay_buffer",
                         type=str,
-                        default="Common",
+                        default="PER",
                         help="type of replay buffer chosen ")
 
     parser.add_argument("--eval_episodes",
@@ -85,7 +87,7 @@ def create_paraser():
                         help="eval frequency in training process")
 
     parser.add_argument(
-        "--check_frequency",
+        "--ckpt_frequency",
         type=int,
         default=0,
         help="the frequency of saving checkpoint."
@@ -163,6 +165,18 @@ def create_paraser():
         type=float,
         default=DISCOUNT_FACTOR,
         help="discount factor of rl",
+    )
+    parser.add_argument(
+        "--per_beta",
+        type=float,
+        default=PER_BETA,
+        help="beta used in prioritized exp replay",
+    )
+    parser.add_argument(
+        "--per_alpha",
+        type=float,
+        default=PER_ALPHA,
+        help="alpha value used in prioritized exp replay",
     )
 
     return parser

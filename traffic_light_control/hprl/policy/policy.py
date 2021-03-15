@@ -1,6 +1,7 @@
 import abc
+import numpy as np
 from typing import Dict, List, Union
-from hprl.util.typing import Action, State, Trajectory, Transition
+from hprl.util.typing import Action, MultiAgentBatch, SampleBatch, State, Trajectory, Transition
 
 
 class Policy(metaclass=abc.ABCMeta):
@@ -11,7 +12,7 @@ class Policy(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def learn_on_batch(
         self,
-        batch_data: Union[List[Transition], List[Trajectory]],
+        batch_data: MultiAgentBatch,
     ):
         ...
 
@@ -29,4 +30,33 @@ class Policy(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def unwrapped(self) -> "Policy":
+        ...
+
+
+SingleAction = Union[int, float, List[int], List[float]]
+
+
+class SingleAgentPolicy(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def compute_action(self, state: np.ndarray) -> SingleAction:
+        ...
+
+    @abc.abstractmethod
+    def learn_on_batch(self, batch_data: SampleBatch):
+        ...
+
+    @abc.abstractmethod
+    def get_weight(self) -> Dict:
+        ...
+
+    @abc.abstractmethod
+    def set_weight(self, weight: Dict):
+        ...
+
+    @abc.abstractmethod
+    def get_config(self) -> Dict:
+        ...
+
+    @abc.abstractmethod
+    def unwrapped(self) -> "SingleAgentPolicy":
         ...

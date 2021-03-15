@@ -3,7 +3,6 @@ import os
 import logging
 import time
 
-from torch import cos_
 import hprl
 import envs
 from runner.nets import IActor, ICritic, COMACritic
@@ -16,7 +15,7 @@ MAX_TIME = 3600
 INTERVAL = 5
 
 # Agent Setting
-CAPACITY = 200000
+CAPACITY = 2048
 LERNING_RATE = 1e-4
 DISCOUNT_FACTOR = 0.99
 EPS_INIT = 1.0
@@ -51,7 +50,6 @@ def run():
         "central_action": env.get_central_action_space(),
         "local_action": env.get_local_action_space(),
     }
-    print(model_config)
     models = _make_model(
         hprl.TrainnerTypes(args.trainer),
         model_config,
@@ -73,7 +71,7 @@ def run():
         )
         eval_episode = args.eval_episodes
         trainer.eval(eval_episode)
-        trainer.log_records(log_dir)
+        trainer.save_records(log_dir)
 
 
 def _train(args, env, models):
@@ -117,7 +115,7 @@ def _train(args, env, models):
             env=env,
             models=models,
         )
-        trainer.log_config(config_dir)
+        trainer.save_config(config_dir)
     episode = args.episodes
     eval_frequency = args.eval_frequency
     if eval_frequency <= 0:
@@ -133,10 +131,10 @@ def _train(args, env, models):
         trainer_ep = min(eval_frequency, episode - trained_time)
         train_records = trainer.train(trainer_ep)
         eval_records = trainer.eval(eval_episode)
-        trainer.log_records(log_dir)
+        trainer.save_records(log_dir)
         trained_time += trainer_ep
     trainer.eval(eval_episode)
-    trainer.log_records(log_dir)
+    trainer.save_records(log_dir)
     trainer.save_checkpoint(ckpt_dir, "ckpt_ending.pth")
     cost_time = (time.time() - begin_time) / 3600
     logger.info("total time cost {:.3f} h ".format(cost_time))
@@ -182,13 +180,15 @@ def _get_trainer_config(
     buffer_config = {
         "type": hprl.ReplayBufferTypes(args.replay_buffer),
         "capacity": capacity,
+        "alpha": args.per_alpha,
     }
     exec_config = {
         "batch_size": batch_size,
         "checkpoint_dir": checkpoint_dir,
         "record_base_dir": record_base_dir,
         "log_dir": log_dir,
-        "check_frequency": args.check_frequency,
+        "ckpt_frequency": args.ckpt_frequency,
+        "per_beta": args.per_beta,
     }
     trainner_config = {
         "type": hprl.TrainnerTypes(args.trainer),
@@ -230,6 +230,8 @@ def _make_model(trainer_type, config, agents_id):
         return _make_vdn_model(config, agents_id)
     elif trainer_type == hprl.TrainnerTypes.COMA:
         return _make_coma_model(config, agents_id)
+    elif trainer_type == hprl.TrainnerTypes.IQL_PER:
+        return _make_iql_model(config, agents_id)
     else:
         raise ValueError("invalid trainer type {}".format(trainer_type))
 

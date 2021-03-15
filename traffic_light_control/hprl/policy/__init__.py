@@ -8,10 +8,11 @@ from hprl.policy.single.ppo import PPO
 from hprl.policy.multi.vdn import VDN
 from hprl.policy.multi.coma import COMA
 
+from hprl.policy.single.per_dqn import build_iql_trainer
 import logging
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
+logger.setLevel(logging.INFO)
 
 handler = logging.StreamHandler()
 handler.setLevel(logging.DEBUG)
@@ -32,4 +33,5 @@ __all__ = [
     "EpsilonGreedy",
     "IndependentLearner",
     "MultiAgentEpsilonGreedy",
+    "build_iql_trainer",
 ]

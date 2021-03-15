@@ -38,7 +38,7 @@ class Trainer(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def log_config(self, log_dir: str):
+    def save_config(self, log_dir: str):
         ...
 
     @abc.abstractmethod
@@ -46,5 +46,5 @@ class Trainer(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def log_records(self, log_dir: str):
+    def save_records(self, log_dir: str):
         ...
