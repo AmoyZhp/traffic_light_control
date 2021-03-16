@@ -21,6 +21,9 @@ class PrioritizedReplayBuffer(SingleAgentReplayBuffer):
         self._min_tree = MinSegmentTree(self.capacity)
         self._max_priority = 1.0
         self._alpha = alpha
+        logger.info("prioritized replay buffer init")
+        logger.info("\t alpha is %f", self._alpha)
+        logger.info("\t capacity is %d", self.capacity)
 
     def store(self, data: TransitionTuple, priority: float = None):
         self._buffer.append(data)
@@ -38,11 +41,12 @@ class PrioritizedReplayBuffer(SingleAgentReplayBuffer):
             r = random.random() * self._sum_tree.sum()
             idx = self._sum_tree.find_prefixsum_idx(r)
             idxes.append(idx)
-        weights = []
-        batch_indexes = []
+
         p_min = self._min_tree.min() / self._sum_tree.sum()
         max_weight = (p_min * len(self._buffer))**(-beta)
 
+        weights = []
+        batch_indexes = []
         trans = []
         for idx in idxes:
             p_sample = self._sum_tree[idx] / self._sum_tree.sum()
@@ -62,8 +66,8 @@ class PrioritizedReplayBuffer(SingleAgentReplayBuffer):
         assert len(idxes) == len(priorities)
         for idx, priority in zip(idxes, priorities):
             # plus to prevent from being zero
-            self._sum_tree[idx] = priority**self._alpha + 1e-8
-            self._min_tree[idx] = priority**self._alpha + 1e-8
+            self._sum_tree[idx] = priority**self._alpha + 1e-6
+            self._min_tree[idx] = priority**self._alpha + 1e-6
             self._max_priority = max(priority, self._max_priority)
 
     def get_weight(self):

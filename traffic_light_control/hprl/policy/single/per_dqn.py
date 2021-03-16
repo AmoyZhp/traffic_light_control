@@ -57,8 +57,8 @@ def build_iql_trainer(
                 alpha=alpha,
             )
             model = models[id]
-            action_space = policy_config["action_space"][id],
-            state_space = policy_config["state_space"][id],
+            action_space = policy_config["action_space"][id]
+            state_space = policy_config["state_space"][id]
             inner_ps[id] = PERDQN(
                 acting_net=model["acting_net"],
                 target_net=model["target_net"],
@@ -72,6 +72,7 @@ def build_iql_trainer(
             logger.info("\t\t action space is %s", action_space)
             logger.info("\t\t state space is %s", state_space)
         logger.info("\t buffer alpha is %s", alpha)
+        logger.info("\t buffer beta is %s", executing_config["per_beta"])
     elif buffer_type == ReplayBufferTypes.Common:
         train_fn = off_policy_train_fn
         for id in agents_id:
@@ -134,6 +135,8 @@ def get_test_setting(buffer_type: ReplayBufferTypes):
     update_period = 100
     action_space = 2
     state_space = 4
+    alpha = 0.6
+    beta = 0.4
     policy_config = {
         "critic_lr": critic_lr,
         "discount_factor": discount_factor,
@@ -147,11 +150,11 @@ def get_test_setting(buffer_type: ReplayBufferTypes):
     buffer_config = {
         "type": buffer_type,
         "capacity": capacity,
-        "alpha": 0.4,
+        "alpha": alpha,
     }
     exec_config = {
         "batch_size": batch_size,
-        "per_beta": 0.6,
+        "per_beta": beta,
         "recording": False,
         "ckpt_frequency": 0,
         "record_base_dir": "records/gym_test",
@@ -205,6 +208,7 @@ class PERDQN(SingleAgentPolicy):
 
         self.optimizer = optim.Adam(self.acting_net.parameters(), critic_lr)
         self.loss_func = self._loss_func
+        self.huber_loss = nn.SmoothL1Loss(reduction="none")
         self.update_count = 0
         self.critic_lr = critic_lr
         self.discount_factor = discount_factor
@@ -277,12 +281,12 @@ class PERDQN(SingleAgentPolicy):
             self.update_count = 0
 
         priorities = torch.clamp(td_error, -1, 1).detach()
-        priorities += abs(priorities) + 1e-8
+        priorities = abs(priorities) + 1e-6
         priorities = priorities.tolist()
         return priorities
 
     def _loss_func(self, input, target, weight):
-        computed = ((input - target)**2) * weight
+        computed = (input - target)**2 * weight
         return torch.mean(computed)
 
     def _np_to_torch(self, batch_data: List[TransitionTuple]):

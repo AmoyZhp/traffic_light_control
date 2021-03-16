@@ -8,9 +8,11 @@ def main():
 
 
 def test():
-    trainer = hprl.test_trainer(hprl.TrainnerTypes.IQL_PER,
-                                hprl.ReplayBufferTypes.Prioritized)
-    trainer.train(1000)
+    trainer = hprl.test_trainer(
+        hprl.TrainnerTypes.IQL_PER,
+        hprl.ReplayBufferTypes.Prioritized,
+    )
+    trainer.train(500)
 
 
 def static_test():

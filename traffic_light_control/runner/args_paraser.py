@@ -12,8 +12,8 @@ EPS_FRAME = 300000
 UPDATE_PERIOD = 1000
 INNER_EPOCH = 32
 CLIP_PARAM = 0.2
-PER_BETA = 0.4
 PER_ALPHA = 0.6
+PER_BETA = 0.4
 
 
 def args_validity_check(args):

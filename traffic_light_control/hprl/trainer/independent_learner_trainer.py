@@ -35,6 +35,7 @@ def off_policy_train_fn(
         sim_cost += time.time() - sim_begin
 
         replay_buffer_store(buffers, state, action, r, next_s, done)
+        state = next_s
 
         learn_begin = time.time()
         sample_data = replay_buffer_sample(buffers, batch_size, beta)
@@ -44,7 +45,6 @@ def off_policy_train_fn(
         record.append_reward(r)
         record.append_info(info)
 
-        state = next_s
         if done.central:
             logger.info("simulation time cost : {:.3f}s".format(sim_cost))
             logger.info("learning time cost : {:.3f}s".format(learn_cost))
@@ -73,8 +73,8 @@ def off_policy_per_train_fn(
         sim_begin = time.time()
         next_s, r, done, info = env.step(action)
         sim_cost += time.time() - sim_begin
-
         replay_buffer_store(buffers, state, action, r, next_s, done)
+        state = next_s
 
         learn_begin = time.time()
         sample_data = replay_buffer_sample(buffers, batch_size, beta)
@@ -174,9 +174,15 @@ class IndependentLearnerTrainer(Trainer):
 
     def train(self, episodes: int):
         ckpt_frequency = self.config["ckpt_frequency"]
-        for _ in range(episodes):
+        init_beta = self.config["per_beta"]
+        left_beta = 1.0 - init_beta
+        for ep in range(episodes):
             logger.info("========== train episode {} begin ==========".format(
                 self.trained_iteration))
+            # beta increased by trained iteration
+            # it will equal one in the end
+            self.config["per_beta"] = (ep +
+                                       1) / episodes * left_beta + init_beta
             record = self.train_fn(
                 self.env,
                 self.policies,
