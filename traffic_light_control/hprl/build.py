@@ -1,4 +1,7 @@
+import gym
+from hprl.env.gym_wrapper import GymWrapper
 from hprl.policy.decorator.epsilon_greedy import SingleEpsilonGreedy
+from hprl.policy.single import per_dqn
 from hprl.recorder.torch_recorder import TorchRecorder
 from hprl.policy.single.per_dqn import PERDQN, build_iql_trainer
 from hprl.replaybuffer.prioritized_replay_buffer import PrioritizedReplayBuffer
@@ -66,6 +69,44 @@ def build_trainer(config: Dict,
             cumulative_train_iteration=executing_config.get(
                 "trained_iteration", 1))
     return trainer
+
+
+def test_trainer(
+    trainer_type: TrainnerTypes,
+    buffer_type: ReplayBufferTypes = None,
+) -> Trainer:
+    if trainer_type == TrainnerTypes.IQL_PER:
+        if buffer_type is None:
+            raise ValueError("buffre type could be None")
+        config, model = per_dqn.get_test_setting(buffer_type)
+        env = GymWrapper(gym.make("CartPole-v1"))
+        id = env.get_agents_id()[0]
+        models = {id: model}
+        config["policy"]["action_space"][id] = 2
+        config["policy"]["state_space"][id] = 4
+        trainer = per_dqn.build_iql_trainer(
+            config=config,
+            env=env,
+            models=models,
+        )
+        return trainer
+    elif trainer_type == TrainnerTypes.IQL:
+        if buffer_type is None:
+            raise ValueError("buffre type could be None")
+        config, model = per_dqn.get_test_setting(buffer_type)
+        env = GymWrapper(gym.make("CartPole-v1"))
+        id = env.get_agents_id()[0]
+        models = {id: model}
+        config["policy"]["action_space"][id] = 2
+        config["policy"]["state_space"][id] = 4
+        trainer = build_trainer(
+            config=config,
+            env=env,
+            models=models,
+        )
+        return trainer
+    else:
+        raise ValueError("trainer type invalid {}".format(trainer_type))
 
 
 def load_trainer(

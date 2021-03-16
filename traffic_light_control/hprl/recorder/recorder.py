@@ -1,3 +1,4 @@
+import logging
 from hprl.util.typing import Reward, TrainingRecord
 from typing import List
 import torch
@@ -15,7 +16,12 @@ class Recorder(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def print_record(self, record: TrainingRecord, fig: bool, logger):
+    def print_record(
+        self,
+        record: TrainingRecord,
+        logger: logging.Logger,
+        fig: bool,
+    ):
         ...
 
     @abc.abstractmethod

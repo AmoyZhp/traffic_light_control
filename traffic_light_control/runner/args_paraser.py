@@ -57,7 +57,7 @@ def create_paraser():
                         help="the id of the environment")
 
     parser.add_argument("--trainer",
-                        type=str,
+                        type=hprl.TrainnerTypes,
                         required=True,
                         help="which trainer to be chosen")
 
@@ -72,7 +72,7 @@ def create_paraser():
                         help="batch size of sample batch")
 
     parser.add_argument("--replay_buffer",
-                        type=str,
+                        type=hprl.ReplayBufferTypes,
                         default="Common",
                         help="type of replay buffer chosen ")
 
@@ -178,5 +178,8 @@ def create_paraser():
         default=PER_ALPHA,
         help="alpha value used in prioritized exp replay",
     )
+    parser.add_argument("--recording",
+                        action="store_false",
+                        help="recording or not")
 
     return parser

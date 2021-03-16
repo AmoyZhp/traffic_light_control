@@ -7,6 +7,12 @@ def main():
     runner.run()
 
 
+def test():
+    trainer = hprl.test_trainer(hprl.TrainnerTypes.IQL_PER,
+                                hprl.ReplayBufferTypes.Prioritized)
+    trainer.train(1000)
+
+
 def static_test():
     path = "cityflow_config/{}/config.json".format(
         "hangzhou_1x1_bc-tyc_18041607_1h")

@@ -20,7 +20,7 @@ class GymWrapper(MultiAgentEnv):
         s, r, done, info = self.env.step(action)
 
         state = State(local={self.local_ids[0]: np.array(s)})
-        reward = Reward(local={self.local_ids[0]: r})
+        reward = Reward(central=0.0, local={self.local_ids[0]: r})
         termial = Terminal(central=done, local={self.local_ids[0]: done})
 
         return state, reward, termial, info

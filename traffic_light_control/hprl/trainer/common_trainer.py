@@ -75,7 +75,6 @@ class CommonTrainer(Trainer):
                 data=self.get_checkpoint(),
                 iteration=self.cumulative_train_iteration,
             )
-            self.save_records(self.log_dir)
             self.logger.info(
                 "========= train episode {} end   =========".format(
                     self.cumulative_train_iteration))

@@ -1,3 +1,5 @@
+from hprl.recorder.none_recorder import Printer
+from hprl.policy.nets import CartPole
 from hprl.policy.single.dqn import DQNNew
 from hprl.replaybuffer.common_buffer import SingleAgentCommnBuffer
 from hprl.trainer.independent_learner_trainer import IndependentLearnerTrainer, off_policy_per_train_fn, off_policy_train_fn
@@ -25,6 +27,7 @@ def build_iql_trainer(
     env: MultiAgentEnv,
     models: Dict[str, nn.Module],
 ):
+
     buffer_config = config["buffer"]
     policy_config = config["policy"]
     executing_config = config["executing"]
@@ -35,7 +38,16 @@ def build_iql_trainer(
     buffers = {}
     capacity = buffer_config["capacity"]
     train_fn = None
-    logger.info("replay buffer type is {}".format(buffer_type))
+
+    critic_lr = policy_config["critic_lr"]
+    discount_factor = policy_config["discount_factor"]
+    update_period = policy_config["update_period"]
+    logger.info("create IQL trainer")
+    logger.info("\t replay buffer type is {}".format(buffer_type))
+    logger.info("\t critic lr is %s", critic_lr)
+    logger.info("\t discount factor is %s", discount_factor)
+    logger.info("\t update period is %s", update_period)
+
     if buffer_type == ReplayBufferTypes.Prioritized:
         alpha = buffer_config["alpha"]
         train_fn = off_policy_per_train_fn
@@ -45,41 +57,59 @@ def build_iql_trainer(
                 alpha=alpha,
             )
             model = models[id]
+            action_space = policy_config["action_space"][id],
+            state_space = policy_config["state_space"][id],
             inner_ps[id] = PERDQN(
                 acting_net=model["acting_net"],
                 target_net=model["target_net"],
-                critic_lr=policy_config["critic_lr"],
-                discount_factor=policy_config["discount_factor"],
-                update_period=policy_config["update_period"],
-                action_space=policy_config["action_space"][id],
-                state_space=policy_config["state_space"][id],
+                critic_lr=critic_lr,
+                discount_factor=discount_factor,
+                update_period=update_period,
+                action_space=action_space,
+                state_space=state_space,
             )
+            logger.info("\t agents %s", id)
+            logger.info("\t\t action space is %s", action_space)
+            logger.info("\t\t state space is %s", state_space)
+        logger.info("\t buffer alpha is %s", alpha)
     elif buffer_type == ReplayBufferTypes.Common:
         train_fn = off_policy_train_fn
         for id in agents_id:
             buffers[id] = SingleAgentCommnBuffer(capacity=capacity)
             model = models[id]
+            action_space = policy_config["action_space"][id]
+            state_space = policy_config["state_space"][id]
             inner_ps[id] = DQNNew(
                 acting_net=model["acting_net"],
                 target_net=model["target_net"],
-                critic_lr=policy_config["critic_lr"],
-                discount_factor=policy_config["discount_factor"],
-                update_period=policy_config["update_period"],
-                action_space=policy_config["action_space"][id],
-                state_space=policy_config["state_space"][id],
+                critic_lr=critic_lr,
+                discount_factor=discount_factor,
+                update_period=update_period,
+                action_space=action_space,
+                state_space=state_space,
             )
+            logger.info("\t agents %s", id)
+            logger.info("\t\t action space is %s", action_space)
+            logger.info("\t\t state space is %s", state_space)
     else:
         raise ValueError("replay buffer type {} invalid".format(buffer_type))
     policies = {}
+    eps_frame = policy_config["eps_frame"]
+    eps_min = policy_config["eps_min"]
+    eps_init = policy_config["eps_init"]
     for id in agents_id:
+        action_space = policy_config["action_space"][id]
         policies[id] = SingleEpsilonGreedy(
             inner_policy=inner_ps[id],
-            eps_frame=policy_config["eps_frame"],
-            eps_min=policy_config["eps_min"],
-            eps_init=policy_config["eps_init"],
-            action_space=policy_config["action_space"][id],
+            eps_frame=eps_frame,
+            eps_min=eps_min,
+            eps_init=eps_init,
+            action_space=action_space,
         )
-    recorder = TorchRecorder(executing_config["record_base_dir"])
+    recorder = Printer()
+    if executing_config["recording"]:
+        recorder = TorchRecorder(executing_config["record_base_dir"])
+        logger.info("\t training will be recorded")
     trainer = IndependentLearnerTrainer(
         type=TrainnerTypes.IQL_PER,
         policies=policies,
@@ -89,7 +119,62 @@ def build_iql_trainer(
         recorder=recorder,
         config=executing_config,
     )
+    logger.info("trainer build success")
     return trainer
+
+
+def get_test_setting(buffer_type: ReplayBufferTypes):
+    capacity = 4000
+    critic_lr = 1e-3
+    batch_size = 16
+    discount_factor = 0.99
+    eps_init = 1.0
+    eps_min = 0.01
+    eps_frame = 2000
+    update_period = 100
+    action_space = 2
+    state_space = 4
+    policy_config = {
+        "critic_lr": critic_lr,
+        "discount_factor": discount_factor,
+        "update_period": update_period,
+        "action_space": {},
+        "state_space": {},
+        "eps_frame": eps_frame,
+        "eps_init": eps_init,
+        "eps_min": eps_min,
+    }
+    buffer_config = {
+        "type": buffer_type,
+        "capacity": capacity,
+        "alpha": 0.4,
+    }
+    exec_config = {
+        "batch_size": batch_size,
+        "per_beta": 0.6,
+        "recording": False,
+        "ckpt_frequency": 0,
+        "record_base_dir": "records/gym_test",
+        "checkpoint_dir": "records/gym_test/ckpt",
+        "log_dir": "records/gym_test/log",
+        "config_dir": "records/gym_test/configs",
+    }
+    trainner_config = {
+        "type": TrainnerTypes.IQL,
+        "executing": exec_config,
+        "policy": policy_config,
+        "buffer": buffer_config,
+    }
+    acting_net = CartPole(input_space=state_space, output_space=action_space)
+
+    target_net = CartPole(input_space=state_space, output_space=action_space)
+
+    model = {
+        "acting_net": acting_net,
+        "target_net": target_net,
+    }
+
+    return trainner_config, model
 
 
 class PERDQN(SingleAgentPolicy):

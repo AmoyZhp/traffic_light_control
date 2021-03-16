@@ -44,6 +44,7 @@ def off_policy_train_fn(
         record.append_reward(r)
         record.append_info(info)
 
+        state = next_s
         if done.central:
             logger.info("simulation time cost : {:.3f}s".format(sim_cost))
             logger.info("learning time cost : {:.3f}s".format(learn_cost))

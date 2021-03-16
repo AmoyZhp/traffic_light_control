@@ -5,7 +5,7 @@ from hprl.replaybuffer import ReplayBuffer
 from hprl.policy import Policy
 from hprl.trainer import Trainer
 from hprl.util.enum import TrainnerTypes, ReplayBufferTypes, AdvantageTypes
-from hprl.build import build_trainer, load_trainer
+from hprl.build import build_trainer, load_trainer, test_trainer
 __all__ = [
     "load_trainer",
     "build_trainer",
@@ -22,5 +22,5 @@ __all__ = [
     "TrainnerTypes",
     "ReplayBufferTypes",
     "AdvantageTypes",
-    "test",
+    "test_trainer",
 ]

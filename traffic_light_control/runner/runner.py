@@ -51,7 +51,7 @@ def run():
         "local_action": env.get_local_action_space(),
     }
     models = _make_model(
-        hprl.TrainnerTypes(args.trainer),
+        args.trainer,
         model_config,
         agents_id,
     )
@@ -85,7 +85,7 @@ def _train(args, env, models):
     ckpt_dir = ""
     log_dir = ""
     config_dir = ""
-
+    t = hprl.TrainnerTypes.COMA
     if args.resume:
         logger.info("resume record dir is {}".format(args.record_dir))
         logger.info("checkpoint file is {}".format(args.ckpt_file))
@@ -100,7 +100,7 @@ def _train(args, env, models):
                                     checkpoint_file=args.ckpt_file)
     else:
         base_dir, ckpt_dir, log_dir, config_dir = create_record_dir(
-            BASE_RECORDS_DIR, args.env, args.trainer)
+            BASE_RECORDS_DIR, args.env, args.trainer.value)
         logger.info("records dir created : {}".format(base_dir))
 
         trainer_config = _get_trainer_config(
@@ -178,7 +178,7 @@ def _get_trainer_config(
         "advantage_type": ADVANTAGE_TYPE,
     }
     buffer_config = {
-        "type": hprl.ReplayBufferTypes(args.replay_buffer),
+        "type": args.replay_buffer,
         "capacity": capacity,
         "alpha": args.per_alpha,
     }
@@ -189,9 +189,10 @@ def _get_trainer_config(
         "log_dir": log_dir,
         "ckpt_frequency": args.ckpt_frequency,
         "per_beta": args.per_beta,
+        "recording": args.recording,
     }
     trainner_config = {
-        "type": hprl.TrainnerTypes(args.trainer),
+        "type": args.trainer,
         "executing": exec_config,
         "policy": policy_config,
         "buffer": buffer_config,
