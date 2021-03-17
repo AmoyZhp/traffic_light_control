@@ -1,4 +1,4 @@
-from runner.runner import run
+from runner.run import run
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -12,6 +12,4 @@ formatter = logging.Formatter(
 ch.setFormatter(formatter)
 
 logger.addHandler(ch)
-__all__ = [
-    "run"
-]
+__all__ = ["run"]

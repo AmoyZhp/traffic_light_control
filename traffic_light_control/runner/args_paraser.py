@@ -18,7 +18,7 @@ PER_BETA = 0.4
 
 def args_validity_check(args):
     mode = args.mode
-    if mode not in ["train", "test"]:
+    if mode not in ["train", "test", "gym"]:
         print(" model value invalid !")
         return False
 
@@ -46,10 +46,11 @@ def args_validity_check(args):
 def create_paraser():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--mode",
-                        type=str,
-                        default="train",
-                        help="Mode of execution. Include [ train , test ]")
+    parser.add_argument(
+        "--mode",
+        type=str,
+        default="train",
+        help="Mode of execution. Include [ train , test, gym ]")
 
     parser.add_argument("--env",
                         type=str,
