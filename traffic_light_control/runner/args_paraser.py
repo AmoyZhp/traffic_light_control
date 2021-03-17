@@ -1,5 +1,8 @@
 import argparse
+import logging
 import hprl
+
+logger = logging.getLogger(__package__)
 
 # Agent Setting
 CAPACITY = 16384
@@ -16,6 +19,16 @@ PER_ALPHA = 0.6
 PER_BETA = 0.4
 
 
+def create_paraser():
+    parser = argparse.ArgumentParser()
+    parser = _add_core_args(parser)
+    parser = _add_path_related_args(parser)
+    parser = _add_policy_related_args(parser)
+    parser = _add_env_related_args(parser)
+
+    return parser
+
+
 def args_validity_check(args):
     mode = args.mode
     if mode not in ["train", "test", "gym"]:
@@ -28,93 +41,102 @@ def args_validity_check(args):
             return False
         if args.record_dir is None:
             print("record dir should not be none" "if want to test")
-    trainer = hprl.TrainnerTypes(args.trainer)
+    trainer = args.trainer
     if trainer not in hprl.TrainnerTypes:
         print("trainer type is invalid !")
         return False
     if args.resume:
-        if args.ckpt_file is None:
+        if args.ckpt_file is None or not args.ckpt_file:
             print("checkpoint file should not be none"
                   "if want to resume training")
             return False
-        if args.record_dir is None:
+        if args.record_dir is None or not args.record_dir:
             print("record dir should not be none" "if want to resume training")
             return False
     return True
 
 
-def create_paraser():
-    parser = argparse.ArgumentParser()
-
+def _add_core_args(parser: argparse.ArgumentParser):
     parser.add_argument(
         "--mode",
         type=str,
         default="train",
-        help="Mode of execution. Include [ train , test, gym ]")
+        help="Mode of execution. Include [ train , test, gym ]",
+    )
 
-    parser.add_argument("--env",
-                        type=str,
-                        required=True,
-                        help="the id of the environment")
+    parser.add_argument(
+        "--env",
+        type=str,
+        required=True,
+        help="the id of the environment",
+    )
 
-    parser.add_argument("--trainer",
-                        type=hprl.TrainnerTypes,
-                        required=True,
-                        help="which trainer to be chosen")
+    parser.add_argument(
+        "--trainer",
+        type=hprl.TrainnerTypes,
+        required=True,
+        help="which trainer to be chosen",
+    )
 
-    parser.add_argument("--episodes",
-                        type=int,
-                        default=0,
-                        help="episode of train times")
+    parser.add_argument(
+        "--episodes",
+        type=int,
+        default=0,
+        help="episode of train times",
+    )
 
-    parser.add_argument("--batch_size",
-                        type=int,
-                        required=True,
-                        help="batch size of sample batch")
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        required=True,
+        help="batch size of sample batch",
+    )
 
-    parser.add_argument("--replay_buffer",
-                        type=hprl.ReplayBufferTypes,
-                        default="Common",
-                        help="type of replay buffer chosen ")
+    parser.add_argument(
+        "--replay_buffer",
+        type=hprl.ReplayBufferTypes,
+        default=hprl.ReplayBufferTypes.Common,
+        help="type of replay buffer chosen ",
+    )
 
-    parser.add_argument("--eval_episodes",
-                        type=int,
-                        default=1,
-                        help="episode of eval times")
+    parser.add_argument(
+        "--recording",
+        action="store_false",
+        help="recording or not",
+    )
+    return parser
 
-    parser.add_argument("--eval_frequency",
-                        type=int,
-                        default=0,
-                        help="eval frequency in training process")
 
+def _add_path_related_args(parser: argparse.ArgumentParser):
     parser.add_argument(
         "--ckpt_frequency",
         type=int,
         default=0,
         help="the frequency of saving checkpoint."
-        "if it less than or equal zero, checkpoint would not be saved")
+        "if it less than or equal zero, checkpoint would not be saved",
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="resume training or not",
+    )
 
-    parser.add_argument("--env_thread_num",
-                        type=int,
-                        default=1,
-                        help="thread number of env")
+    parser.add_argument(
+        "--record_dir",
+        type=str,
+        default=None,
+        help="directory of record",
+    )
+    parser.add_argument(
+        "--ckpt_file",
+        type=str,
+        default=None,
+        help="name of checkpoint file",
+    )
+    return parser
 
-    parser.add_argument("--save_replay",
-                        action="store_true",
-                        help="whether cityflow env save replay or not")
 
-    parser.add_argument("--resume",
-                        action="store_true",
-                        help="resume training or not")
-
-    parser.add_argument("--record_dir",
-                        type=str,
-                        default=None,
-                        help="directory of record")
-    parser.add_argument("--ckpt_file",
-                        type=str,
-                        default=None,
-                        help="name of checkpoint file")
+def _add_policy_related_args(parser: argparse.ArgumentParser):
     parser.add_argument(
         "--update_period",
         type=int,
@@ -179,8 +201,21 @@ def create_paraser():
         default=PER_ALPHA,
         help="alpha value used in prioritized exp replay",
     )
-    parser.add_argument("--recording",
-                        action="store_false",
-                        help="recording or not")
+    return parser
 
+
+def _add_env_related_args(parser: argparse.ArgumentParser):
+
+    parser.add_argument(
+        "--env_thread_num",
+        type=int,
+        default=1,
+        help="thread number of env",
+    )
+
+    parser.add_argument(
+        "--save_replay",
+        action="store_true",
+        help="whether cityflow env save replay or not",
+    )
     return parser

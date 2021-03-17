@@ -7,7 +7,7 @@ import hprl
 import envs
 from runner.args_paraser import create_paraser, args_validity_check
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__package__)
 
 
 def run():
@@ -41,9 +41,14 @@ def _eval(args, env, models):
 
 def _train(args, env, models):
     logger.info("===== ===== =====")
-    logger.info("train process beigin")
-    logger.info(" env is {}".format(args.env))
-    logger.info(" policy is {}".format(args.trainer))
+    logger.info("train beigin")
+    logger.info(
+        "begin time : %s",
+        time.asctime(time.localtime(time.time())),
+    )
+    logger.info("env : {}".format(args.env))
+    logger.info("policy : {}".format(args.trainer))
+    logger.info("buffer : {}".format(args.replay_buffer))
 
     trainer = build_trainer(args, env, models)
     trainer.save_config()
@@ -54,9 +59,13 @@ def _train(args, env, models):
     cost_time = (time.time() - begin_time) / 3600
 
     trainer.save_records()
-    trainer.save_checkpoint("ckpt_ending.pth")
+    trainer.save_checkpoint(filename="ckpt_ending.pth")
 
     logger.info("total time cost {:.3f} h ".format(cost_time))
+    logger.info(
+        "end time is %s",
+        time.asctime(time.localtime(time.time())),
+    )
     logger.info("train end")
     logger.info("===== ===== =====")
 

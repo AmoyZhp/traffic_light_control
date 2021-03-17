@@ -2,6 +2,9 @@ import hprl
 from runner.nets import IActor, ICritic
 from runner.nets import COMACritic
 
+import logging
+logger = logging.getLogger(__package__)
+
 
 def build_model(args, env):
     agents_id = env.get_agents_id()
@@ -41,7 +44,6 @@ def _make_model(trainer_type, config, agents_id):
 
 def _make_iql_model(config, agents_id):
     models = {}
-    print(f"iql model config {config}")
     for id in agents_id:
         acting_net = ICritic(
             input_space=config["local_state"][id],

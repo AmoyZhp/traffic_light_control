@@ -3,7 +3,7 @@ import datetime
 import os
 import hprl
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__package__)
 
 BASE_RECORDS_DIR = "records"
 # Agent Setting
@@ -50,12 +50,15 @@ def load_trainer(args, env, models):
 
 
 def _build_trainer(args, env, models):
-    base_dir = _create_record_dir(
-        BASE_RECORDS_DIR,
-        args.env,
-        args.trainer.value,
-    )
-    logger.info("records dir created : {}".format(base_dir))
+    recording = args.recording
+    base_dir = ""
+    if recording:
+        base_dir = _create_record_dir(
+            BASE_RECORDS_DIR,
+            args.env,
+            args.trainer.value,
+        )
+        logger.info("records dir created : {}".format(base_dir))
 
     trainer_config = _get_trainer_config(
         args=args,
