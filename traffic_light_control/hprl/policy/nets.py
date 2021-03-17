@@ -8,9 +8,9 @@ import torch.nn.functional as F
 class CartPole(nn.Module):
     def __init__(self, input_space, output_space) -> None:
         super(CartPole, self).__init__()
-        self.fc1 = nn.Linear(input_space, 16)
-        self.fc2 = nn.Linear(16, 8)
-        self.fc3 = nn.Linear(8, output_space)
+        self.fc1 = nn.Linear(input_space, 24)
+        self.fc2 = nn.Linear(24, 24)
+        self.fc3 = nn.Linear(24, output_space)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))

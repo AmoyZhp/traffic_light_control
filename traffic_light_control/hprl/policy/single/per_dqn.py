@@ -127,11 +127,11 @@ def build_iql_trainer(
 def get_test_setting(buffer_type: ReplayBufferTypes):
     capacity = 4000
     critic_lr = 1e-3
-    batch_size = 16
+    batch_size = 64
     discount_factor = 0.99
     eps_init = 1.0
     eps_min = 0.01
-    eps_frame = 2000
+    eps_frame = 5000
     update_period = 100
     action_space = 2
     state_space = 4
@@ -155,12 +155,9 @@ def get_test_setting(buffer_type: ReplayBufferTypes):
     exec_config = {
         "batch_size": batch_size,
         "per_beta": beta,
-        "recording": False,
+        "recording": True,
         "ckpt_frequency": 0,
         "record_base_dir": "records/gym_test",
-        "checkpoint_dir": "records/gym_test/ckpt",
-        "log_dir": "records/gym_test/log",
-        "config_dir": "records/gym_test/configs",
     }
     trainner_config = {
         "type": TrainnerTypes.IQL,
@@ -208,7 +205,6 @@ class PERDQN(SingleAgentPolicy):
 
         self.optimizer = optim.Adam(self.acting_net.parameters(), critic_lr)
         self.loss_func = self._loss_func
-        self.huber_loss = nn.SmoothL1Loss(reduction="none")
         self.update_count = 0
         self.critic_lr = critic_lr
         self.discount_factor = discount_factor
@@ -246,10 +242,6 @@ class PERDQN(SingleAgentPolicy):
         a_batch = torch.cat(batch_trans.action, 0).to(self.device)
         r_batch = torch.cat(batch_trans.reward, 0).to(self.device)
         next_s_batch = torch.cat(batch_trans.next_state, 0).to(self.device)
-        logger.debug(f"s shape {s_batch.shape}")
-        logger.debug(f"a shape {a_batch.shape}")
-        logger.debug(f"r shape {r_batch.shape}")
-        logger.debug(f"mask batch shape {mask_batch.shape}")
 
         q_vals = self.acting_net(s_batch).gather(1, a_batch)
         q_vals = q_vals.to(self.device)
@@ -264,13 +256,10 @@ class PERDQN(SingleAgentPolicy):
         td_error = td_error.squeeze(-1)
         weights = torch.tensor(sample_batch.weights,
                                dtype=torch.float).unsqueeze(-1).to(self.device)
-        logger.debug(f"expected q vals shape {expected_q_vals.shape}")
-        logger.debug(f"td error shape {td_error.shape}")
-        logger.debug(f"weigth shape {weights.shape}")
         loss = self.loss_func(
             q_vals,
             expected_q_vals.detach(),
-            weights,
+            weights.detach(),
         )
         self.optimizer.zero_grad()
         loss.backward()

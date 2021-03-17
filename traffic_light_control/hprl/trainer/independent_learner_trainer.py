@@ -193,7 +193,11 @@ class IndependentLearnerTrainer(Trainer):
             self.trained_iteration += 1
             record.set_episode(self.trained_iteration)
             self.recorder.add_record(record)
-            self.recorder.print_record(record, logger)
+            self.recorder.print_record(
+                record=record,
+                logger=logger,
+                fig=True if ep % (episodes / 10) == 0 else False,
+            )
             if (ckpt_frequency != 0
                     and self.trained_iteration % ckpt_frequency == 0):
                 self.recorder.write_ckpt(

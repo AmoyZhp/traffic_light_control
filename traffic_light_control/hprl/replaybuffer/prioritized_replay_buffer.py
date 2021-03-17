@@ -37,9 +37,11 @@ class PrioritizedReplayBuffer(SingleAgentReplayBuffer):
         if batch_size > len(self._buffer):
             return SampleBatch([], [], [], [])
         idxes = []
-        for _ in range(batch_size):
+        while len(idxes) != batch_size:
             r = random.random() * self._sum_tree.sum()
             idx = self._sum_tree.find_prefixsum_idx(r)
+            if idx in idxes:
+                continue
             idxes.append(idx)
 
         p_min = self._min_tree.min() / self._sum_tree.sum()
