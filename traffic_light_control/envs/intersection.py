@@ -5,6 +5,8 @@ from envs.enum import Movement, Stream
 
 PHASE_SPACE = 12
 
+ROAD_STATE = True
+
 
 class Intersection():
     def __init__(
@@ -23,10 +25,16 @@ class Intersection():
         self.state_space = 0
         for rlink in self.roadlinks:
             for road in rlink.values():
-
-                self.state_space += road.get_state_space()
                 if road.id not in self.roads:
                     self.roads[road.id] = road
+
+        if ROAD_STATE:
+            for road in self.roads.values():
+                self.state_space += road.get_state_space()
+        else:
+            for rlink in self.roadlinks:
+                for road in rlink.values():
+                    self.state_space += road.get_state_space()
         # first phase space is current phase
         # second belong to next phase
         self.phase_space = len(self.roadlinks)
@@ -94,12 +102,10 @@ class Intersection():
             self.phase_plan)
 
     def to_tensor(self) -> np.ndarray:
-        tensor = np.array([], dtype=np.float)
-        for rlink in self.roadlinks:
-            in_road = rlink[Stream.IN]
-            tensor = np.hstack((tensor, in_road.to_tensor()))
-            out_road = rlink[Stream.OUT]
-            tensor = np.hstack((tensor, out_road.to_tensor()))
+        if ROAD_STATE:
+            tensor = self._road_state()
+        else:
+            tensor = self._road_link_state()
 
         current_phase = self.phase_plan[self.current_phase_index]
 
@@ -118,4 +124,20 @@ class Intersection():
             next_phase_tensor[i] = 1
 
         tensor = np.hstack((tensor, next_phase_tensor))
+        return tensor
+
+    def _road_link_state(self):
+        tensor = np.array([], dtype=np.float)
+        for rlink in self.roadlinks:
+            in_road = rlink[Stream.IN]
+            tensor = np.hstack((tensor, in_road.to_tensor()))
+            out_road = rlink[Stream.OUT]
+            tensor = np.hstack((tensor, out_road.to_tensor()))
+        return tensor
+
+    def _road_state(self):
+        tensor = np.array([], dtype=np.float)
+        for id in sorted(self.roads.keys()):
+            road = self.roads[id]
+            tensor = np.hstack((tensor, road.to_tensor()))
         return tensor
