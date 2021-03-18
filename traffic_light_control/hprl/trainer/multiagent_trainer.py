@@ -67,6 +67,7 @@ class MultiAgentTraienr(Trainer):
         train_fn,
         recorder: Recorder,
     ) -> None:
+        logger.info("%s trainer start init", type.value)
         self.type = type
         self.config = config
         self.env = env
@@ -76,6 +77,10 @@ class MultiAgentTraienr(Trainer):
         self.recorder = recorder
         self.agents_id = self.env.get_agents_id()
         self.trained_iteration = 0
+        logger.info("ckpt frequency : %d", self.config["ckpt_frequency"])
+        logger.info("per beta : %f", self.config["per_beta"])
+        logger.info("train fn name : %s", self.train_fn.__name__)
+        logger.info("%s trainer start init done", type.value)
 
     def train(self, episodes: int):
         ckpt_frequency = self.config["ckpt_frequency"]

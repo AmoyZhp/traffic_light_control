@@ -1,4 +1,5 @@
 from collections import deque
+import logging
 from typing import List, Union
 from hprl.util.enum import ReplayBufferTypes
 import random
@@ -6,6 +7,8 @@ from shutil import Error
 
 from hprl.replaybuffer.replay_buffer import MultiAgentReplayBuffer, ReplayBuffer
 from hprl.util.typing import SampleBatch, Trajectory, Transition, TransitionTuple
+
+logger = logging.getLogger(__package__)
 
 
 class CommonBuffer(ReplayBuffer):
@@ -49,9 +52,12 @@ class CommonBuffer(ReplayBuffer):
 
 class MultiAgentCommonBuffer(MultiAgentReplayBuffer):
     def __init__(self, capacity: int):
+        logger.info("MultiAgentCommonBuffer init")
         self.type = ReplayBufferTypes.Common
         self.capacity = capacity
         self.buffer = deque(maxlen=capacity)
+        logger.info("\t capacity : %d", self.capacity)
+        logger.info("\t MultiAgentCommonBuffer init done")
 
     def store(self, data: Transition):
         self.buffer.append(data)

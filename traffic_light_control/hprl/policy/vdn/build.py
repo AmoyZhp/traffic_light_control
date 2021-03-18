@@ -33,15 +33,7 @@ def build_vdn_trainer(
     eps_init = policy_config["eps_init"]
     action_space = policy_config["action_space"]
     state_space = policy_config["state_space"]
-
-    logger.info("create VDN trainer")
-    logger.info("\t replay buffer type : %s", buffer_type)
-    logger.info("\t critic lr : %f", critic_lr)
-    logger.info("\t discount factor : %f", discount_factor)
-    logger.info("\t update period : %d", update_period)
-    logger.info("\t eps frame : %d", eps_frame)
-    logger.info("\t eps min : %f", eps_min)
-    logger.info("\t eps init : %f", eps_init)
+    logger.info("=== === === build VDN trainer === === ===")
 
     prioritiezed = False
     agents_id = env.get_agents_id()
@@ -90,4 +82,5 @@ def build_vdn_trainer(
         train_fn=train_fn,
         recorder=recorder,
     )
+    logger.info("=== === === build VDN trainer done === === ===")
     return trainer

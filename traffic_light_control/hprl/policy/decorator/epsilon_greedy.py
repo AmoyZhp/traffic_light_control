@@ -1,9 +1,12 @@
+import logging
 from typing import Dict, List
 
 import numpy as np
 
 from hprl.util.typing import Action, SampleBatch, State, Transition
 from hprl.policy.policy import MultiAgentPolicy, Policy
+
+logger = logging.getLogger(__package__)
 
 
 class EpsilonGreedy(Policy):
@@ -75,6 +78,8 @@ class MultiAgentEpsilonGreedy(MultiAgentPolicy):
         eps_min: float,
         action_space,
     ) -> None:
+        logger.info("Multi Agent Epsilon Greedy init")
+
         self.agents_id = agents_id
         self.inner_policy = inner_policy
         self.step = 0
@@ -83,6 +88,11 @@ class MultiAgentEpsilonGreedy(MultiAgentPolicy):
         self.eps_min = eps_min
         self.eps = eps_init
         self.action_space = action_space
+
+        logger.info("\t eps frame : %d", self.eps_frame)
+        logger.info("\t eps min : %f", self.eps_min)
+        logger.info("\t eps init : %f", self.eps_init)
+        logger.info("Multi Agent Epsilon Greedy init done")
 
     def compute_action(self, state: State) -> Action:
         self.step = min(self.step + 1, self.eps_frame)

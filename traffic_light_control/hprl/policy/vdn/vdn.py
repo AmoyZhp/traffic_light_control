@@ -1,3 +1,4 @@
+import logging
 from hprl.util.typing import Action, State, Transition, TransitionTuple
 from typing import Dict, List
 import numpy as np
@@ -5,6 +6,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from hprl.policy.policy import MultiAgentPolicy
+
+logger = logging.getLogger(__package__)
 
 
 class VDN(MultiAgentPolicy):
@@ -22,6 +25,7 @@ class VDN(MultiAgentPolicy):
         prioritized,
         device=None,
     ):
+        logger.info("VDN init")
         if device is None:
             self.device = torch.device(
                 "cuda" if torch.cuda.is_available() else "cpu")
@@ -48,6 +52,17 @@ class VDN(MultiAgentPolicy):
         self.action_space = action_space
         self.state_space = state_space
         self.prioritized = prioritized
+        logger.info("\t critic lr : %f", self.critic_lr)
+        logger.info("\t discount factor : %f", self.discount_factor)
+        logger.info("\t update period : %d", self.update_period)
+        logger.info("\t prioritized : %s", self.prioritized)
+        for id in self.agents_id:
+            action_space = self.action_space[id]
+            state_space = self.state_space[id]
+            logger.info("\t agents %s", id)
+            logger.info("\t\t action space is %s", action_space)
+            logger.info("\t\t state space is %s", state_space)
+        logger.info("VDN init done")
 
     def compute_action(self, state: State) -> Action:
         actions = {}
