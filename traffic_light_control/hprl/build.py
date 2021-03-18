@@ -71,6 +71,19 @@ def gym_baseline_trainer(
             models=models,
         )
         return trainer
+    elif trainer_type == TrainnerTypes.PPO:
+        config, model = ac.get_ppo_test_setting()
+        env = GymWrapper(gym.make("CartPole-v1"))
+        id = env.get_agents_id()[0]
+        models = {id: model}
+        config["policy"]["action_space"][id] = 2
+        config["policy"]["state_space"][id] = 4
+        trainer = ac.build_ppo_trainer(
+            config=config,
+            env=env,
+            models=models,
+        )
+        return trainer
     else:
         raise ValueError("trainer type invalid {}".format(trainer_type))
 

@@ -1,4 +1,5 @@
 from typing import List
+import numpy as np
 
 import torch
 import torch.nn as nn
@@ -8,7 +9,7 @@ from torch.distributions import Categorical
 from hprl.policy.policy import MultiAgentPolicy
 from hprl.policy.util import to_tensor_for_trajectory, compute_reward_to_go
 from hprl.util.enum import AdvantageTypes
-from hprl.util.typing import Action, State, Trajectory
+from hprl.util.typing import Action, SampleBatch, State, Trajectory
 
 
 class PPO(MultiAgentPolicy):
@@ -17,14 +18,15 @@ class PPO(MultiAgentPolicy):
         critic_net: nn.Module,
         critic_target_net: nn.Module,
         actor_net: nn.Module,
-        inner_epoch: int,
         critic_lr: float,
         actor_lr: float,
         discount_factor: float,
+        clip_param: float,
+        inner_epoch: int,
         update_period: int,
         action_space,
         state_space,
-        clip_param,
+        critic_loss_fn,
         advantage_type: AdvantageTypes = AdvantageTypes.RewardToGO,
     ) -> None:
 
@@ -53,31 +55,32 @@ class PPO(MultiAgentPolicy):
         self.update_period = update_period
         self.inner_epoch = inner_epoch
         self.clip_param = clip_param
+        self.critic_loss_fn = critic_loss_fn
         self.advantage_type = advantage_type
 
-    def compute_action(self, state: State) -> Action:
-        state = torch.tensor(state.central,
-                             dtype=torch.float,
-                             device=self.device)
+    def compute_action(self, state: np.ndarray) -> int:
+        state = torch.tensor(state, dtype=torch.float, device=self.device)
         with torch.no_grad():
             value = self.actor_net(state)
             m = Categorical(value)
             action = m.sample()
-            return Action(central=action.item())
+            return action.item()
 
-    def learn_on_batch(self, batch_data: List[Trajectory]):
-        batch_size = len(batch_data)
-        if batch_size == 0:
-            return 0.0
-        traj_len = len(batch_data[0].states)
+    def learn_on_batch(self, sample_batch: SampleBatch):
+        if sample_batch is None:
+            return
+        trajectories = sample_batch.trajectorys
+        if not trajectories:
+            return
+        batch_size = len(trajectories)
+        traj_len = len(trajectories[0].states)
         traj_len_equal = True
-        for traj in batch_data:
+        for traj in trajectories:
             if traj_len != len(traj.states):
                 traj_len_equal = False
                 break
 
-        states, actions, rewards = to_tensor_for_trajectory(
-            batch_data, self.device)
+        states, actions, rewards = to_tensor_for_trajectory(trajectories)
         selected_old_a_probs = []
         for i in range(batch_size):
             selected_old_a_prob = self.actor_net(states[i]).gather(
@@ -85,16 +88,15 @@ class PPO(MultiAgentPolicy):
             selected_old_a_probs.append(selected_old_a_prob)
 
         for _ in range(self.inner_epoch):
-
             actor_loss = 0.0
             critic_loss = 0.0
             if traj_len_equal:
                 # if they have equal sequence length
                 # they could be cated in batch dim
                 # data shape : batch_size * seq_len * data_shape
-                cat_states = torch.cat(states, 0)
-                cat_actions = torch.cat(actions, 0)
-                cat_rewards = torch.cat(rewards, 0)
+                cat_states = torch.cat(states, 0).to(self.device)
+                cat_actions = torch.cat(actions, 0).to(self.device)
+                cat_rewards = torch.cat(rewards, 0).to(self.device)
                 cat_selected_old_a_prob = torch.cat(selected_old_a_probs, 0)
                 critic_loss, actor_loss = self._inner_loop(
                     states=cat_states,
@@ -130,8 +132,15 @@ class PPO(MultiAgentPolicy):
                 self.critic_target_net.load_state_dict(
                     self.critic_net.state_dict())
 
-    def _inner_loop(self, states: torch.tensor, actions: torch.tensor,
-                    rewards: torch.tensor, old_a_probs: torch.tensor):
+        return {}
+
+    def _inner_loop(
+        self,
+        states: torch.tensor,
+        actions: torch.tensor,
+        rewards: torch.tensor,
+        old_a_probs: torch.tensor,
+    ):
 
         q_vals = self.critic_net(states)
 
@@ -142,7 +151,7 @@ class PPO(MultiAgentPolicy):
         next_sel_q_v[:-1] = self.critic_target_net(states[1:]).gather(
             2, actions[1:])
         target_values = (next_sel_q_v * self.discount_factor + rewards)
-        critic_loss = self._critic_loss(selected_q_v, target_values.detach())
+        critic_loss = self.critic_loss_fn(selected_q_v, target_values.detach())
 
         # calculated actor loss
         action_prob = self.actor_net(states)
@@ -171,9 +180,6 @@ class PPO(MultiAgentPolicy):
         actor_loss = -torch.min(surr1, surr2).mean()
 
         return critic_loss, actor_loss
-
-    def _critic_loss(self, input, target):
-        return torch.mean((input - target)**2)
 
     def get_weight(self):
         weight = {
