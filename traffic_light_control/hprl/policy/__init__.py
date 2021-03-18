@@ -11,18 +11,6 @@ from hprl.policy.multi.coma import COMA
 from hprl.policy.dqn import build_iql_trainer
 import logging
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-
-handler = logging.StreamHandler()
-handler.setLevel(logging.DEBUG)
-
-formatter = logging.Formatter('%(name)s - %(levelname)s - %(message)s')
-
-handler.setFormatter(formatter)
-
-logger.addHandler(handler)
-
 __all__ = [
     "Policy",
     "DQN",

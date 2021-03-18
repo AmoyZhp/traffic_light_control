@@ -200,7 +200,6 @@ class IndependentLearnerTrainer(Trainer):
                 logger=logger,
                 fig=fig,
             )
-            logger.info("fig {}".format(fig))
             if (ckpt_frequency != 0
                     and self.trained_iteration % ckpt_frequency == 0):
                 self.recorder.write_ckpt(
