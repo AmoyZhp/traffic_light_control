@@ -5,13 +5,13 @@ import torch.nn as nn
 from torch.distributions import Categorical
 from torch import optim
 
-from hprl.policy.policy import Policy
+from hprl.policy.policy import MultiAgentPolicy
 from hprl.policy.util import to_tensor_for_trajectory, compute_reward_to_go
 from hprl.util.enum import AdvantageTypes
 from hprl.util.typing import Action, State, Trajectory
 
 
-class ActorCritic(Policy):
+class ActorCritic(MultiAgentPolicy):
     def __init__(
             self,
             critic_net: nn.Module,

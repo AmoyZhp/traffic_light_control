@@ -72,7 +72,7 @@ def _train(args, env, models):
 
 def _baseline_test(args):
     trainer = hprl.test_trainer(
-        args.trainer,
-        args.replay_buffer,
+        trainer_type=args.trainer,
+        buffer_type=args.replay_buffer,
     )
     trainer.train(args.episodes)

@@ -4,7 +4,7 @@ import abc
 from hprl.util.typing import SampleBatch, SampleBatchType, Trajectory, Transition, TransitionTuple
 
 
-class ReplayBuffer(metaclass=abc.ABCMeta):
+class MultiAgentReplayBuffer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def store(self, data: Union[Transition, Trajectory]):
         ...
@@ -31,7 +31,7 @@ class ReplayBuffer(metaclass=abc.ABCMeta):
         ...
 
 
-class SingleAgentReplayBuffer(metaclass=abc.ABCMeta):
+class ReplayBuffer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def store(self, data: TransitionTuple, priorities: float):
         ...

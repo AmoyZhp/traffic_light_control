@@ -1,6 +1,6 @@
 import logging
 from gym import logger
-from hprl.replaybuffer.replay_buffer import SingleAgentReplayBuffer
+from hprl.replaybuffer.replay_buffer import ReplayBuffer
 from typing import List
 from hprl.replaybuffer.segment_tree import MinSegmentTree, SumSegmentTree
 from hprl.util.typing import BufferData, SampleBatch, TransitionTuple
@@ -9,7 +9,7 @@ import random
 logger = logging.getLogger(__name__)
 
 
-class PrioritizedReplayBuffer(SingleAgentReplayBuffer):
+class PrioritizedReplayBuffer(ReplayBuffer):
     def __init__(self, capacity: int, alpha: float) -> None:
 
         self.capacity = 1

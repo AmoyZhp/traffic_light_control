@@ -7,7 +7,7 @@ from hprl.util.typing import Reward, TrainingRecord
 from hprl.recorder.recorder import Recorder, cal_avg_reward, cal_cumulative_reward, draw_train_avg_rewards, draw_train_culumative_rewards
 from typing import List
 
-local_logger = logging.getLogger(__name__)
+local_logger = logging.getLogger(__package__)
 
 CHEKCPOINT_DIR_SUFFIX = "checkpoints"
 CONFIG_DIR_SUFFIX = "configs"
@@ -17,8 +17,7 @@ LOG_DIR_SUFFIX = "log"
 class TorchRecorder(Recorder):
     def __init__(self, base_dir: str) -> None:
         if not os.path.exists(base_dir):
-            raise ValueError(
-                "record folder {} not path exist : ".format(base_dir))
+            os.mkdir(base_dir)
         self.base_dir = base_dir
 
         checkpoint_path = f"{base_dir}/{CHEKCPOINT_DIR_SUFFIX}"

@@ -3,15 +3,15 @@ import time
 from typing import Dict, List
 
 from hprl.util.typing import Reward, Terminal, TrainingRecord, Trajectory, Transition
-from hprl.policy import Policy
+from hprl.policy import MultiAgentPolicy
 from hprl.env import MultiAgentEnv
-from hprl.replaybuffer import ReplayBuffer
+from hprl.replaybuffer import MultiAgentReplayBuffer
 
 
 def off_policy_train_fn(
     env: MultiAgentEnv,
-    policy: Policy,
-    replay_buffer: ReplayBuffer,
+    policy: MultiAgentPolicy,
+    replay_buffer: MultiAgentReplayBuffer,
     config: Dict,
     logger: logging.Logger,
 ) -> List[Reward]:
@@ -59,8 +59,8 @@ def off_policy_train_fn(
 
 def on_policy_train_fn(
     env: MultiAgentEnv,
-    policy: Policy,
-    replay_buffer: ReplayBuffer,
+    policy: MultiAgentPolicy,
+    replay_buffer: MultiAgentReplayBuffer,
     config: Dict,
     logger: logging.Logger,
 ):

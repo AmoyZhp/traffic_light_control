@@ -1,15 +1,15 @@
 from typing import Dict, List
 
-from hprl.policy.policy import Policy
+from hprl.policy.policy import MultiAgentPolicy
 from hprl.util.typing import Reward, State, Action, Terminal
 from hprl.util.typing import Trajectory, Transition
 
 
-class IndependentLearner(Policy):
+class IndependentLearner(MultiAgentPolicy):
     def __init__(
         self,
         agents_id: List[str],
-        policies: Dict[str, Policy],
+        policies: Dict[str, MultiAgentPolicy],
     ) -> None:
         self.agents_id = agents_id
         self.policies = policies

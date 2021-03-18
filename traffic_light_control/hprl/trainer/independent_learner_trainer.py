@@ -1,22 +1,22 @@
-from hprl.replaybuffer.replay_buffer import SingleAgentReplayBuffer
+from hprl.replaybuffer.replay_buffer import ReplayBuffer
 from hprl.recorder.recorder import Recorder
 from hprl.util.enum import TrainnerTypes
 import logging
 import time
 from hprl.util.typing import Action, ExecutingConfig, Reward, SampleBatch, State, Terminal, TrainingRecord, TransitionTuple
 from hprl.env.multi_agent_env import MultiAgentEnv
-from hprl.policy.policy import Policy, SingleAgentPolicy
+from hprl.policy.policy import Policy
 from hprl.replaybuffer.prioritized_replay_buffer import PrioritizedReplayBuffer
 from typing import Dict, List
 from hprl.trainer.trainer import Trainer
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__package__)
 
 
 def off_policy_train_fn(
     env: MultiAgentEnv,
-    policies: Dict[str, SingleAgentPolicy],
-    buffers: Dict[str, SingleAgentReplayBuffer],
+    policies: Dict[str, Policy],
+    buffers: Dict[str, ReplayBuffer],
     config: ExecutingConfig,
     logger: logging.Logger,
 ):
@@ -54,8 +54,8 @@ def off_policy_train_fn(
 
 def off_policy_per_train_fn(
     env: MultiAgentEnv,
-    policies: Dict[str, SingleAgentPolicy],
-    buffers: Dict[str, SingleAgentReplayBuffer],
+    policies: Dict[str, Policy],
+    buffers: Dict[str, ReplayBuffer],
     config: ExecutingConfig,
     logger: logging.Logger,
 ):
@@ -95,7 +95,7 @@ def off_policy_per_train_fn(
     return record
 
 
-def compute_action(policies: Dict[str, SingleAgentPolicy], state: State):
+def compute_action(policies: Dict[str, Policy], state: State):
     actions = {}
     for id, p in policies.items():
         actions[id] = p.compute_action(state=state.local[id])
@@ -104,7 +104,7 @@ def compute_action(policies: Dict[str, SingleAgentPolicy], state: State):
 
 
 def replay_buffer_store(
-    buffers: Dict[str, SingleAgentReplayBuffer],
+    buffers: Dict[str, ReplayBuffer],
     state: State,
     action: Action,
     reward: Reward,
@@ -131,12 +131,13 @@ def replay_buffer_sample(buffers, batch_size: int, beta: float):
 
 
 def policy_learn(
-    policies: Dict[str, SingleAgentPolicy],
+    policies: Dict[str, Policy],
     samples: Dict[str, SampleBatch],
 ):
     priorities = {}
     for id, p in policies.items():
-        priorities[id] = p.learn_on_batch(samples[id])
+        info = p.learn_on_batch(samples[id])
+        priorities[id] = info.get("priorities", [])
     return priorities
 
 
@@ -154,8 +155,8 @@ class IndependentLearnerTrainer(Trainer):
         self,
         type: TrainnerTypes,
         env: MultiAgentEnv,
-        policies: Dict[str, SingleAgentPolicy],
-        replay_buffers: Dict[str, SingleAgentReplayBuffer],
+        policies: Dict[str, Policy],
+        replay_buffers: Dict[str, ReplayBuffer],
         train_fn,
         recorder: Recorder,
         config: Dict,
@@ -193,11 +194,13 @@ class IndependentLearnerTrainer(Trainer):
             self.trained_iteration += 1
             record.set_episode(self.trained_iteration)
             self.recorder.add_record(record)
+            fig = True if (ep + 1) % (episodes / 10) == 0 else False
             self.recorder.print_record(
                 record=record,
                 logger=logger,
-                fig=True if ep % (episodes / 10) == 0 else False,
+                fig=fig,
             )
+            logger.info("fig {}".format(fig))
             if (ckpt_frequency != 0
                     and self.trained_iteration % ckpt_frequency == 0):
                 self.recorder.write_ckpt(

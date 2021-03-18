@@ -1,12 +1,12 @@
 from hprl.recorder.none_recorder import Printer
 from hprl.policy.nets import CartPole
 from hprl.policy.single.dqn import DQNNew
-from hprl.replaybuffer.common_buffer import SingleAgentCommnBuffer
+from hprl.replaybuffer.common_buffer import CommonBuffer
 from hprl.trainer.independent_learner_trainer import IndependentLearnerTrainer, off_policy_per_train_fn, off_policy_train_fn
 from hprl.recorder.torch_recorder import TorchRecorder
 import logging
 from hprl.env.multi_agent_env import MultiAgentEnv
-from hprl.policy.decorator.epsilon_greedy import SingleEpsilonGreedy
+from hprl.policy.decorator.epsilon_greedy import EpsilonGreedy
 from hprl.replaybuffer.prioritized_replay_buffer import PrioritizedReplayBuffer
 from hprl.util.enum import ReplayBufferTypes, TrainnerTypes
 from typing import Dict, List
@@ -17,7 +17,7 @@ import torch.optim as optim
 import numpy as np
 
 from hprl.util.typing import ExecutingConfig, SampleBatch, Transition, TransitionTuple
-from hprl.policy.policy import SingleAction, SingleAgentPolicy
+from hprl.policy.policy import SingleAction, Policy
 
 logger = logging.getLogger(__name__)
 
@@ -76,7 +76,7 @@ def build_iql_trainer(
     elif buffer_type == ReplayBufferTypes.Common:
         train_fn = off_policy_train_fn
         for id in agents_id:
-            buffers[id] = SingleAgentCommnBuffer(capacity=capacity)
+            buffers[id] = CommonBuffer(capacity=capacity)
             model = models[id]
             action_space = policy_config["action_space"][id]
             state_space = policy_config["state_space"][id]
@@ -100,7 +100,7 @@ def build_iql_trainer(
     eps_init = policy_config["eps_init"]
     for id in agents_id:
         action_space = policy_config["action_space"][id]
-        policies[id] = SingleEpsilonGreedy(
+        policies[id] = EpsilonGreedy(
             inner_policy=inner_ps[id],
             eps_frame=eps_frame,
             eps_min=eps_min,
@@ -177,7 +177,7 @@ def get_test_setting(buffer_type: ReplayBufferTypes):
     return trainner_config, model
 
 
-class PERDQN(SingleAgentPolicy):
+class PERDQN(Policy):
     def __init__(
         self,
         acting_net: nn.Module,

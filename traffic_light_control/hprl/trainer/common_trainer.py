@@ -9,8 +9,8 @@ from typing import Dict, List
 from hprl.util.typing import Reward, TrainingRecord
 from hprl.trainer.trainer import Log_Record_Fn_Type, Train_Fn_Type, Trainer
 from hprl.env import MultiAgentEnv
-from hprl.policy import Policy
-from hprl.replaybuffer import ReplayBuffer
+from hprl.policy import MultiAgentPolicy
+from hprl.replaybuffer import MultiAgentReplayBuffer
 from hprl.util.support_fn import cal_cumulative_reward, cal_avg_reward
 from hprl.util.plt import save_fig
 
@@ -22,8 +22,8 @@ class CommonTrainer(Trainer):
         config: Dict,
         train_fn: Train_Fn_Type,
         env: MultiAgentEnv,
-        policy: Policy,
-        replay_buffer: ReplayBuffer,
+        policy: MultiAgentPolicy,
+        replay_buffer: MultiAgentReplayBuffer,
         checkpointer: Checkpointer,
         log_record_fn: Log_Record_Fn_Type,
         record_base_dir: str,

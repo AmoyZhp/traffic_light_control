@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from hprl.policy.util import parase_traj_list, parase_trajectory_to_tensor
 from hprl.util.typing import Action, State, Trajectory, TrajectoryTuple
 from typing import Dict, List
-from hprl.policy.policy import Policy
+from hprl.policy.policy import MultiAgentPolicy
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-class COMA(Policy):
+class COMA(MultiAgentPolicy):
     def __init__(self,
                  agents_id: List[str],
                  critic_net: nn.Module,

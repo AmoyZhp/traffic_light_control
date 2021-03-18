@@ -4,10 +4,10 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-from hprl.policy.policy import Policy
+from hprl.policy.policy import MultiAgentPolicy
 
 
-class VDN(Policy):
+class VDN(MultiAgentPolicy):
     def __init__(self,
                  agents_id: List[str],
                  acting_nets: Dict[str, nn.Module],
