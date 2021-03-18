@@ -1,4 +1,3 @@
-from math import inf
 from typing import Dict, List
 
 import torch

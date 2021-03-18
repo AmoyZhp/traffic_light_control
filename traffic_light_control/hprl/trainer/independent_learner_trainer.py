@@ -3,7 +3,7 @@ from hprl.recorder.recorder import Recorder
 from hprl.util.enum import TrainnerTypes
 import logging
 import time
-from hprl.util.typing import Action, ExecutingConfig, Reward, SampleBatch, State, Terminal, TrainingRecord, TransitionTuple
+from hprl.util.typing import Action, ExecutingConfig, Reward, SampleBatch, State, Terminal, TrainingRecord, TrajectoryTuple, TransitionTuple
 from hprl.env.multi_agent_env import MultiAgentEnv
 from hprl.policy.policy import Policy
 from hprl.replaybuffer.prioritized_replay_buffer import PrioritizedReplayBuffer
@@ -11,6 +11,62 @@ from typing import Dict, List
 from hprl.trainer.trainer import Trainer
 
 logger = logging.getLogger(__package__)
+
+
+def on_policy_train_fn(
+    env: MultiAgentEnv,
+    policies: Dict[str, Policy],
+    buffers: Dict[str, ReplayBuffer],
+    config: ExecutingConfig,
+    logger: logging.Logger,
+):
+    batch_size = config["batch_size"]
+    beta = config["per_beta"]
+    sim_cost = 0.0
+    learn_cost = 0.0
+
+    agents_id = env.get_agents_id()
+    samples_batch = {id: SampleBatch() for id in agents_id}
+    for _ in range(batch_size):
+        record = TrainingRecord()
+        states = {id: [] for id in agents_id}
+        rewards = {id: [] for id in agents_id}
+        actions = {id: [] for id in agents_id}
+        state = env.reset()
+        while True:
+            for id in agents_id:
+                states[id].append(state.local[id])
+            action = compute_action(policies, state)
+            sim_begin = time.time()
+            next_s, r, done, info = env.step(action)
+            sim_cost += time.time() - sim_begin
+            state = next_s
+
+            for id in agents_id:
+                rewards[id].append(r.local[id])
+                actions[id].append(action.local[id])
+
+            record.append_reward(r)
+            record.append_info(info)
+
+            if done.central:
+                for id in agents_id:
+                    traj = TrajectoryTuple(
+                        states=states[id],
+                        actions=actions[id],
+                        rewards=rewards[id],
+                        terminal=done.central,
+                    )
+                    samples_batch[id].trajectorys.append(traj)
+                break
+    learn_begin = time.time()
+    policy_learn(policies=policies, samples=samples_batch)
+    learn_end = time.time()
+    learn_cost += (learn_end - learn_begin)
+
+    logger.info("simulation time cost : {:.3f}s".format(sim_cost))
+    logger.info("learning time cost : {:.3f}s".format(learn_cost))
+    return record
 
 
 def off_policy_train_fn(
@@ -175,7 +231,7 @@ class IndependentLearnerTrainer(Trainer):
 
     def train(self, episodes: int):
         ckpt_frequency = self.config["ckpt_frequency"]
-        init_beta = self.config["per_beta"]
+        init_beta = self.config.get("per_beta", 0)
         left_beta = 1.0 - init_beta
         for ep in range(episodes):
             logger.info("========== train episode {} begin ==========".format(

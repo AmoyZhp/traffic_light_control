@@ -71,7 +71,7 @@ def _train(args, env, models):
 
 
 def _baseline_test(args):
-    trainer = hprl.test_trainer(
+    trainer = hprl.gym_baseline_trainer(
         trainer_type=args.trainer,
         buffer_type=args.replay_buffer,
     )

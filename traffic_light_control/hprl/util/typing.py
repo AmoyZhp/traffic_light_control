@@ -66,9 +66,13 @@ class TrainingRecord():
 
 
 TransitionTuple = namedtuple(
-    "TransitionTuple", ["state", "action", "reward", "next_state", "terminal"])
-TrajectoryTuple = namedtuple("TrajectoryTuple",
-                             ["states", "actions", "rewards", "terminals"])
+    "TransitionTuple",
+    ["state", "action", "reward", "next_state", "terminal"],
+)
+TrajectoryTuple = namedtuple(
+    "TrajectoryTuple",
+    ["states", "actions", "rewards", "terminal"],
+)
 
 SampleBatchType = ["SampleBatch", "MultiAgentBatch"]
 

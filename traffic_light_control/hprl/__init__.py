@@ -5,7 +5,7 @@ from hprl.replaybuffer import MultiAgentReplayBuffer
 from hprl.policy import MultiAgentPolicy
 from hprl.trainer import Trainer
 from hprl.util.enum import TrainnerTypes, ReplayBufferTypes, AdvantageTypes
-from hprl.build import build_trainer, load_trainer, test_trainer
+from hprl.build import build_trainer, load_trainer, gym_baseline_trainer
 
 import logging
 
@@ -27,7 +27,7 @@ __all__ = [
     "TrainnerTypes",
     "ReplayBufferTypes",
     "AdvantageTypes",
-    "test_trainer",
+    "gym_baseline_trainer",
 ]
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
