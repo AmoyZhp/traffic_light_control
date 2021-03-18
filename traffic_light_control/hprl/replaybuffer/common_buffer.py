@@ -47,17 +47,16 @@ class CommonBuffer(ReplayBuffer):
         return len(self.buffer)
 
 
-class OldCommonBuffer(MultiAgentReplayBuffer):
+class MultiAgentCommonBuffer(MultiAgentReplayBuffer):
     def __init__(self, capacity: int):
         self.type = ReplayBufferTypes.Common
         self.capacity = capacity
         self.buffer = deque(maxlen=capacity)
 
-    def store(self, data: Union[Transition, Trajectory]):
+    def store(self, data: Transition):
         self.buffer.append(data)
 
-    def sample(self,
-               batch_size: int) -> Union[List[Transition], List[Trajectory]]:
+    def sample(self, batch_size: int) -> List[Transition]:
         if batch_size > len(self.buffer):
             return []
         return random.sample(self.buffer, batch_size)

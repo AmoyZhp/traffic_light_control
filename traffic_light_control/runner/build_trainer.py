@@ -51,7 +51,7 @@ def load_trainer(args, env, models):
 
 def _build_trainer(args, env, models):
     recording = args.recording
-    base_dir = ""
+    base_dir = None
     if recording:
         base_dir = _create_record_dir(
             BASE_RECORDS_DIR,

@@ -2,6 +2,7 @@ from hprl.old_build import old_build_trainer
 import gym
 from hprl.env.gym_wrapper import GymWrapper
 import hprl.policy.dqn as dqn
+import hprl.policy.vdn as vdn
 import logging
 from typing import Dict, List
 from hprl.trainer.trainer import Trainer
@@ -25,7 +26,7 @@ def build_trainer(
     elif trainer_type == TrainnerTypes.PPO:
         ...
     elif trainer_type == TrainnerTypes.VDN:
-        ...
+        trainer = vdn.build_vdn_trainer(config, env, models)
     else:
         trainer = old_build_trainer(
             config=config,

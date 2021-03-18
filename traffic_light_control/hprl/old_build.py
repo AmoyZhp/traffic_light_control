@@ -8,7 +8,7 @@ from hprl.policy import MultiAgentPolicy, DQN, PPO, ActorCritic
 from hprl.policy import IndependentLearner, MultiAgentEpsilonGreedy
 from hprl.policy import MultiAgentEpsilonGreedy
 from hprl.policy import COMA, VDN
-from hprl.replaybuffer import MultiAgentReplayBuffer, OldCommonBuffer
+from hprl.replaybuffer import MultiAgentReplayBuffer, MultiAgentCommonBuffer
 from hprl.trainer import Trainer, CommonTrainer, IndependentLearnerTrainer
 from hprl.util.checkpointer import Checkpointer
 from hprl.util.enum import AdvantageTypes, ReplayBufferTypes, TrainnerTypes
@@ -70,7 +70,7 @@ def build_checkpointer(dir: str, frequency: int):
 def build_replay_buffer(type, config):
     if type == ReplayBufferTypes.Common:
         capacity = config["capacity"]
-        return OldCommonBuffer(capacity)
+        return MultiAgentCommonBuffer(capacity)
     elif type == ReplayBufferTypes.Prioritized:
         capacity = config["capacity"]
         alpha = config["alpha"]

@@ -92,7 +92,7 @@ class MultiAgentEpsilonGreedy(MultiAgentPolicy):
             actions = {}
             for id in self.agents_id:
                 actions[id] = np.random.choice(
-                    range(self.action_space),
+                    range(self.action_space[id]),
                     1,
                 ).item()
             return Action(local=actions)
