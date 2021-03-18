@@ -1,4 +1,4 @@
-from hprl.util.typing import TrainingRecord, Transition
+from hprl.util.typing import TrainingRecord, Trajectory, Transition
 import logging
 import time
 from typing import Dict
@@ -10,6 +10,56 @@ from hprl.recorder import Recorder
 from hprl.util.enum import TrainnerTypes
 
 logger = logging.getLogger(__package__)
+
+
+def on_policy_train_fn(
+    config: Dict,
+    env: MultiAgentEnv,
+    policy: MultiAgentPolicy,
+    buffer: MultiAgentReplayBuffer,
+    logger: logging.Logger,
+):
+    batch_size = config["batch_size"]
+    sim_cost = 0.0
+    learn_cost = 0.0
+    sample_data = []
+    for _ in range(batch_size):
+        state = env.reset()
+        record = TrainingRecord()
+        states = []
+        rewards = []
+        actions = []
+        while True:
+            states.append(state)
+            action = policy.compute_action(state)
+
+            sim_begin = time.time()
+            next_s, r, done, info = env.step(action)
+            sim_cost += time.time() - sim_begin
+            state = next_s
+
+            actions.append(action)
+            rewards.append(r)
+
+            record.append_reward(r)
+            record.append_info(info)
+
+            if done.central:
+                traj = Trajectory(
+                    states=states,
+                    actions=actions,
+                    rewards=rewards,
+                    terminal=done.central,
+                )
+                sample_data.append(traj)
+                break
+        learn_begin = time.time()
+        sample_data = buffer.sample(batch_size)
+        policy.learn_on_batch(sample_data)
+        learn_cost += time.time() - learn_begin
+        logger.info("simulation time cost : {:.3f}s".format(sim_cost))
+        logger.info("learning time cost : {:.3f}s".format(learn_cost))
+    return record
 
 
 def off_policy_train_fn(

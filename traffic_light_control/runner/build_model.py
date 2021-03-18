@@ -149,19 +149,31 @@ def _make_vdn_model(config, agents_id):
 
 
 def _make_coma_model(config, agents_id):
-    critic_input_space = (config["central_state"] + config["local_state"][id] +
-                          len(agents_id) +
-                          len(agents_id) * config["local_action"][id])
-    critic_net = COMACritic(critic_input_space, config["local_action"][id])
-    target_critic_net = COMACritic(critic_input_space,
-                                   config["local_action"][id])
+    locals_state_space = config["local_state"]
+    locals_action_space = config["local_action"]
+    for i in range(len(agents_id)):
+        if (locals_state_space[agents_id[i]] !=
+                locals_state_space[agents_id[i]]):
+            raise ValueError(
+                "coma only support equal local state space sisutaion")
+        if (locals_action_space[agents_id[i]] !=
+                locals_action_space[agents_id[i]]):
+            raise ValueError("coma only support equal action space")
+    action_space = locals_action_space[agents_id[0]]
+    state_space = locals_state_space[agents_id[0]]
+    print(state_space)
+    print(action_space)
+    critic_input_space = (config["central_state"] + state_space +
+                          len(agents_id) + len(agents_id) * action_space)
+    print(critic_input_space)
+    critic_net = COMACritic(critic_input_space, action_space)
+    target_critic_net = COMACritic(critic_input_space, action_space)
     actors_net = {}
     for id in agents_id:
-        actors_net[id] = IActor(config["local_state"][id],
-                                config["local_action"][id])
+        actors_net[id] = IActor(state_space, action_space)
     model = {
         "critic_net": critic_net,
-        "target_critic_net": target_critic_net,
+        "critic_target_net": target_critic_net,
         "actors_net": actors_net,
     }
     return model
