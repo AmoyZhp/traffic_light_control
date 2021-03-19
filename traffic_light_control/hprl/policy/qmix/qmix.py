@@ -41,6 +41,8 @@ class QMIX(MultiAgentPolicy):
         self.critic_target_net = critic_target_net
         self._update_target()
 
+        self.critic_net.to(self.device)
+        self.critic_target_net.to(self.device)
         params = list(self.critic_net.parameters())
         for id in self.agents_id:
             self.actors_net[id].to(self.device)
@@ -183,8 +185,8 @@ class QMIX(MultiAgentPolicy):
 
             agents_q.append(chosen_q.view(-1, 1, 1))
             agents_next_q.append(chosen_next_q.view(-1, 1, 1))
-        agents_q = torch.cat(agents_q, 1)
-        agents_next_q = torch.cat(agents_next_q, 1)
+        agents_q = torch.cat(agents_q, 1).to(self.device)
+        agents_next_q = torch.cat(agents_next_q, 1).to(self.device)
         return agents_q, agents_next_q
 
     def _update_target(self):
