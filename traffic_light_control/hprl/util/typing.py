@@ -76,10 +76,10 @@ SampleBatchType = ["SampleBatch", "MultiAgentBatch"]
 
 @dataclass
 class MultiAgentSampleBatch():
-    transitions: List[Transition]
-    trajectorys: List[Trajectory]
-    weigths: List[Dict]
-    idxes: List[Dict]
+    transitions: List[Transition] = field(default_factory=list)
+    trajectorys: List[Trajectory] = field(default_factory=list)
+    weigths: List[Dict] = field(default_factory=list)
+    idxes: List[Dict] = field(default_factory=list)
 
 
 @dataclass

@@ -3,7 +3,7 @@ from typing import Dict, List
 
 import numpy as np
 
-from hprl.util.typing import Action, SampleBatch, State, Transition
+from hprl.util.typing import Action, MultiAgentSampleBatch, SampleBatch, State, Transition
 from hprl.policy.policy import MultiAgentPolicy, Policy
 
 logger = logging.getLogger(__package__)
@@ -108,7 +108,7 @@ class MultiAgentEpsilonGreedy(MultiAgentPolicy):
             return Action(local=actions)
         return self.inner_policy.compute_action(state)
 
-    def learn_on_batch(self, batch_data: List[Transition]):
+    def learn_on_batch(self, batch_data: MultiAgentSampleBatch):
         return self.inner_policy.learn_on_batch(batch_data)
 
     def get_weight(self):

@@ -106,6 +106,56 @@ def off_policy_train_fn(
     return record
 
 
+def off_policy_per_train_fn(
+    config: Dict,
+    env: MultiAgentEnv,
+    policy: MultiAgentPolicy,
+    buffer: MultiAgentReplayBuffer,
+    logger: logging.Logger,
+):
+    batch_size = config["batch_size"]
+    beta = config["per_beta"]
+    sim_cost = 0.0
+    learn_cost = 0.0
+
+    state = env.reset()
+    record = TrainingRecord()
+    while True:
+        action = policy.compute_action(state)
+
+        sim_begin = time.time()
+        next_s, r, done, info = env.step(action)
+        sim_cost += time.time() - sim_begin
+        transition = Transition(
+            state=state,
+            action=action,
+            reward=r,
+            next_state=next_s,
+            terminal=done,
+        )
+        buffer.store(transition)
+        state = next_s
+
+        learn_begin = time.time()
+        sample_data = buffer.sample(batch_size, beta)
+        info = policy.learn_on_batch(sample_data)
+        priorities = info.get("priorities", [])
+        buffer.update_priorities(
+            idxes=sample_data.idxes,
+            priorities=priorities,
+        )
+        learn_cost += time.time() - learn_begin
+
+        record.append_reward(r)
+        record.append_info(info)
+
+        if done.central:
+            logger.info("simulation time cost : {:.3f}s".format(sim_cost))
+            logger.info("learning time cost : {:.3f}s".format(learn_cost))
+            break
+    return record
+
+
 class MultiAgentTraienr(Trainer):
     def __init__(
         self,

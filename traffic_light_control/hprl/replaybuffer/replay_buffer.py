@@ -2,7 +2,7 @@ from typing import List, Union
 from enum import Enum
 import abc
 
-from hprl.util.typing import SampleBatch, SampleBatchType, Trajectory, Transition, TransitionTuple
+from hprl.util.typing import MultiAgentSampleBatch, SampleBatch, SampleBatchType, Trajectory, Transition, TransitionTuple
 
 
 class ReplayBufferTypes(Enum):
@@ -16,7 +16,11 @@ class MultiAgentReplayBuffer(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def sample(self, batch_size: int):
+    def sample(self, batch_size: int) -> MultiAgentSampleBatch:
+        ...
+
+    @abc.abstractmethod
+    def update_priorities(self, idxes: List[int], priorities: List[float]):
         ...
 
     @abc.abstractmethod

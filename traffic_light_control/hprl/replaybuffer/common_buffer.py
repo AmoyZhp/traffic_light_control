@@ -6,7 +6,7 @@ import random
 from shutil import Error
 
 from hprl.replaybuffer.replay_buffer import MultiAgentReplayBuffer, ReplayBuffer
-from hprl.util.typing import SampleBatch, Trajectory, Transition, TransitionTuple
+from hprl.util.typing import MultiAgentSampleBatch, SampleBatch, Trajectory, Transition, TransitionTuple
 
 logger = logging.getLogger(__package__)
 
@@ -62,10 +62,11 @@ class MultiAgentCommonBuffer(MultiAgentReplayBuffer):
     def store(self, data: Transition):
         self.buffer.append(data)
 
-    def sample(self, batch_size: int) -> List[Transition]:
+    def sample(self, batch_size: int) -> MultiAgentSampleBatch:
         if batch_size > len(self.buffer):
-            return []
-        return random.sample(self.buffer, batch_size)
+            return MultiAgentSampleBatch()
+        trans = random.sample(self.buffer, batch_size)
+        return MultiAgentSampleBatch(transitions=trans)
 
     def clear(self):
         self.buffer.clear()
@@ -73,6 +74,9 @@ class MultiAgentCommonBuffer(MultiAgentReplayBuffer):
     def get_config(self):
         config = {"type": self.type, "capacity": self.capacity}
         return config
+
+    def update_priorities(self, idxes: List[int], priorities: List[float]):
+        ...
 
     def get_weight(self):
         weight = {"buffer": self.buffer}

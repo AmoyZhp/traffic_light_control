@@ -1,5 +1,5 @@
 import logging
-from hprl.util.typing import Action, State, Transition, TransitionTuple
+from hprl.util.typing import Action, MultiAgentSampleBatch, State, Transition, TransitionTuple
 from typing import Dict, List
 import numpy as np
 import torch
@@ -79,23 +79,42 @@ class VDN(MultiAgentPolicy):
             actions[id] = index.item()
         return Action(local=actions)
 
-    def learn_on_batch(self, batch_data: List[Transition]):
-        if batch_data is None or not batch_data:
+    def learn_on_batch(self, sample_batch: MultiAgentSampleBatch):
+        if sample_batch is None:
             return {}
-        transition = self._to_tensor(batch_data)
+        trans_batch = sample_batch.transitions
+        if not trans_batch:
+            return {}
+        transition = self._to_tensor(trans_batch)
         local_states = transition.state
         local_actions = transition.action
         local_next_state = transition.next_state
         terminal = transition.terminal
         central_reward = transition.reward
-        q_val, next_q_val = self._cal_q_val(
+        q_vals, next_q_val = self._cal_q_val(
             local_states,
             local_actions,
             local_next_state,
             terminal,
         )
-        expected_q_val = (next_q_val * self.discount_factor) + central_reward
-        loss = self.loss_fn(q_val, expected_q_val)
+        expected_q_vals = (next_q_val * self.discount_factor) + central_reward
+        loss = 0.0
+        info = {}
+        if self.prioritized:
+            weights = torch.tensor(sample_batch.weigths, dtype=torch.float)
+            weights = weights.unsqueeze(-1).to(self.device)
+            loss = self.loss_fn(
+                q_vals,
+                expected_q_vals.detach(),
+                weights.detach(),
+            )
+            td_error = (expected_q_vals - q_vals).squeeze(-1)
+            priorities = torch.clamp(td_error, -1, 1).detach()
+            priorities = abs(priorities) + 1e-6
+            priorities = priorities.tolist()
+            info["priorities"] = priorities
+        else:
+            loss = self.loss_fn(q_vals, expected_q_vals)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -105,6 +124,7 @@ class VDN(MultiAgentPolicy):
             for id in self.acting_nets:
                 self.target_nets[id].load_state_dict(
                     self.acting_nets[id].state_dict())
+        return info
 
     def _to_tensor(self, batch_data: List[Transition]):
         states = {}
