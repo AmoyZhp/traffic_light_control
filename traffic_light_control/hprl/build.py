@@ -4,6 +4,7 @@ import hprl.policy.dqn as dqn
 import hprl.policy.vdn as vdn
 import hprl.policy.ac as ac
 import hprl.policy.coma as coma
+import hprl.policy.qmix as qmix
 import logging
 from typing import Dict, List
 from hprl.trainer.trainer import Trainer
@@ -31,6 +32,8 @@ def build_trainer(
         trainer = vdn.build_vdn_trainer(config, env, models)
     elif trainer_type == TrainnerTypes.COMA:
         trainer = coma.build_coma_trainer(config, env, models)
+    elif trainer_type == TrainnerTypes.QMIX:
+        trainer = qmix.build_qmix_trainer(config, env, models)
     else:
         raise ValueError("train type %s is invalid", trainer_type)
     return trainer

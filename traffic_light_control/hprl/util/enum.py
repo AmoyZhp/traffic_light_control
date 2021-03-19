@@ -8,6 +8,7 @@ class TrainnerTypes(Enum):
     IAC = "IAC"
     VDN = "VDN"
     COMA = "COMA"
+    QMIX = "QMIX"
 
 
 class ReplayBufferTypes(Enum):
