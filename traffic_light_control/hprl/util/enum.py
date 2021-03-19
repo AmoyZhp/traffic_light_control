@@ -8,9 +8,6 @@ class TrainnerTypes(Enum):
     IAC = "IAC"
     VDN = "VDN"
     COMA = "COMA"
-    IQL_PS = "IQL_PS"
-    PPO_PS = "PPO_PS"
-    IQL_PER = "IQL_PER"
 
 
 class ReplayBufferTypes(Enum):

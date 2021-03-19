@@ -3,7 +3,7 @@ from gym import logger
 from hprl.replaybuffer.replay_buffer import ReplayBuffer
 from typing import List
 from hprl.replaybuffer.segment_tree import MinSegmentTree, SumSegmentTree
-from hprl.util.typing import BufferData, SampleBatch, TransitionTuple
+from hprl.util.typing import SampleBatch, TransitionTuple
 import random
 
 logger = logging.getLogger(__name__)

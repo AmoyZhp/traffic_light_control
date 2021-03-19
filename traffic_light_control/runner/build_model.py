@@ -1,8 +1,10 @@
-import hprl
-from runner.nets import IActor, ICritic
-from runner.nets import COMACritic
-
 import logging
+
+import torch.nn as nn
+import torch.nn.functional as F
+
+import hprl
+
 logger = logging.getLogger(__package__)
 
 
@@ -25,19 +27,13 @@ def build_model(args, env):
 def _make_model(trainer_type, config, agents_id):
     if trainer_type == hprl.TrainnerTypes.IQL:
         return _make_iql_model(config, agents_id)
-    elif trainer_type == hprl.TrainnerTypes.IQL_PS:
-        return _make_iql_ps_model(config, agents_id)
     elif (trainer_type == hprl.TrainnerTypes.IAC
           or trainer_type == hprl.TrainnerTypes.PPO):
         return _make_ac_model(config, agents_id)
-    elif (trainer_type == hprl.TrainnerTypes.PPO_PS):
-        return _make_ppo_ps_model(config, agents_id)
     elif trainer_type == hprl.TrainnerTypes.VDN:
         return _make_vdn_model(config, agents_id)
     elif trainer_type == hprl.TrainnerTypes.COMA:
         return _make_coma_model(config, agents_id)
-    elif trainer_type == hprl.TrainnerTypes.IQL_PER:
-        return _make_iql_model(config, agents_id)
     else:
         raise ValueError("invalid trainer type {}".format(trainer_type))
 
@@ -161,11 +157,8 @@ def _make_coma_model(config, agents_id):
             raise ValueError("coma only support equal action space")
     action_space = locals_action_space[agents_id[0]]
     state_space = locals_state_space[agents_id[0]]
-    print(state_space)
-    print(action_space)
     critic_input_space = (config["central_state"] + state_space +
                           len(agents_id) + len(agents_id) * action_space)
-    print(critic_input_space)
     critic_net = COMACritic(critic_input_space, action_space)
     target_critic_net = COMACritic(critic_input_space, action_space)
     actors_net = {}
@@ -177,3 +170,53 @@ def _make_coma_model(config, agents_id):
         "actors_net": actors_net,
     }
     return model
+
+
+class ICritic(nn.Module):
+    def __init__(self, input_space, output_space) -> None:
+        super(ICritic, self).__init__()
+        self.fc1 = nn.Linear(input_space, 128)
+        self.fc2 = nn.Linear(128, 64)
+        self.fc3 = nn.Linear(64, 32)
+        self.fc4 = nn.Linear(32, output_space)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        action = self.fc4(x)
+        return action
+
+
+class IActor(nn.Module):
+    def __init__(self, input_space, output_space) -> None:
+        super(IActor, self).__init__()
+        self.fc1 = nn.Linear(input_space, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, output_space)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        action = F.softmax(self.fc3(x), dim=-1)
+        return action
+
+
+class COMACritic(nn.Module):
+    def __init__(self, input_space, output_space) -> None:
+        super(COMACritic, self).__init__()
+        self.fc1 = nn.Linear(input_space, 1028)
+        self.fc2 = nn.Linear(1028, 512)
+        self.fc3 = nn.Linear(512, 256)
+        self.fc4 = nn.Linear(256, 64)
+        self.fc5 = nn.Linear(64, 32)
+        self.fc6 = nn.Linear(32, output_space)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.relu(self.fc3(x))
+        x = F.relu(self.fc4(x))
+        x = F.relu(self.fc5(x))
+        action = self.fc6(x)
+        return action

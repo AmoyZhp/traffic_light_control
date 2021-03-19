@@ -3,7 +3,7 @@ from hprl.recorder.recorder import Recorder
 from hprl.util.enum import TrainnerTypes
 import logging
 import time
-from hprl.util.typing import Action, ExecutingConfig, Reward, SampleBatch, State, Terminal, TrainingRecord, TrajectoryTuple, TransitionTuple
+from hprl.util.typing import Action, Reward, SampleBatch, State, Terminal, TrainingRecord, TrajectoryTuple, TransitionTuple
 from hprl.env.multi_agent_env import MultiAgentEnv
 from hprl.policy.policy import Policy
 from hprl.replaybuffer.prioritized_replay_buffer import PrioritizedReplayBuffer
@@ -17,7 +17,7 @@ def on_policy_train_fn(
     env: MultiAgentEnv,
     policies: Dict[str, Policy],
     buffers: Dict[str, ReplayBuffer],
-    config: ExecutingConfig,
+    config: Dict,
     logger: logging.Logger,
 ):
     batch_size = config["batch_size"]
@@ -73,7 +73,7 @@ def off_policy_train_fn(
     env: MultiAgentEnv,
     policies: Dict[str, Policy],
     buffers: Dict[str, ReplayBuffer],
-    config: ExecutingConfig,
+    config: Dict,
     logger: logging.Logger,
 ):
     batch_size = config["batch_size"]
@@ -112,7 +112,7 @@ def off_policy_per_train_fn(
     env: MultiAgentEnv,
     policies: Dict[str, Policy],
     buffers: Dict[str, ReplayBuffer],
-    config: ExecutingConfig,
+    config: Dict,
     logger: logging.Logger,
 ):
     batch_size = config["batch_size"]

@@ -88,7 +88,7 @@ def _add_core_args(parser: argparse.ArgumentParser):
     parser.add_argument(
         "--batch_size",
         type=int,
-        required=True,
+        default=0,
         help="batch size of sample batch",
     )
 

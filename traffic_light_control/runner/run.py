@@ -74,5 +74,6 @@ def _baseline_test(args):
     trainer = hprl.gym_baseline_trainer(
         trainer_type=args.trainer,
         buffer_type=args.replay_buffer,
+        batch_size=args.batch_size,
     )
     trainer.train(args.episodes)

@@ -6,12 +6,11 @@ from hprl.util.typing import SampleBatch, SampleBatchType, Trajectory, Transitio
 
 class MultiAgentReplayBuffer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def store(self, data: Union[Transition, Trajectory]):
+    def store(self, data):
         ...
 
     @abc.abstractmethod
-    def sample(self,
-               batch_size: int) -> Union[List[Transition], List[Trajectory]]:
+    def sample(self, batch_size: int):
         ...
 
     @abc.abstractmethod

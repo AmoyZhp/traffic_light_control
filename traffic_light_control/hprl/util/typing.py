@@ -1,11 +1,8 @@
 from collections import namedtuple
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Union
+from typing import Dict, List
 
 import numpy as np
-
-BufferData = Union["Transition", "Trajectory"]
-ExecutingConfig = Dict
 
 
 @dataclass
@@ -78,7 +75,7 @@ SampleBatchType = ["SampleBatch", "MultiAgentBatch"]
 
 
 @dataclass
-class MultiAgentBatch():
+class MultiAgentSampleBatch():
     transitions: List[Transition]
     trajectorys: List[Trajectory]
     weigths: List[Dict]

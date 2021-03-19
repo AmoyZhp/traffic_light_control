@@ -25,10 +25,10 @@ ADVANTAGE_TYPE = hprl.AdvantageTypes.QMinusV
 
 
 def build_trainer(args, env, models):
-    if args.resume:
-        trainer = load_trainer(args, env, models)
-    else:
+    if not args.resume:
         trainer = _build_trainer(args, env, models)
+    else:
+        trainer = load_trainer(args, env, models)
     return trainer
 
 
@@ -84,6 +84,9 @@ def _get_trainer_config(
     critic_lr = args.critic_lr
     actor_lr = args.actor_lr
     batch_size = args.batch_size
+    if batch_size <= 0:
+        raise ValueError(
+            "Please input valid batch size, there is not default value")
     discount_factor = args.gamma
     eps_init = EPS_INIT
     eps_min = EPS_MIN

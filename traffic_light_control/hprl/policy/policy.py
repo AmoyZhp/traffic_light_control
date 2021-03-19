@@ -1,7 +1,7 @@
 import abc
 import numpy as np
-from typing import Dict, List, Union
-from hprl.util.typing import Action, MultiAgentBatch, SampleBatch, State, Trajectory, Transition
+from typing import Dict
+from hprl.util.typing import Action, MultiAgentSampleBatch, SampleBatch, State
 
 
 class Policy(metaclass=abc.ABCMeta):
@@ -38,7 +38,7 @@ class MultiAgentPolicy(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def learn_on_batch(
         self,
-        batch_data: MultiAgentBatch,
+        batch_data: MultiAgentSampleBatch,
     ):
         ...
 

@@ -1,4 +1,3 @@
-from hprl.old_build import old_build_trainer
 import gym
 from hprl.env.gym_wrapper import GymWrapper
 import hprl.policy.dqn as dqn
@@ -9,7 +8,6 @@ import logging
 from typing import Dict, List
 from hprl.trainer.trainer import Trainer
 from hprl.env import MultiAgentEnv
-from hprl.util.checkpointer import Checkpointer
 from hprl.util.enum import ReplayBufferTypes, TrainnerTypes
 
 logger = logging.getLogger(__package__)
@@ -34,17 +32,14 @@ def build_trainer(
     elif trainer_type == TrainnerTypes.COMA:
         trainer = coma.build_coma_trainer(config, env, models)
     else:
-        trainer = old_build_trainer(
-            config=config,
-            env=env,
-            models=models,
-        )
+        raise ValueError("train type %s is invalid", trainer_type)
     return trainer
 
 
 def gym_baseline_trainer(
     trainer_type: TrainnerTypes,
     buffer_type: ReplayBufferTypes = None,
+    batch_size: int = 0,
 ) -> Trainer:
     if trainer_type == TrainnerTypes.IQL:
         if buffer_type is None:
@@ -55,6 +50,9 @@ def gym_baseline_trainer(
         models = {id: model}
         config["policy"]["action_space"][id] = 2
         config["policy"]["state_space"][id] = 4
+        if batch_size > 0:
+            config["executing"]["batch_size"] = batch_size
+
         trainer = dqn.build_iql_trainer(
             config=config,
             env=env,
@@ -68,6 +66,8 @@ def gym_baseline_trainer(
         models = {id: model}
         config["policy"]["action_space"][id] = 2
         config["policy"]["state_space"][id] = 4
+        if batch_size > 0:
+            config["executing"]["batch_size"] = batch_size
         trainer = ac.build_ac_trainer(
             config=config,
             env=env,
@@ -81,6 +81,8 @@ def gym_baseline_trainer(
         models = {id: model}
         config["policy"]["action_space"][id] = 2
         config["policy"]["state_space"][id] = 4
+        if batch_size > 0:
+            config["executing"]["batch_size"] = batch_size
         trainer = ac.build_ppo_trainer(
             config=config,
             env=env,
