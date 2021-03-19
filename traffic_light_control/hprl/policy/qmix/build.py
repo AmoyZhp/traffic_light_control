@@ -1,3 +1,4 @@
+from hprl.replaybuffer.prioritized_replay_buffer import MultiAgentPER
 from hprl.policy.qmix.qmix import QMIX
 from hprl.replaybuffer.common_buffer import MultiAgentCommonBuffer
 from hprl.policy.decorator.epsilon_greedy import MultiAgentEpsilonGreedy
@@ -41,7 +42,13 @@ def build_qmix_trainer(
     loss_fn = None
     buffer = None
     if buffer_type == ReplayBufferTypes.Prioritized:
-        raise NotImplementedError
+        prioritiezed = True
+        alpha = buffer_config["alpha"]
+        train_fn = matrainer.off_policy_per_train_fn
+        loss_fn = _per_loss_fn
+        buffer = MultiAgentPER(capacity=capacity, alpha=alpha)
+        logger.info("\t buffer alpha is %s", alpha)
+        logger.info("\t buffer beta is %s", executing_config["per_beta"])
     elif buffer_type == ReplayBufferTypes.Common:
         prioritiezed = False
         train_fn = matrainer.off_policy_train_fn
@@ -86,3 +93,7 @@ def build_qmix_trainer(
     )
     logger.info("=== === === build QMIX trainer done === === ===")
     return trainer
+
+
+def _per_loss_fn(input, target, weight):
+    return torch.mean((input - target)**2 * weight)

@@ -1,5 +1,5 @@
 import logging
-from hprl.util.typing import Action, State, Transition, TransitionTuple
+from hprl.util.typing import Action, MultiAgentSampleBatch, State, Transition, TransitionTuple
 from typing import Dict, List
 import numpy as np
 import torch
@@ -84,10 +84,13 @@ class QMIX(MultiAgentPolicy):
             actions[id] = index.item()
         return Action(local=actions)
 
-    def learn_on_batch(self, batch_data: List[Transition]):
-        if batch_data is None or not batch_data:
+    def learn_on_batch(self, sample_batch: MultiAgentSampleBatch):
+        if sample_batch is None:
             return {}
-        transition, central_s, central_next_s = self._to_tensor(batch_data)
+        trans = sample_batch.transitions
+        if not trans:
+            return {}
+        transition, central_s, central_next_s = self._to_tensor(trans)
         local_states = transition.state
         local_actions = transition.action
         local_next_state = transition.next_state
@@ -103,7 +106,23 @@ class QMIX(MultiAgentPolicy):
         next_q_val = self.critic_target_net(agents_next_q, central_next_s)
 
         expected_q_val = (next_q_val * self.discount_factor) + central_reward
-        loss = self.loss_fn(q_val, expected_q_val.detach())
+        loss = 0.0
+        info = {}
+        if self.prioritized:
+            weights = torch.tensor(sample_batch.weigths, dtype=torch.float)
+            weights = weights.unsqueeze(-1).to(self.device)
+            loss = self.loss_fn(
+                q_val,
+                expected_q_val.detach(),
+                weights.detach(),
+            )
+            td_error = (expected_q_val - q_val).squeeze(-1)
+            priorities = torch.clamp(td_error, -1, 1).detach()
+            priorities = abs(priorities) + 1e-6
+            priorities = priorities.tolist()
+            info["priorities"] = priorities
+        else:
+            loss = self.loss_fn(q_val, expected_q_val)
         self.optimizer.zero_grad()
         loss.backward()
         self.optimizer.step()
@@ -111,6 +130,7 @@ class QMIX(MultiAgentPolicy):
         if self.update_count % self.update_period == 0:
             self.update_count = 0
             self._update_target()
+        return info
 
     def _to_tensor(self, batch_data: List[Transition]):
         central_states = []
