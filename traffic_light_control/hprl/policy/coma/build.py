@@ -2,7 +2,7 @@ from hprl.replaybuffer.common_buffer import MultiAgentCommonBuffer
 from hprl.policy.coma.coma import COMA
 from hprl.recorder.torch_recorder import TorchRecorder
 from hprl.recorder.printer import Printer
-from hprl.util.enum import AdvantageTypes, TrainnerTypes
+from hprl.policy.policy import AdvantageTypes, PolicyTypes
 from hprl.trainer.multiagent_trainer import MultiAgentTraienr
 import hprl.trainer.multiagent_trainer as matrainer
 import logging
@@ -63,7 +63,7 @@ def build_coma_trainer(
         recorder = TorchRecorder(executing_config["record_base_dir"])
         logger.info("\t training will be recorded")
     trainer = MultiAgentTraienr(
-        type=TrainnerTypes.COMA,
+        type=PolicyTypes.COMA,
         env=env,
         config=executing_config,
         policy=policy,

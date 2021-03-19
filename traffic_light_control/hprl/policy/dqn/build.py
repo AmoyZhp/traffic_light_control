@@ -6,7 +6,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from hprl.env import MultiAgentEnv
-from hprl.util.enum import ReplayBufferTypes, TrainnerTypes
+from hprl.policy.policy import PolicyTypes
+from hprl.replaybuffer import ReplayBufferTypes
 from hprl.policy.decorator import EpsilonGreedy
 from hprl.replaybuffer import CommonBuffer, PrioritizedReplayBuffer
 from hprl.recorder import Printer, TorchRecorder
@@ -103,7 +104,7 @@ def build_iql_trainer(
         recorder = TorchRecorder(executing_config["record_base_dir"])
         logger.info("\t training will be recorded")
     trainer = IndependentLearnerTrainer(
-        type=TrainnerTypes.IQL,
+        type=PolicyTypes.IQL,
         policies=policies,
         replay_buffers=buffers,
         env=env,
@@ -151,7 +152,7 @@ def get_test_setting(buffer_type: ReplayBufferTypes):
         "record_base_dir": "gym_test",
     }
     trainner_config = {
-        "type": TrainnerTypes.IQL,
+        "type": PolicyTypes.IQL,
         "executing": exec_config,
         "policy": policy_config,
         "buffer": buffer_config,

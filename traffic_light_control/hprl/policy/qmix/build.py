@@ -2,7 +2,8 @@ from hprl.policy.qmix.qmix import QMIX
 from hprl.replaybuffer.common_buffer import MultiAgentCommonBuffer
 from hprl.policy.decorator.epsilon_greedy import MultiAgentEpsilonGreedy
 from hprl.recorder import Printer, TorchRecorder
-from hprl.util.enum import ReplayBufferTypes, TrainnerTypes
+from hprl.policy.policy import PolicyTypes
+from hprl.replaybuffer import ReplayBufferTypes
 import logging
 from typing import Dict
 import torch
@@ -75,7 +76,7 @@ def build_qmix_trainer(
         recorder = TorchRecorder(executing_config["record_base_dir"])
         logger.info("\t training will be recorded")
     trainer = MultiAgentTraienr(
-        type=TrainnerTypes.QMIX,
+        type=PolicyTypes.QMIX,
         config=executing_config,
         env=env,
         policy=p,

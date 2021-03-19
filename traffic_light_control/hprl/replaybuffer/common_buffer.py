@@ -1,7 +1,7 @@
 from collections import deque
 import logging
 from typing import List, Union
-from hprl.util.enum import ReplayBufferTypes
+from hprl.replaybuffer.replay_buffer import ReplayBufferTypes
 import random
 from shutil import Error
 

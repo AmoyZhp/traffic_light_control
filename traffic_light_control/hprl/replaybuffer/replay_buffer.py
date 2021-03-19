@@ -1,7 +1,13 @@
 from typing import List, Union
+from enum import Enum
 import abc
 
 from hprl.util.typing import SampleBatch, SampleBatchType, Trajectory, Transition, TransitionTuple
+
+
+class ReplayBufferTypes(Enum):
+    Common = "Common"
+    Prioritized = "PER"
 
 
 class MultiAgentReplayBuffer(metaclass=abc.ABCMeta):

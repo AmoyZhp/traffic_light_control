@@ -1,10 +1,9 @@
 from hprl.util.typing import State, Action, Reward, TrainingRecord, Terminal
 from hprl.env import MultiAgentEnv
 from hprl.env import GymWrapper
-from hprl.replaybuffer import MultiAgentReplayBuffer
-from hprl.policy import MultiAgentPolicy
+from hprl.replaybuffer import MultiAgentReplayBuffer, ReplayBufferTypes
+from hprl.policy import MultiAgentPolicy, PolicyTypes, AdvantageTypes
 from hprl.trainer import Trainer
-from hprl.util.enum import TrainnerTypes, ReplayBufferTypes, AdvantageTypes
 from hprl.build import build_trainer, load_trainer, gym_baseline_trainer
 
 import logging
@@ -24,11 +23,12 @@ __all__ = [
     "Terminal",
     "TrainingRecord",
     "GymWrapper",
-    "TrainnerTypes",
+    "PolicyTypes",
     "ReplayBufferTypes",
     "AdvantageTypes",
     "gym_baseline_trainer",
 ]
+
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 

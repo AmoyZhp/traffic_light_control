@@ -3,7 +3,7 @@ import hprl.trainer.independent_learner_trainer as ilearner
 from hprl.trainer.independent_learner_trainer import IndependentLearnerTrainer
 from hprl.recorder.torch_recorder import TorchRecorder
 from hprl.recorder.printer import Printer
-from hprl.util.enum import AdvantageTypes, TrainnerTypes
+from hprl.policy.policy import AdvantageTypes, PolicyTypes
 from hprl.policy.ac.actor_critic import ActorCritic
 import logging
 import torch.nn as nn
@@ -69,7 +69,7 @@ def build_ppo_trainer(
         recorder = TorchRecorder(executing_config["record_base_dir"])
         logger.info("\t training will be recorded")
     trainer = IndependentLearnerTrainer(
-        type=TrainnerTypes.PPO,
+        type=PolicyTypes.PPO,
         policies=policies,
         env=env,
         train_fn=train_fn,
@@ -129,7 +129,7 @@ def build_ac_trainer(
         recorder = TorchRecorder(executing_config["record_base_dir"])
         logger.info("\t training will be recorded")
     trainer = IndependentLearnerTrainer(
-        type=TrainnerTypes.IAC,
+        type=PolicyTypes.IAC,
         policies=policies,
         env=env,
         train_fn=train_fn,
@@ -142,7 +142,7 @@ def build_ac_trainer(
 
 def get_ppo_test_setting():
     config, model = get_ac_test_setting()
-    config["type"] = TrainnerTypes.PPO
+    config["type"] = PolicyTypes.PPO
     config["policy"]["inner_epoch"] = 16
     config["policy"]["clip_param"] = 0.2
     return config, model
@@ -174,7 +174,7 @@ def get_ac_test_setting():
         "record_base_dir": "records/gym_test",
     }
     trainner_config = {
-        "type": TrainnerTypes.IAC,
+        "type": PolicyTypes.IAC,
         "executing": exec_config,
         "policy": policy_config,
         "buffer": buffer_config,

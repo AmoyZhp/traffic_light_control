@@ -1,6 +1,6 @@
 from hprl.replaybuffer.replay_buffer import ReplayBuffer
 from hprl.recorder.recorder import Recorder
-from hprl.util.enum import TrainnerTypes
+from hprl.policy.policy import PolicyTypes
 import logging
 import time
 from hprl.util.typing import Action, Reward, SampleBatch, State, Terminal, TrainingRecord, TrajectoryTuple, TransitionTuple
@@ -209,7 +209,7 @@ def replay_buffer_update(
 class IndependentLearnerTrainer(Trainer):
     def __init__(
         self,
-        type: TrainnerTypes,
+        type: PolicyTypes,
         env: MultiAgentEnv,
         policies: Dict[str, Policy],
         replay_buffers: Dict[str, ReplayBuffer],

@@ -1,4 +1,5 @@
 from hprl.policy.policy import MultiAgentPolicy, Policy
+from hprl.policy.policy import PolicyTypes, AdvantageTypes
 from hprl.policy.dqn.dqn import DQN
 from hprl.policy.ac.actor_critic import ActorCritic
 from hprl.policy.ac.ppo import PPO
@@ -21,4 +22,6 @@ __all__ = [
     "MultiAgentEpsilonGreedy",
     "build_iql_trainer",
     "MultiAgentPolicy",
+    "PolicyTypes",
+    "AdvantageTypes",
 ]

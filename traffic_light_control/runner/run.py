@@ -47,7 +47,7 @@ def _train(args, env, models):
         time.asctime(time.localtime(time.time())),
     )
     logger.info("env : {}".format(args.env))
-    logger.info("policy : {}".format(args.trainer))
+    logger.info("policy : {}".format(args.policy))
     logger.info("buffer : {}".format(args.replay_buffer))
 
     trainer = build_trainer(args, env, models)
@@ -72,7 +72,7 @@ def _train(args, env, models):
 
 def _baseline_test(args):
     trainer = hprl.gym_baseline_trainer(
-        trainer_type=args.trainer,
+        trainer_type=args.policy,
         buffer_type=args.replay_buffer,
         batch_size=args.batch_size,
     )

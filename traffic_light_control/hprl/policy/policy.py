@@ -3,6 +3,22 @@ import numpy as np
 from typing import Dict
 from hprl.util.typing import Action, MultiAgentSampleBatch, SampleBatch, State
 
+from enum import Enum, auto
+
+
+class PolicyTypes(Enum):
+    IQL = "IQL"
+    PPO = "PPO"
+    IAC = "IAC"
+    VDN = "VDN"
+    COMA = "COMA"
+    QMIX = "QMIX"
+
+
+class AdvantageTypes(Enum):
+    RewardToGO = auto()
+    QMinusV = auto()
+
 
 class Policy(metaclass=abc.ABCMeta):
     @abc.abstractmethod

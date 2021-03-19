@@ -3,7 +3,8 @@ from hprl.policy.decorator.epsilon_greedy import MultiAgentEpsilonGreedy
 from hprl.policy.vdn.vdn import VDN
 from hprl.recorder import Printer, TorchRecorder
 from hprl.replaybuffer.replay_buffer import MultiAgentReplayBuffer
-from hprl.util.enum import ReplayBufferTypes, TrainnerTypes
+from hprl.policy.policy import PolicyTypes
+from hprl.replaybuffer import ReplayBufferTypes
 import logging
 from typing import Dict
 import torch
@@ -74,7 +75,7 @@ def build_vdn_trainer(
         recorder = TorchRecorder(executing_config["record_base_dir"])
         logger.info("\t training will be recorded")
     trainer = MultiAgentTraienr(
-        type=TrainnerTypes.VDN,
+        type=PolicyTypes.VDN,
         config=executing_config,
         env=env,
         policy=p,

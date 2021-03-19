@@ -7,7 +7,7 @@ from hprl.env import MultiAgentEnv
 from hprl.policy import MultiAgentPolicy
 from hprl.replaybuffer import MultiAgentReplayBuffer
 from hprl.recorder import Recorder
-from hprl.util.enum import TrainnerTypes
+from hprl.policy.policy import PolicyTypes
 
 logger = logging.getLogger(__package__)
 
@@ -109,7 +109,7 @@ def off_policy_train_fn(
 class MultiAgentTraienr(Trainer):
     def __init__(
         self,
-        type: TrainnerTypes,
+        type: PolicyTypes,
         config: Dict,
         env: MultiAgentEnv,
         policy: MultiAgentPolicy,

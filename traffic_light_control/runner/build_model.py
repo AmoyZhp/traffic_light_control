@@ -20,27 +20,27 @@ def build_model(args, env):
         "embed_dim": embed_dim,
     }
     models = _make_model(
-        args.trainer,
+        args.policy,
         model_config,
         agents_id,
     )
     return models
 
 
-def _make_model(trainer_type, config, agents_id):
-    if trainer_type == hprl.TrainnerTypes.IQL:
+def _make_model(policy_type, config, agents_id):
+    if policy_type == hprl.PolicyTypes.IQL:
         return _make_iql_model(config, agents_id)
-    elif (trainer_type == hprl.TrainnerTypes.IAC
-          or trainer_type == hprl.TrainnerTypes.PPO):
+    elif (policy_type == hprl.PolicyTypes.IAC
+          or policy_type == hprl.PolicyTypes.PPO):
         return _make_ac_model(config, agents_id)
-    elif trainer_type == hprl.TrainnerTypes.VDN:
+    elif policy_type == hprl.PolicyTypes.VDN:
         return _make_vdn_model(config, agents_id)
-    elif trainer_type == hprl.TrainnerTypes.COMA:
+    elif policy_type == hprl.PolicyTypes.COMA:
         return _make_coma_model(config, agents_id)
-    elif trainer_type == hprl.TrainnerTypes.QMIX:
+    elif policy_type == hprl.PolicyTypes.QMIX:
         return _make_qmix_model(config, agents_id)
     else:
-        raise ValueError("invalid trainer type {}".format(trainer_type))
+        raise ValueError("invalid trainer type {}".format(policy_type))
 
 
 def _make_iql_model(config, agents_id):

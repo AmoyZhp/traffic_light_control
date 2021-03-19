@@ -41,9 +41,9 @@ def args_validity_check(args):
             return False
         if args.record_dir is None:
             print("record dir should not be none" "if want to test")
-    trainer = args.trainer
-    if trainer not in hprl.TrainnerTypes:
-        print("trainer type is invalid !")
+    policy = args.policy
+    if policy not in hprl.PolicyTypes:
+        print("policy type is invalid !")
         return False
     if args.resume:
         if args.ckpt_file is None or not args.ckpt_file:
@@ -72,10 +72,10 @@ def _add_core_args(parser: argparse.ArgumentParser):
     )
 
     parser.add_argument(
-        "--trainer",
-        type=hprl.TrainnerTypes,
+        "--policy",
+        type=hprl.PolicyTypes,
         required=True,
-        help="which trainer to be chosen",
+        help="which policy to be chosen",
     )
 
     parser.add_argument(

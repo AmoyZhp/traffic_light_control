@@ -9,7 +9,8 @@ import logging
 from typing import Dict, List
 from hprl.trainer.trainer import Trainer
 from hprl.env import MultiAgentEnv
-from hprl.util.enum import ReplayBufferTypes, TrainnerTypes
+from hprl.policy import PolicyTypes
+from hprl.replaybuffer import ReplayBufferTypes
 
 logger = logging.getLogger(__package__)
 
@@ -22,17 +23,17 @@ def build_trainer(
 
     trainer_type = config["type"]
     trainer = None
-    if trainer_type == TrainnerTypes.IQL:
+    if trainer_type == PolicyTypes.IQL:
         trainer = dqn.build_iql_trainer(config, env, models)
-    elif trainer_type == TrainnerTypes.IAC:
+    elif trainer_type == PolicyTypes.IAC:
         trainer = ac.build_iac_trainer(config, env, models)
-    elif trainer_type == TrainnerTypes.PPO:
+    elif trainer_type == PolicyTypes.PPO:
         trainer = ac.build_ppo_trainer(config, env, models)
-    elif trainer_type == TrainnerTypes.VDN:
+    elif trainer_type == PolicyTypes.VDN:
         trainer = vdn.build_vdn_trainer(config, env, models)
-    elif trainer_type == TrainnerTypes.COMA:
+    elif trainer_type == PolicyTypes.COMA:
         trainer = coma.build_coma_trainer(config, env, models)
-    elif trainer_type == TrainnerTypes.QMIX:
+    elif trainer_type == PolicyTypes.QMIX:
         trainer = qmix.build_qmix_trainer(config, env, models)
     else:
         raise ValueError("train type %s is invalid", trainer_type)
@@ -40,11 +41,11 @@ def build_trainer(
 
 
 def gym_baseline_trainer(
-    trainer_type: TrainnerTypes,
+    trainer_type: PolicyTypes,
     buffer_type: ReplayBufferTypes = None,
     batch_size: int = 0,
 ) -> Trainer:
-    if trainer_type == TrainnerTypes.IQL:
+    if trainer_type == PolicyTypes.IQL:
         if buffer_type is None:
             raise ValueError("buffre type could be None for IQL")
         config, model = dqn.get_test_setting(buffer_type)
@@ -62,7 +63,7 @@ def gym_baseline_trainer(
             models=models,
         )
         return trainer
-    elif trainer_type == TrainnerTypes.IAC:
+    elif trainer_type == PolicyTypes.IAC:
         config, model = ac.get_ac_test_setting()
         env = GymWrapper(gym.make("CartPole-v1"))
         id = env.get_agents_id()[0]
@@ -77,7 +78,7 @@ def gym_baseline_trainer(
             models=models,
         )
         return trainer
-    elif trainer_type == TrainnerTypes.PPO:
+    elif trainer_type == PolicyTypes.PPO:
         config, model = ac.get_ppo_test_setting()
         env = GymWrapper(gym.make("CartPole-v1"))
         id = env.get_agents_id()[0]

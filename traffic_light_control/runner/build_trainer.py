@@ -56,7 +56,7 @@ def _build_trainer(args, env, models):
         base_dir = _create_record_dir(
             BASE_RECORDS_DIR,
             args.env,
-            args.trainer.value,
+            args.policy.value,
         )
         logger.info("records dir created : {}".format(base_dir))
 
@@ -123,7 +123,7 @@ def _get_trainer_config(
         "recording": args.recording,
     }
     trainner_config = {
-        "type": args.trainer,
+        "type": args.policy,
         "executing": exec_config,
         "policy": policy_config,
         "buffer": buffer_config,

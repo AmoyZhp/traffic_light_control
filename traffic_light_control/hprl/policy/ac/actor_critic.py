@@ -9,7 +9,7 @@ from torch import optim
 
 from hprl.policy.policy import Policy
 from hprl.policy.util import to_tensor_for_trajectory, compute_reward_to_go
-from hprl.util.enum import AdvantageTypes
+from hprl.policy.policy import AdvantageTypes
 from hprl.util.typing import SampleBatch
 
 logger = logging.getLogger(__name__)
