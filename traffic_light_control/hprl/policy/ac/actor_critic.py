@@ -1,5 +1,5 @@
 import logging
-from typing import List
+from typing import Callable, List
 import numpy as np
 
 import torch
@@ -27,10 +27,11 @@ class ActorCritic(Policy):
             update_period: int,
             action_space,
             state_space,
-            critic_loss_fn,
+            critic_loss_fn: Callable,
             device: torch.device = None,
             advantage_type: AdvantageTypes = AdvantageTypes.RewardToGO
     ) -> None:
+        logger.info("AC init begin")
         if device is None:
             self.device = torch.device(
                 "cuda" if torch.cuda.is_available() else "cpu")
@@ -59,6 +60,14 @@ class ActorCritic(Policy):
         self.update_period = update_period
         self.critic_loss_fn = critic_loss_fn
         self.advantage_type = advantage_type
+        logger.info("\t critic lr : %f", self.critic_lr)
+        logger.info("\t actor lr : %f", self.actor_lr)
+        logger.info("\t discount factor : %f", self.discount_factor)
+        logger.info("\t update period : %d", self.update_period)
+        logger.info("\t action space is %s", action_space)
+        logger.info("\t state space is %s", state_space)
+        logger.info("\t advantage type : %s", self.advantage_type)
+        logger.info("AC init done")
 
     def compute_action(self, state: np.ndarray) -> int:
         state = torch.tensor(state, dtype=torch.float, device=self.device)

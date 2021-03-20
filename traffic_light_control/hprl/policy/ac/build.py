@@ -80,7 +80,7 @@ def build_ppo_trainer(
     return trainer
 
 
-def build_ac_trainer(
+def build_iac_trainer(
     config,
     env: MultiAgentEnv,
     models: Dict[str, nn.Module],

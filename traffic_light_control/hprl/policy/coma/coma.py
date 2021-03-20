@@ -9,8 +9,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 from torch.distributions import Categorical
 import logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+logger = logging.getLogger(__package__)
 
 
 class COMA(MultiAgentPolicy):
@@ -30,7 +29,7 @@ class COMA(MultiAgentPolicy):
         local_state_space,
         device=None,
     ) -> None:
-
+        logger.info("COMA init begin")
         if device is None:
             self.device = torch.device(
                 "cuda" if torch.cuda.is_available() else "cpu")
@@ -68,6 +67,19 @@ class COMA(MultiAgentPolicy):
         self.local_s_space = local_state_space
         self.local_a_space = local_action_space
         self.update_count = 0
+        logger.info("\t critic lr : %f", self.critic_lr)
+        logger.info("\t actor lr : %f", self.actor_lr)
+        logger.info("\t inner epoch : %d", self.inner_epoch)
+        logger.info("\t clip param : %f", self.clip_param)
+        logger.info("\t discount factor : %f", self.discount_factor)
+        logger.info("\t update period : %d", self.update_period)
+        for id in self.agents_id:
+            action_space = self.local_a_space[id]
+            state_space = self.local_s_space[id]
+            logger.info("\t agents %s", id)
+            logger.info("\t\t action space is %s", action_space)
+            logger.info("\t\t state space is %s", state_space)
+        logger.info("COMA init done")
 
     def compute_action(self, state: State) -> Action:
         actions = {}
@@ -96,12 +108,6 @@ class COMA(MultiAgentPolicy):
             agents_state[id] = agents_state[id].to(self.device)
             agents_action[id] = agents_action[id].to(self.device)
 
-        logger.debug("agent local state shape is {}".format(
-            agents_state[self.agents_id[0]].shape))
-        logger.debug("agent action shape is {}".format(
-            agents_action[self.agents_id[0]].shape))
-        logger.debug("agent central state shape is {}".format(central_s.shape))
-
         critic_states = self._cat_critic_states(
             central_s=central_s,
             agents_states=agents_state,
@@ -114,12 +120,6 @@ class COMA(MultiAgentPolicy):
             a_prob = self.actors_net[id](agents_state[id])
             selected_old_a_probs[id] = a_prob.gather(-1, agents_action[id]).to(
                 self.device).detach()
-
-        logger.debug("critic states shape is {}".format(
-            critic_states[self.agents_id[0]].shape))
-        logger.debug("central reward shape is {}".format(central_reward.shape))
-        logger.debug("old action probs shape is {}".format(
-            selected_old_a_probs[self.agents_id[0]].shape))
 
         for _ in range(self.inner_epoch):
             critic_loss, actor_losses = self._inner_loop(

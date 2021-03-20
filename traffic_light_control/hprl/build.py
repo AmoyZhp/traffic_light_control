@@ -72,7 +72,7 @@ def gym_baseline_trainer(
         config["policy"]["state_space"][id] = 4
         if batch_size > 0:
             config["executing"]["batch_size"] = batch_size
-        trainer = ac.build_ac_trainer(
+        trainer = ac.build_iac_trainer(
             config=config,
             env=env,
             models=models,

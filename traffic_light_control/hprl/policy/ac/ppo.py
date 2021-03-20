@@ -1,3 +1,4 @@
+import logging
 from typing import List
 import numpy as np
 
@@ -10,6 +11,8 @@ from hprl.policy.policy import MultiAgentPolicy
 from hprl.policy.util import to_tensor_for_trajectory, compute_reward_to_go
 from hprl.policy.policy import AdvantageTypes
 from hprl.util.typing import Action, SampleBatch, State, Trajectory
+
+logger = logging.getLogger(__package__)
 
 
 class PPO(MultiAgentPolicy):
@@ -30,6 +33,7 @@ class PPO(MultiAgentPolicy):
         advantage_type: AdvantageTypes = AdvantageTypes.RewardToGO,
     ) -> None:
 
+        logger.info("PPO init begin")
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu")
 
@@ -57,6 +61,16 @@ class PPO(MultiAgentPolicy):
         self.clip_param = clip_param
         self.critic_loss_fn = critic_loss_fn
         self.advantage_type = advantage_type
+        logger.info("\t critic lr : %f", self.critic_lr)
+        logger.info("\t actor lr : %f", self.actor_lr)
+        logger.info("\t inner epoch : %d", self.inner_epoch)
+        logger.info("\t clip param : %f", self.clip_param)
+        logger.info("\t discount factor : %f", self.discount_factor)
+        logger.info("\t update period : %d", self.update_period)
+        logger.info("\t action space is %s", action_space)
+        logger.info("\t state space is %s", state_space)
+        logger.info("\t advantage type : %s", self.advantage_type)
+        logger.info("\t PPO init done")
 
     def compute_action(self, state: np.ndarray) -> int:
         state = torch.tensor(state, dtype=torch.float, device=self.device)

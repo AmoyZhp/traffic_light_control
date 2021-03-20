@@ -1,4 +1,5 @@
 import argparse
+from hprl.policy.policy import AdvantageTypes
 import logging
 import hprl
 
@@ -200,6 +201,13 @@ def _add_policy_related_args(parser: argparse.ArgumentParser):
         type=float,
         default=PER_ALPHA,
         help="alpha value used in prioritized exp replay",
+    )
+
+    parser.add_argument(
+        "--advg_type",
+        type=AdvantageTypes,
+        default=AdvantageTypes.QMinusV,
+        help="the advantage type of ac like algorithm used",
     )
     return parser
 

@@ -108,7 +108,7 @@ def _get_trainer_config(
         "eps_min": eps_min,
         "inner_epoch": inner_epoch,
         "clip_param": clip_param,
-        "advantage_type": ADVANTAGE_TYPE,
+        "advg_type": args.advg_type,
     }
     buffer_config = {
         "type": args.replay_buffer,
