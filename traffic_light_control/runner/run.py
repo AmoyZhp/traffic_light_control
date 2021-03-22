@@ -2,6 +2,7 @@ import logging
 from runner.build_env import build_env
 from runner.build_model import build_model
 from runner.build_trainer import build_trainer, load_trainer
+from runner.build_baseline_trainer import build_baseline_trainer
 import time
 import hprl
 import envs
@@ -18,13 +19,17 @@ def run():
         return
 
     mode = args.mode
-    if mode == "gym":
+    if mode == "baseline":
         # gym mode is used for test algorithm quickly
         _baseline_test(args)
         return
 
-    env = build_env(args)
-    models = build_model(args=args, env=env)
+    env = build_env(
+        env_id=args.env,
+        thread_num=args.env_thread_num,
+        save_replay=args.save_replay,
+    )
+    models = build_model(policy=args.policy, env=env)
 
     if mode == "train":
         _train(args, env, models)
@@ -71,9 +76,20 @@ def _train(args, env, models):
 
 
 def _baseline_test(args):
-    trainer = hprl.gym_baseline_trainer(
-        trainer_type=args.policy,
-        buffer_type=args.replay_buffer,
-        batch_size=args.batch_size,
-    )
-    trainer.train(args.episodes)
+    episodes = 0
+    if args.env == "gym":
+        trainer = hprl.gym_baseline_trainer(
+            trainer_type=args.policy,
+            buffer_type=args.replay_buffer,
+            batch_size=args.batch_size,
+        )
+    else:
+        trainer, episodes = build_baseline_trainer(
+            env_id=args.env,
+            policy_type=args.policy,
+            buffer_type=args.replay_buffer,
+            batch_size=args.batch_size,
+        )
+    if args.episodes > 0:
+        episodes = args.episodes
+    trainer.train(episodes)

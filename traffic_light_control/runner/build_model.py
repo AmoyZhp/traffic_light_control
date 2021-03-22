@@ -9,7 +9,10 @@ import hprl
 logger = logging.getLogger(__package__)
 
 
-def build_model(args, env):
+def build_model(
+    policy: hprl.PolicyTypes,
+    env: hprl.MultiAgentEnv,
+):
     agents_id = env.get_agents_id()
     embed_dim = max(len(agents_id) * 4, 32)
     model_config = {
@@ -20,9 +23,9 @@ def build_model(args, env):
         "embed_dim": embed_dim,
     }
     models = _make_model(
-        args.policy,
-        model_config,
-        agents_id,
+        policy_type=policy,
+        config=model_config,
+        agents_id=agents_id,
     )
     return models
 

@@ -36,7 +36,11 @@ class ILearnerTrainer(Trainer):
         self.trained_iteration = 0
 
     def train(self, episodes: int):
-        ckpt_frequency = self.config["ckpt_frequency"]
+        ckpt_frequency = self.config.get("ckpt_frequency", 0)
+        if ckpt_frequency <= 0:
+            logger.info(
+                "checkpoint saved frequnecy is zero, "
+                "therefore checkpoint file will not be saved during training")
         for ep in range(episodes):
             logger.info("========== train episode {} begin ==========".format(
                 self.trained_iteration))
@@ -50,7 +54,7 @@ class ILearnerTrainer(Trainer):
                 logger=logger,
                 fig=fig,
             )
-            if (ckpt_frequency != 0
+            if (ckpt_frequency > 0
                     and self.trained_iteration % ckpt_frequency == 0):
                 self.recorder.write_ckpt(
                     ckpt=self.get_checkpoint(),

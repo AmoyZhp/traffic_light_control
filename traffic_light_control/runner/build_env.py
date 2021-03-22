@@ -5,18 +5,17 @@ MAX_TIME = 3600
 INTERVAL = 5
 
 
-def build_env(args):
-    config = _get_env_config(args)
-    env = envs.make(config)
-    return env
-
-
-def _get_env_config(args):
+def build_env(
+    env_id: str,
+    thread_num: int,
+    save_replay: bool,
+):
     config = {
-        "id": args.env,
+        "id": env_id,
         "max_time": MAX_TIME,
         "interval": INTERVAL,
-        "thread_num": args.env_thread_num,
-        "save_replay": args.save_replay,
+        "thread_num": thread_num,
+        "save_replay": save_replay,
     }
-    return config
+    env = envs.make(config)
+    return env

@@ -13,8 +13,8 @@ DISCOUNT_FACTOR = 0.99
 EPS_INIT = 1.0
 EPS_MIN = 0.01
 EPS_FRAME = 300000
-UPDATE_PERIOD = 1000
-INNER_EPOCH = 32
+UPDATE_PERIOD = 500
+INNER_EPOCH = 128
 CLIP_PARAM = 0.2
 PER_ALPHA = 0.6
 PER_BETA = 0.4
@@ -32,7 +32,7 @@ def create_paraser():
 
 def args_validity_check(args):
     mode = args.mode
-    if mode not in ["train", "test", "gym"]:
+    if mode not in ["train", "test", "baseline"]:
         print(" model value invalid !")
         return False
 
@@ -62,7 +62,7 @@ def _add_core_args(parser: argparse.ArgumentParser):
         "--mode",
         type=str,
         default="train",
-        help="Mode of execution. Include [ train , test, gym ]",
+        help="Mode of execution. Include [ train , test, baseline ]",
     )
 
     parser.add_argument(
