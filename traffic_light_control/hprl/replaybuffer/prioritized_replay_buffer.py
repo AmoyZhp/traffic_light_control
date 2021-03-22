@@ -1,6 +1,6 @@
 import logging
 from gym import logger
-from hprl.replaybuffer.replay_buffer import MultiAgentReplayBuffer, ReplayBuffer
+from hprl.replaybuffer.replay_buffer import MultiAgentReplayBuffer, ReplayBuffer, ReplayBufferTypes
 from typing import List
 from hprl.replaybuffer.segment_tree import MinSegmentTree, SumSegmentTree
 from hprl.util.typing import MultiAgentSampleBatch, SampleBatch, Transition, TransitionTuple
@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 class PrioritizedReplayBuffer(ReplayBuffer):
     def __init__(self, capacity: int, alpha: float) -> None:
-
+        self._type = ReplayBufferTypes.Prioritized
         self.capacity = 1
         while self.capacity < capacity:
             self.capacity = self.capacity << 1
@@ -24,6 +24,9 @@ class PrioritizedReplayBuffer(ReplayBuffer):
         logger.info("prioritized replay buffer init")
         logger.info("\t alpha is %f", self._alpha)
         logger.info("\t capacity is %d", self.capacity)
+
+    def type(self):
+        return self._type
 
     def store(self, data: TransitionTuple, priority: float = None):
         self._buffer.append(data)
@@ -91,6 +94,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
     def get_config(self):
         config = {
+            "type": self._type,
             "capacity": self.capacity,
             "alpha": self._alpha,
         }

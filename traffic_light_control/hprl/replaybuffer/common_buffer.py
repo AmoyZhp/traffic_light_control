@@ -13,9 +13,12 @@ logger = logging.getLogger(__package__)
 
 class CommonBuffer(ReplayBuffer):
     def __init__(self, capacity: int):
-        self.type = ReplayBufferTypes.Common
+        self._type = ReplayBufferTypes.Common
         self.capacity = capacity
         self.buffer = deque(maxlen=capacity)
+
+    def type(self):
+        return self._type
 
     def store(self, data: TransitionTuple, priorities=None):
         self.buffer.append(data)
@@ -34,7 +37,7 @@ class CommonBuffer(ReplayBuffer):
         self.buffer.clear()
 
     def get_config(self):
-        config = {"type": self.type, "capacity": self.capacity}
+        config = {"type": self._type, "capacity": self.capacity}
         return config
 
     def get_weight(self):

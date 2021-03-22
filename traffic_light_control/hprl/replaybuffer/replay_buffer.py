@@ -41,6 +41,11 @@ class MultiAgentReplayBuffer(metaclass=abc.ABCMeta):
 
 
 class ReplayBuffer(metaclass=abc.ABCMeta):
+    @property
+    @abc.abstractmethod
+    def type(self):
+        ...
+
     @abc.abstractmethod
     def store(self, data: TransitionTuple, priorities: float):
         ...

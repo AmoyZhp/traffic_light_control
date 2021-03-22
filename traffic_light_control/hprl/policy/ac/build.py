@@ -1,6 +1,5 @@
+from hprl.trainer.independent import IOnPolicyTrainer
 from hprl.policy.ac.ppo import PPO
-import hprl.trainer.independent_learner_trainer as ilearner
-from hprl.trainer.independent_learner_trainer import IndependentLearnerTrainer
 from hprl.recorder.torch_recorder import TorchRecorder
 from hprl.recorder.printer import Printer
 from hprl.policy.policy import AdvantageTypes, PolicyTypes
@@ -38,7 +37,6 @@ def build_ppo_trainer(
     logger.info("\t clip param : %f : ", clip_param)
 
     agents_id = env.get_agents_id()
-    train_fn = ilearner.on_policy_train_fn
     loss_fn = nn.MSELoss()
     policies = {}
     for id in agents_id:
@@ -68,14 +66,12 @@ def build_ppo_trainer(
     if executing_config["recording"]:
         recorder = TorchRecorder(executing_config["record_base_dir"])
         logger.info("\t training will be recorded")
-    trainer = IndependentLearnerTrainer(
+    trainer = IOnPolicyTrainer(
         type=PolicyTypes.PPO,
         policies=policies,
         env=env,
-        train_fn=train_fn,
         recorder=recorder,
         config=executing_config,
-        replay_buffers=None,
     )
     return trainer
 
@@ -100,7 +96,6 @@ def build_iac_trainer(
     logger.info("\t update period : %d", update_period)
 
     agents_id = env.get_agents_id()
-    train_fn = ilearner.on_policy_train_fn
     loss_fn = nn.MSELoss()
     policies = {}
     for id in agents_id:
@@ -128,14 +123,12 @@ def build_iac_trainer(
     if executing_config["recording"]:
         recorder = TorchRecorder(executing_config["record_base_dir"])
         logger.info("\t training will be recorded")
-    trainer = IndependentLearnerTrainer(
+    trainer = IOnPolicyTrainer(
         type=PolicyTypes.IAC,
         policies=policies,
         env=env,
-        train_fn=train_fn,
         recorder=recorder,
         config=executing_config,
-        replay_buffers=None,
     )
     return trainer
 

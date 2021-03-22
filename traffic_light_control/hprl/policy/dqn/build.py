@@ -12,8 +12,7 @@ from hprl.policy.decorator import EpsilonGreedy
 from hprl.replaybuffer import CommonBuffer, PrioritizedReplayBuffer
 from hprl.recorder import Printer, TorchRecorder
 from hprl.policy.dqn.dqn import DQN
-import hprl.trainer.independent_learner_trainer as iltrainer
-from hprl.trainer import IndependentLearnerTrainer
+from hprl.trainer.independent import IOffPolicyTrainer
 
 logger = logging.getLogger(__package__)
 
@@ -48,13 +47,11 @@ def build_iql_trainer(
 
     prioritiezed = False
     agents_id = env.get_agents_id()
-    train_fn = None
     loss_fn = None
     buffers = {}
     if buffer_type == ReplayBufferTypes.Prioritized:
         prioritiezed = True
         alpha = buffer_config["alpha"]
-        train_fn = iltrainer.off_policy_per_train_fn
         loss_fn = _per_loss_fn
         for id in agents_id:
             buffers[id] = PrioritizedReplayBuffer(
@@ -65,7 +62,6 @@ def build_iql_trainer(
         logger.info("\t buffer beta is %s", executing_config["per_beta"])
     elif buffer_type == ReplayBufferTypes.Common:
         prioritiezed = False
-        train_fn = iltrainer.off_policy_train_fn
         loss_fn = nn.MSELoss()
         for id in agents_id:
             buffers[id] = CommonBuffer(capacity)
@@ -103,12 +99,11 @@ def build_iql_trainer(
     if executing_config["recording"]:
         recorder = TorchRecorder(executing_config["record_base_dir"])
         logger.info("\t training will be recorded")
-    trainer = IndependentLearnerTrainer(
+    trainer = IOffPolicyTrainer(
         type=PolicyTypes.IQL,
         policies=policies,
-        replay_buffers=buffers,
+        buffers=buffers,
         env=env,
-        train_fn=train_fn,
         recorder=recorder,
         config=executing_config,
     )
