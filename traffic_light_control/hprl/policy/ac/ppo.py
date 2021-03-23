@@ -95,6 +95,10 @@ class PPO(MultiAgentPolicy):
                 break
 
         states, actions, rewards = to_tensor_for_trajectory(trajectories)
+        for i in range(batch_size):
+            states[i] = states[i].to(self.device)
+            actions[i] = actions[i].to(self.device)
+            rewards[i] = rewards[i].to(self.device)
         selected_old_a_probs = []
         for i in range(batch_size):
             selected_old_a_prob = self.actor_net(states[i]).gather(
@@ -108,9 +112,9 @@ class PPO(MultiAgentPolicy):
                 # if they have equal sequence length
                 # they could be cated in batch dim
                 # data shape : batch_size * seq_len * data_shape
-                cat_states = torch.cat(states, 0).to(self.device)
-                cat_actions = torch.cat(actions, 0).to(self.device)
-                cat_rewards = torch.cat(rewards, 0).to(self.device)
+                cat_states = torch.cat(states, 0)
+                cat_actions = torch.cat(actions, 0)
+                cat_rewards = torch.cat(rewards, 0)
                 cat_selected_old_a_prob = torch.cat(selected_old_a_probs, 0)
                 critic_loss, actor_loss = self._inner_loop(
                     states=cat_states,

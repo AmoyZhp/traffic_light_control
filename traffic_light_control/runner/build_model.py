@@ -14,7 +14,7 @@ def build_model(
     env: hprl.MultiAgentEnv,
 ):
     agents_id = env.get_agents_id()
-    embed_dim = max(len(agents_id) * 4, 32)
+    embed_dim = max(len(agents_id) * 4, 128)
     model_config = {
         "central_state": env.get_central_state_space(),
         "local_state": env.get_local_state_space(),
