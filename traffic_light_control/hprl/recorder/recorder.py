@@ -90,6 +90,25 @@ def cal_avg_reward(rewards: List[Reward]) -> Reward:
     return ret
 
 
+def draw_avg_travel_time(records: List[TrainingRecord], log_dir: str):
+    avg_travel_times = []
+    episodes = []
+    for r in records:
+        avg_travel_times.append(r.infos[-1]["avg_travel_time"])
+        episodes.append(r.episode)
+
+    img_name = "train_avg_travel_time"
+    save_fig(
+        y=avg_travel_times,
+        x=episodes,
+        x_lable="average travel time",
+        y_label="episodes",
+        title=img_name,
+        dir=log_dir,
+        img_name=img_name,
+    )
+
+
 def draw_train_culumative_rewards(records: List[TrainingRecord], log_dir: str):
     culumative_rewards: List[Reward] = []
     episodes = []

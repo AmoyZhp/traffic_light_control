@@ -4,7 +4,7 @@ from enum import Enum
 import json
 import torch
 from hprl.util.typing import Reward, TrainingRecord
-from hprl.recorder.recorder import Recorder, cal_avg_reward, cal_cumulative_reward, draw_train_avg_rewards, draw_train_culumative_rewards
+from hprl.recorder.recorder import Recorder, cal_avg_reward, cal_cumulative_reward, draw_avg_travel_time, draw_train_avg_rewards, draw_train_culumative_rewards
 from typing import List
 
 local_logger = logging.getLogger(__package__)
@@ -62,6 +62,10 @@ class TorchRecorder(Recorder):
         logger.info("    central {:.3f}".format(cumulative_reward.central))
         for k, v in cumulative_reward.local.items():
             logger.info("    agent {} reward is {:.3f} ".format(k, v))
+        # this two logger should be detele later
+        # only for quick test traffic env porpose
+        logger.info("avg travel time : %f",
+                    record.infos[-1]["avg_travel_time"])
         if fig:
             draw_train_culumative_rewards(self.records, self.record_dir)
             draw_train_avg_rewards(self.records, self.record_dir)
@@ -76,6 +80,7 @@ class TorchRecorder(Recorder):
             f.write(str(self.get_records()))
         draw_train_culumative_rewards(self.records, dir)
         draw_train_avg_rewards(self.records, dir)
+        draw_avg_travel_time(self.records, dir)
 
     def read_records(self, dir: str, filename: str):
         raise NotImplementedError
