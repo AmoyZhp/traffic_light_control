@@ -3,8 +3,6 @@ from hprl.policy.coma.coma import COMA
 from hprl.recorder.torch_recorder import TorchRecorder
 from hprl.recorder.printer import Printer
 from hprl.policy.policy import AdvantageTypes, PolicyTypes
-from hprl.trainer.multiagent_trainer import MultiAgentTraienr
-import hprl.trainer.multiagent_trainer as matrainer
 import logging
 import torch.nn as nn
 import torch.nn.functional as F

@@ -53,6 +53,7 @@ class MultiAgentTrainer(Trainer):
             record = self._train(ep, episodes)
             self.trained_iteration += 1
             record.set_episode(self.trained_iteration)
+            self.recorder.add_record(record)
             fig = True if (ep + 1) % (episodes / 10) == 0 else False
             self.recorder.print_record(
                 record=record,
@@ -189,9 +190,9 @@ class OffPolicy(MultiAgentTrainer):
 
             learn_begin = time.time()
             sample_data = self.buffer.sample(batch_size, beta)
-            info = self.policy.learn_on_batch(sample_data)
+            learn_info = self.policy.learn_on_batch(sample_data)
             if buffer_type == ReplayBufferTypes.Prioritized:
-                priorities = info.get("priorities", [])
+                priorities = learn_info.get("priorities", [])
                 self.buffer.update_priorities(
                     idxes=sample_data.idxes,
                     priorities=priorities,

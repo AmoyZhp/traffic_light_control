@@ -1,3 +1,4 @@
+import abc
 import time
 import logging
 from typing import Dict, List
@@ -48,6 +49,7 @@ class ILearnerTrainer(Trainer):
             record = self._train(ep, episodes)
             self.trained_iteration += 1
             record.set_episode(self.trained_iteration)
+            self.recorder.add_record(record)
             fig = True if (ep + 1) % (episodes / 10) == 0 else False
             self.recorder.print_record(
                 record=record,
@@ -63,6 +65,10 @@ class ILearnerTrainer(Trainer):
                 self.recorder.write_records()
             logger.info("========= train episode {} end   =========".format(
                 self.trained_iteration))
+
+    @abc.abstractmethod
+    def _train(self, ep: int, episodes: int):
+        ...
 
     def get_checkpoint(self):
         policy_weight = {}

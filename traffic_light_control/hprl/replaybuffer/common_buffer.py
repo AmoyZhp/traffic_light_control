@@ -78,7 +78,7 @@ class MultiAgentCommonBuffer(MultiAgentReplayBuffer):
         self.buffer.clear()
 
     def get_config(self):
-        config = {"type": self.type, "capacity": self.capacity}
+        config = {"type": self._type, "capacity": self.capacity}
         return config
 
     def update_priorities(self, idxes: List[int], priorities: List[float]):
