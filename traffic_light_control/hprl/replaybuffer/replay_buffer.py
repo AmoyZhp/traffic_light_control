@@ -11,12 +11,17 @@ class ReplayBufferTypes(Enum):
 
 
 class MultiAgentReplayBuffer(metaclass=abc.ABCMeta):
+    @property
     @abc.abstractmethod
-    def store(self, data):
+    def type(self):
         ...
 
     @abc.abstractmethod
-    def sample(self, batch_size: int) -> MultiAgentSampleBatch:
+    def store(self, data: Transition, priorities: float):
+        ...
+
+    @abc.abstractmethod
+    def sample(self, batch_size: int, beta: float) -> MultiAgentSampleBatch:
         ...
 
     @abc.abstractmethod

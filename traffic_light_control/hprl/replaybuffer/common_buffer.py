@@ -56,16 +56,19 @@ class CommonBuffer(ReplayBuffer):
 class MultiAgentCommonBuffer(MultiAgentReplayBuffer):
     def __init__(self, capacity: int):
         logger.info("MultiAgentCommonBuffer init")
-        self.type = ReplayBufferTypes.Common
+        self._type = ReplayBufferTypes.Common
         self.capacity = capacity
         self.buffer = deque(maxlen=capacity)
         logger.info("\t capacity : %d", self.capacity)
         logger.info("\t MultiAgentCommonBuffer init done")
 
-    def store(self, data: Transition):
+    def type(self):
+        return self._type
+
+    def store(self, data: Transition, priorities=None):
         self.buffer.append(data)
 
-    def sample(self, batch_size: int) -> MultiAgentSampleBatch:
+    def sample(self, batch_size: int, beta=None) -> MultiAgentSampleBatch:
         if batch_size > len(self.buffer):
             return MultiAgentSampleBatch()
         trans = random.sample(self.buffer, batch_size)

@@ -106,6 +106,7 @@ class PrioritizedReplayBuffer(ReplayBuffer):
 
 class MultiAgentPER(MultiAgentReplayBuffer):
     def __init__(self, capacity: int, alpha: float) -> None:
+        self._type = ReplayBufferTypes.Prioritized
         self.capacity = 1
         while self.capacity < capacity:
             self.capacity = self.capacity << 1
@@ -118,6 +119,9 @@ class MultiAgentPER(MultiAgentReplayBuffer):
         logger.info("prioritized replay buffer init")
         logger.info("\t alpha is %f", self._alpha)
         logger.info("\t capacity is %d", self.capacity)
+
+    def type(self):
+        return self._type
 
     def store(self, data: Transition, priority: float = None):
         self._buffer.append(data)
