@@ -10,8 +10,7 @@ from typing import Dict
 import torch
 import torch.nn as nn
 from hprl.env import MultiAgentEnv
-import hprl.trainer.multiagent_trainer as matrainer
-from hprl.trainer import MultiAgentTraienr
+import hprl.trainer.multiagent as matrainer
 logger = logging.getLogger(__package__)
 
 
@@ -38,20 +37,17 @@ def build_qmix_trainer(
 
     prioritiezed = False
     agents_id = env.get_agents_id()
-    train_fn = None
     loss_fn = None
     buffer = None
     if buffer_type == ReplayBufferTypes.Prioritized:
         prioritiezed = True
         alpha = buffer_config["alpha"]
-        train_fn = matrainer.off_policy_per_train_fn
         loss_fn = _per_loss_fn
         buffer = MultiAgentPER(capacity=capacity, alpha=alpha)
         logger.info("\t buffer alpha is %s", alpha)
         logger.info("\t buffer beta is %s", executing_config["per_beta"])
     elif buffer_type == ReplayBufferTypes.Common:
         prioritiezed = False
-        train_fn = matrainer.off_policy_train_fn
         loss_fn = nn.MSELoss()
         buffer = MultiAgentCommonBuffer(capacity)
     else:
@@ -82,13 +78,12 @@ def build_qmix_trainer(
     if executing_config["recording"]:
         recorder = TorchRecorder(executing_config["record_base_dir"])
         logger.info("\t training will be recorded")
-    trainer = MultiAgentTraienr(
+    trainer = matrainer.OffPolicy(
         type=PolicyTypes.QMIX,
         config=executing_config,
         env=env,
         policy=p,
-        replay_buffer=buffer,
-        train_fn=train_fn,
+        buffer=buffer,
         recorder=recorder,
     )
     logger.info("=== === === build QMIX trainer done === === ===")

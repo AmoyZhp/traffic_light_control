@@ -61,7 +61,6 @@ class QMIX(MultiAgentPolicy):
         logger.info("\t discount factor : %f", self.discount_factor)
         logger.info("\t update period : %d", self.update_period)
         logger.info("\t prioritized : %s", self.prioritized)
-        logger.info("\t loss fn : %s", self.loss_fn.__name__)
         for id in self.agents_id:
             action_space = self.action_space[id]
             state_space = self.state_space[id]
