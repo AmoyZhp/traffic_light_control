@@ -129,7 +129,7 @@ def draw_train_avg_rewards(records: List[TrainingRecord], log_dir: str):
     avg_reward: List[Reward] = []
     episodes = []
     for reward in records:
-        avg_reward.append(cal_cumulative_reward(reward.rewards))
+        avg_reward.append(cal_avg_reward(reward.rewards))
         episodes.append(reward.episode)
 
     central_reward, local_reward = unwrap_rewards(avg_reward)

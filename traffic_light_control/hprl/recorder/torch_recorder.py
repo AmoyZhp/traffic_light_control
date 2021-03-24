@@ -69,6 +69,7 @@ class TorchRecorder(Recorder):
         if fig:
             draw_train_culumative_rewards(self.records, self.record_dir)
             draw_train_avg_rewards(self.records, self.record_dir)
+            draw_avg_travel_time(self.records, self.record_dir)
 
     def write_records(self, dir="", filename=""):
         if not dir:
