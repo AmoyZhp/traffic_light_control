@@ -25,7 +25,7 @@ def get_default_config_for_single():
 
 def get_default_config_for_multi():
     config = {
-        "id": "2x2",
+        "id": "1x3",
         "thread_num": 1,
         "save_replay": False,
         "max_time": 3600,
@@ -46,6 +46,12 @@ def _id_shortcut_parased(id_):
         id_ = "hangzhou_1x1_bc-tyc_18041607_1h"
     elif id_ == "2x2":
         id_ = "syn_2x2_gaussian_500_1h"
+    elif id_ == "1x4":
+        id_ = "LA_1x4"
+    elif id_ == "1x5":
+        id_ = "atlanta_1x5"
+    elif id_ == "3x4":
+        id_ = "ji_nan_3_4"
     # 都不匹配则直接返回
     return id_
 
@@ -64,27 +70,33 @@ def _get_env_by_roadnet(config):
     flow_file = cityflow_config_dir + "flow.json"
 
     try:
-        intersections = _parse_cityflow_file(roadnet_file=roadnet_file,
-                                             flow_file=flow_file,
-                                             config_file=cityflow_config_dir,
-                                             eng=eng)
+        flow_json = json.load(open(flow_file))
+        flow_info = _parase_flow_info(flow_json)
+        intersections = _parse_cityflow_file(
+            roadnet_file=roadnet_file,
+            flow_info=flow_info,
+            config_file=cityflow_config_dir,
+            eng=eng,
+        )
     except Exception as ex:
         raise ex
 
     env = TrafficLightCtrlEnv(
         name=config["id"],
         eng=eng,
-        max_time=config["max_time"],
+        max_time=flow_info["max_time"],
         interval=config["interval"],
         intersections=intersections,
     )
     return env
 
 
-def _parse_cityflow_file(roadnet_file, flow_file, config_file,
-                         eng) -> Dict[str, Intersection]:
-    flow_json = json.load(open(flow_file))
-    flow_info = _parase_flow_info(flow_json)
+def _parse_cityflow_file(
+    roadnet_file,
+    flow_info,
+    config_file,
+    eng,
+) -> Dict[str, Intersection]:
 
     roadnet_json = json.load(open(roadnet_file))
     roads_info = _parase_roads_info(roadnet_json["roads"])
@@ -114,7 +126,9 @@ def _parase_flow_info(flow_json):
     vehicle_json = flow_json[0]["vehicle"]
     vehicle_proportion = float(vehicle_json["length"]) + float(
         vehicle_json["minGap"])
+    max_time = flow_json[-1]["endTime"]
     flow["vehicle"] = {"proportion": vehicle_proportion}
+    flow["max_time"] = max_time + 10
 
     return flow
 

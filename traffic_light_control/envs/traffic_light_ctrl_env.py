@@ -1,8 +1,11 @@
+import logging
 from hprl.util.typing import Action
 from envs.intersection import Intersection
 from typing import Dict, List, Tuple
 import hprl
 import numpy as np
+
+logger = logging.getLogger(__name__)
 
 
 class TrafficLightCtrlEnv(hprl.MultiAgentEnv):
@@ -35,18 +38,27 @@ class TrafficLightCtrlEnv(hprl.MultiAgentEnv):
             self.central_state_space += s_space
             self.local_state_space[id] = s_space
             self.local_action_space[id] = self.ACTION_SPACE
+        self._log_init_info()
+
+    def _log_init_info(self):
+
+        logger.info("Traffic Ligth Ctrl Env init info")
+        logger.info("env name : %s", self.name)
+        logger.info("max time : %d", self.max_time)
+        logger.info("interval : %d", self.interval)
+        logger.info("central state space : %d", self.central_state_space)
+        logger.info("cnetral action space : %d", self.central_action_space)
+        for id in self.intersections_id:
+            s_space = self.intersections[id].get_state_space()
+            logger.info("intersection %s", id)
+            logger.info("\t local state space is %d", s_space)
+            logger.info("\t local action space is %d", self.ACTION_SPACE)
+        logger.info("Traffic Ligth Ctrl Env init info end")
 
     def step(
         self, action: hprl.Action
     ) -> Tuple[hprl.State, hprl.Reward, hprl.Terminal, Dict]:
-
-        for id in self.intersections_id:
-            act = action.local[id]
-            if act == 1:
-                # act = 1 表示要切换到下一个状态
-                intersection = self.intersections[id]
-                intersection.move_to_next_phase()
-                self.eng.set_tl_phase(id, intersection.current_phase_index)
+        self._process_action(action)
         for _ in range(self.interval):
             self.eng.next_step()
 
@@ -59,8 +71,21 @@ class TrafficLightCtrlEnv(hprl.MultiAgentEnv):
             local={id: done
                    for id in self.intersections_id},
         )
-        info = {"avg_travel_time": self.eng.get_average_travel_time()}
+        info = self._get_info()
         return next_state, reward, terminal, info
+
+    def _get_info(self):
+        info = {"avg_travel_time": self.eng.get_average_travel_time()}
+        return info
+
+    def _process_action(self, action: Action):
+        for id in self.intersections_id:
+            act = action.local[id]
+            if act == 1:
+                # act = 1 表示要切换到下一个状态
+                intersection = self.intersections[id]
+                intersection.move_to_next_phase()
+                self.eng.set_tl_phase(id, intersection.current_phase_index)
 
     def _compute_state(self) -> hprl.State:
 
@@ -110,3 +135,27 @@ class TrafficLightCtrlEnv(hprl.MultiAgentEnv):
 
     def get_env_name(self):
         return self.name
+
+
+class PhaseChosenEnv(TrafficLightCtrlEnv):
+    def __init__(
+        self,
+        eng,
+        name: str,
+        max_time: int,
+        interval: int,
+        intersections: Dict[str, Intersection],
+    ):
+        super().__init__(
+            eng,
+            name,
+            max_time,
+            interval,
+            intersections,
+        )
+
+    def _process_action(self, action: Action):
+        return super()._process_action(action)
+
+    def _get_info(self):
+        return super()._get_info()
