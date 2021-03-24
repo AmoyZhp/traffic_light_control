@@ -38,4 +38,5 @@ if __name__ == "__main__":
         "records/1x3_QMIX_2021_3_24_14_15_17/log/records.json",
         "records/1x3_IQL_2021_3_24_14_13_23/log/records.json",
     ]
+
     plot(names)
