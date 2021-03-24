@@ -2,9 +2,10 @@ import os
 import logging
 from enum import Enum
 import json
+from os.path import join
 import torch
 from hprl.util.typing import Reward, TrainingRecord
-from hprl.recorder.recorder import Recorder, cal_avg_reward, cal_cumulative_reward, draw_avg_travel_time, draw_train_avg_rewards, draw_train_culumative_rewards
+from hprl.recorder.recorder import Recorder, cal_avg_reward, cal_cumulative_reward, draw_avg_travel_time, draw_train_avg_rewards, draw_train_culumative_rewards, unwrap_rewards
 from typing import List
 
 local_logger = logging.getLogger(__package__)
@@ -35,7 +36,7 @@ class TorchRecorder(Recorder):
         self.ckpt_dir = checkpoint_path
         self.record_dir = record_path
         self.config_dir = config_path
-        self.records = []
+        self.records: List[TrainingRecord] = []
 
     def add_record(self, record: TrainingRecord):
         self.records.append(record)
@@ -75,16 +76,48 @@ class TorchRecorder(Recorder):
         if not dir:
             dir = self.record_dir
         if not filename:
-            filename = "records.txt"
+            filename = "records.json"
         record_file = f"{dir}/{filename}"
+        records = self._unwrap_record(self.get_records())
         with open(record_file, "w", encoding="utf-8") as f:
-            f.write(str(self.get_records()))
+            json.dump(records, f)
         draw_train_culumative_rewards(self.records, dir)
         draw_train_avg_rewards(self.records, dir)
         draw_avg_travel_time(self.records, dir)
 
+    def _unwrap_record(self, records: List[TrainingRecord]):
+        sum_rewards: List[Reward] = []
+        avg_rewards: List[Reward] = []
+        avg_travel_time = []
+        episodes = []
+        for rd in records:
+            sum_rewards.append(cal_cumulative_reward(rd.rewards))
+            avg_rewards.append(cal_avg_reward(rd.rewards))
+            avg_travel_time.append(rd.infos[-1]["avg_travel_time"])
+            episodes.append(rd.episode)
+        rewards = {}
+        sum_central_reward, sum_local_reward = unwrap_rewards(sum_rewards)
+        rewards["sum"] = {
+            "central": sum_central_reward,
+            "local": sum_local_reward,
+        }
+        avg_central_reward, avg_local_reward = unwrap_rewards(avg_rewards)
+        rewards["avg"] = {
+            "central": avg_central_reward,
+            "local": avg_local_reward,
+        }
+        records = {
+            "rewards": rewards,
+            "travel_time": avg_travel_time,
+            "episodes": episodes,
+        }
+        return records
+
     def read_records(self, dir: str, filename: str):
-        raise NotImplementedError
+        record_file = f"{dir}/{filename}"
+        with open(record_file, "w", encoding="utf-8") as f:
+            records = json.load(record_file)
+        return records
 
     def write_ckpt(self, ckpt, dir="", filename=""):
         if not dir:
