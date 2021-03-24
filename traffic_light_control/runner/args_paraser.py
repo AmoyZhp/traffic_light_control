@@ -6,7 +6,7 @@ import hprl
 logger = logging.getLogger(__package__)
 
 # Agent Setting
-CAPACITY = 16384
+CAPACITY = 50000
 CRITIC_LR = 1e-4
 ACTOR_LR = 1e-4
 DISCOUNT_FACTOR = 0.99

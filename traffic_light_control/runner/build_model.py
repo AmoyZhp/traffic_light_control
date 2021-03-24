@@ -14,7 +14,7 @@ def build_model(
     env: hprl.MultiAgentEnv,
 ):
     agents_id = env.get_agents_id()
-    embed_dim = max(len(agents_id) * 4, 128)
+    embed_dim = _get_embed_dim(env.get_env_name())
     model_config = {
         "central_state": env.get_central_state_space(),
         "local_state": env.get_local_state_space(),
@@ -28,6 +28,15 @@ def build_model(
         agents_id=agents_id,
     )
     return models
+
+
+def _get_embed_dim(env_id: str):
+    if env_id == "LA_1x4":
+        return 256
+    elif env_id == "1x3":
+        return 128
+    else:
+        raise ValueError("not support env id for get embed dim")
 
 
 def _make_model(policy_type, config, agents_id):
