@@ -45,10 +45,15 @@ class Printer(Recorder):
     def read_ckpt(self, dir="", filename=""):
         ...
 
-    def write_config(self, config={}, dir=""):
+    def write_config(
+        self,
+        config={},
+        dir="",
+        filename="",
+    ):
         ...
 
-    def read_config(self, dir=""):
+    def read_config(self, dir="", filename=""):
         ...
 
     def get_records(self):

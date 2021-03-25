@@ -1,3 +1,4 @@
+from hprl.recorder.recorder import Recorder
 import logging
 from typing import Dict
 
@@ -21,6 +22,7 @@ def build_iql_trainer(
     config,
     env: MultiAgentEnv,
     models: Dict[str, nn.Module],
+    recorder: Recorder = None,
 ):
 
     buffer_config = config["buffer"]
@@ -71,8 +73,8 @@ def build_iql_trainer(
     policies = {}
     for id in agents_id:
         model = models[id]
-        action_space = policy_config["action_space"][id]
-        state_space = policy_config["state_space"][id]
+        action_space = policy_config["local_action_space"][id]
+        state_space = policy_config["local_state_space"][id]
         inner_p = DQN(
             acting_net=model["acting_net"],
             target_net=model["target_net"],
@@ -87,7 +89,7 @@ def build_iql_trainer(
         logger.info("\t agents %s", id)
         logger.info("\t\t action space is %s", action_space)
         logger.info("\t\t state space is %s", state_space)
-        action_space = policy_config["action_space"][id]
+        action_space = policy_config["local_action_space"][id]
         policies[id] = EpsilonGreedy(
             inner_policy=inner_p,
             eps_frame=eps_frame,
@@ -95,10 +97,11 @@ def build_iql_trainer(
             eps_init=eps_init,
             action_space=action_space,
         )
-    recorder = Printer()
-    if executing_config["recording"]:
-        recorder = TorchRecorder(executing_config["record_base_dir"])
-        logger.info("\t training will be recorded")
+    if recorder is None:
+        if executing_config["recording"]:
+            recorder = TorchRecorder(executing_config["record_base_dir"])
+        else:
+            recorder = Printer()
     trainer = IOffPolicyTrainer(
         type=PolicyTypes.IQL,
         policies=policies,

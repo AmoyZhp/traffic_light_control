@@ -135,22 +135,29 @@ class TorchRecorder(Recorder):
         file = f"{dir}/{filename}"
         torch.load(file)
 
-    def write_config(self, config, dir=""):
+    def write_config(self, config, dir="", filename=""):
         if not dir:
             dir = self.config_dir
-        filename = "init_config.json"
+        if not filename:
+            filename = "init_config.json"
         config_path = f"{dir}/{filename}"
 
-        class EnumEncoder(json.JSONEncoder):
-            def default(self, obj):
-                if isinstance(obj, Enum):
-                    return obj.name
-                return json.JSONEncoder.default(self, obj)
+        suffix = filename.split(".")[-1]
+        if suffix == "json":
 
-        with open(config_path, "w") as f:
-            json.dump(config, f, cls=EnumEncoder)
+            class EnumEncoder(json.JSONEncoder):
+                def default(self, obj):
+                    if isinstance(obj, Enum):
+                        return obj.name
+                    return json.JSONEncoder.default(self, obj)
 
-    def read_config(self, dir: str):
+            with open(config_path, "w") as f:
+                json.dump(config, f, cls=EnumEncoder)
+        else:
+            with open(config_path, "w") as f:
+                f.write(config)
+
+    def read_config(self, dir: str = "", filename=""):
         raise NotImplementedError
 
     def get_records(self):

@@ -41,11 +41,11 @@ class Recorder(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def write_config(self, config, dir: str):
+    def write_config(self, config, dir: str, filename: str):
         ...
 
     @abc.abstractmethod
-    def read_config(self, dir: str):
+    def read_config(self, dir: str, filename: str):
         ...
 
     @abc.abstractmethod

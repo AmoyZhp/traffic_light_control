@@ -41,8 +41,7 @@ class TrafficLightCtrlEnv(hprl.MultiAgentEnv):
                     self.roads_set[r.id] = r
 
         self.central_state_space = len(self.roads_set.values()) * 3
-        self.central_action_space = len(
-            self.intersections_id) * self.ACTION_SPACE
+        self.central_action_space = self.ACTION_SPACE**len(self.intersections)
         self._log_init_info()
 
     def _log_init_info(self):
@@ -142,6 +141,20 @@ class TrafficLightCtrlEnv(hprl.MultiAgentEnv):
 
     def get_env_name(self):
         return self.name
+
+    @property
+    def setting(self):
+        _setting = {
+            "max_time": self.max_time,
+            "interval": self.interval,
+            "env_name": self.get_env_name(),
+            "agents_id": self.get_agents_id(),
+            "central_state_space": self.get_central_state_space(),
+            "central_action_space": self.get_central_action_space(),
+            "local_action_space": self.get_local_action_space(),
+            "local_state_space": self.get_local_state_space(),
+        }
+        return _setting
 
 
 class PhaseChosenEnv(TrafficLightCtrlEnv):
