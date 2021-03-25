@@ -17,7 +17,4 @@ class Lane():
         return self.id
 
     def __repr__(self) -> str:
-        return "Lane[ id {} , capacity {} ]".format(
-            self.id,
-            self.capacity
-        )
+        return "Lane[ id {} , capacity {} ]".format(self.id, self.capacity)

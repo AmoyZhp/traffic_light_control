@@ -197,8 +197,8 @@ def _parase_roadlink(roadlinks_json, roads_info, eng):
         out_lanes = roads_lanes_temp[out_id]
         in_lanes = roads_lanes_temp[in_id]
         rlink = {
-            Stream.OUT: Road(id=out_id, lanes=out_lanes, eng=eng),
-            Stream.IN: Road(id=in_id, lanes=in_lanes, eng=eng)
+            Stream.OUT: Road(id=out_id, mov_lanes=out_lanes, eng=eng),
+            Stream.IN: Road(id=in_id, mov_lanes=in_lanes, eng=eng)
         }
         roadlinks.append(rlink)
     return roadlinks
