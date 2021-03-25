@@ -40,7 +40,10 @@ class TrafficLightCtrlEnv(hprl.MultiAgentEnv):
                 if r.id not in self.roads_set.keys():
                     self.roads_set[r.id] = r
 
-        self.central_state_space = len(self.roads_set.values()) * 3
+        self.central_state_space = 0
+        for road in self.roads_set.values():
+            self.central_state_space += road.get_state_space()
+
         self.central_action_space = self.ACTION_SPACE**len(self.intersections)
         self._log_init_info()
 
