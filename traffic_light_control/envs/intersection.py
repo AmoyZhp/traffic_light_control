@@ -104,6 +104,10 @@ class Intersection():
         self.current_phase_index = (self.current_phase_index + 1) % len(
             self.phase_plan)
 
+    def set_phase_index(self, index):
+        assert index >= 0 and index < len(self.phase_plan)
+        self.current_phase_index = index
+
     def to_tensor(self) -> np.ndarray:
         if ROAD_STATE:
             tensor = self._road_state()

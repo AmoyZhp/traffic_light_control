@@ -29,37 +29,33 @@ class TrafficLightCtrlEnv(hprl.MultiAgentEnv):
         self.interval = interval
         self.max_time = max_time
         self.time = 0
-        self.local_action_space = {}
-        self.local_state_space = {}
         self.roads_set: Dict[str, Road] = {}
-        for id, inter in self.intersections.items():
-            self.local_state_space[id] = inter.get_state_space()
-            self.local_action_space[id] = self.ACTION_SPACE
+        for inter in self.intersections.values():
             roads = inter.get_roads()
             for r in roads.values():
                 if r.id not in self.roads_set.keys():
                     self.roads_set[r.id] = r
+        local_sp, local_ap = self._compute_local_space()
 
-        self.central_state_space = len(self.roads_set.values()) * 3
-        self.central_action_space = self.ACTION_SPACE**len(self.intersections)
+        self.local_state_space = local_sp
+        self.local_action_space = local_ap
+
+        self.central_state_space = 0
+        for road in self.roads_set.values():
+            self.central_state_space += road.get_state_space()
+        self.central_action_space = 1
+        for a_space in self.local_action_space.values():
+            self.central_action_space *= a_space
+
         self._log_init_info()
 
-    def _log_init_info(self):
-
-        logger.info("Traffic Ligth Ctrl Env init info")
-        logger.info("env name : %s", self.name)
-        logger.info("max time : %d", self.max_time)
-        logger.info("interval : %d", self.interval)
-        logger.info("central state space : %d", self.central_state_space)
-        logger.info("cnetral action space : %d", self.central_action_space)
-        for id in self.intersections_id:
-            s_space = self.intersections[id].get_state_space()
-            logger.info("intersection %s", id)
-            logger.info("\t local state space is %d", s_space)
-            logger.info("\t local action space is %d", self.ACTION_SPACE)
-        logger.info("roads set : %s", list(self.roads_set.keys()))
-
-        logger.info("Traffic Ligth Ctrl Env init info end")
+    def _compute_local_space(self):
+        local_action_space = {}
+        local_state_space = {}
+        for id, inter in self.intersections.items():
+            local_state_space[id] = inter.get_state_space()
+            local_action_space[id] = self.ACTION_SPACE
+        return local_state_space, local_action_space
 
     def step(
         self, action: hprl.Action
@@ -156,6 +152,28 @@ class TrafficLightCtrlEnv(hprl.MultiAgentEnv):
         }
         return _setting
 
+    def _log_init_info(self):
+
+        logger.info("Traffic Ligth Ctrl Env init info")
+        logger.info("env name : %s", self.name)
+        logger.info("max time : %d", self.max_time)
+        logger.info("interval : %d", self.interval)
+        logger.info("central state space : %d", self.central_state_space)
+        logger.info("cnetral action space : %d", self.central_action_space)
+        for id in self.intersections_id:
+            logger.info("intersection %s", id)
+            logger.info(
+                "\t local state space is %d",
+                self.local_state_space[id],
+            )
+            logger.info(
+                "\t local action space is %d",
+                self.local_action_space[id],
+            )
+        logger.info("roads set : %s", list(self.roads_set.keys()))
+
+        logger.info("Traffic Ligth Ctrl Env init info end")
+
 
 class PhaseChosenEnv(TrafficLightCtrlEnv):
     def __init__(
@@ -175,7 +193,18 @@ class PhaseChosenEnv(TrafficLightCtrlEnv):
         )
 
     def _process_action(self, action: Action):
-        return super()._process_action(action)
+        for id in self.intersections_id:
+            phase_index = action.local[id]
+            self.eng.set_tl_phase(id, phase_index)
+            self.intersections[id].set_phase_index(phase_index)
+
+    def _compute_local_space(self):
+        local_state_space = {}
+        local_action_space = {}
+        for id, iter in self.intersections.items():
+            local_state_space[id] = iter.get_state_space()
+            local_action_space[id] = len(iter.phase_plan)
+        return local_state_space, local_action_space
 
     def _get_info(self):
         return super()._get_info()
