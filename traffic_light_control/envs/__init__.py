@@ -1,10 +1,11 @@
 import logging
-from envs.factory import make
+from envs.factory import make, make_mp_env
 from envs.factory import get_default_config_for_single
 from envs.factory import get_default_config_for_multi
 
 __all__ = [
     "make",
+    "make_mp_env",
     "get_default_config_for_single",
     "get_default_config_for_multi",
 ]

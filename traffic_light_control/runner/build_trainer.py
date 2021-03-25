@@ -54,13 +54,17 @@ def _build_trainer(args, env: MultiAgentEnv, models):
     recording = args.recording
     base_dir = None
     if recording:
-        base_dir = _create_record_dir(
+        base_dir = create_record_dir(
             BASE_RECORDS_DIR,
             args.env,
             args.policy.value,
         )
         logger.info("records dir created : {}".format(base_dir))
 
+    if recording:
+        recorder = hprecroder.TorchRecorder(base_dir)
+    else:
+        recorder = hprecroder.Printer()
     trainer_config = _get_trainer_config(
         args=args,
         local_state_space=env.get_local_state_space(),
@@ -69,10 +73,6 @@ def _build_trainer(args, env: MultiAgentEnv, models):
         central_action_space=env.get_central_action_space(),
         record_base_dir=base_dir,
     )
-    if recording:
-        recorder = hprecroder.TorchRecorder(base_dir)
-    else:
-        recorder = hprecroder.Printer()
     trainer = hprl.build_trainer(
         config=trainer_config,
         env=env,
@@ -148,7 +148,7 @@ def _get_trainer_config(
     return trainner_config
 
 
-def _create_record_dir(root_dir, env_id, policy_id):
+def create_record_dir(root_dir, env_id, policy_id):
     # 创建的目录
     date = datetime.datetime.now()
     sub_dir = "{}_{}_{}_{}_{}_{}_{}_{}".format(
