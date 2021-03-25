@@ -55,8 +55,7 @@ def _train(args, env, models):
     logger.info("policy : {}".format(args.policy))
     logger.info("buffer : {}".format(args.replay_buffer))
 
-    trainer = build_trainer(args, env, models)
-    trainer.save_config()
+    trainer, recorder = build_trainer(args, env, models)
 
     episodes = args.episodes
     begin_time = time.time()
@@ -65,6 +64,8 @@ def _train(args, env, models):
 
     trainer.save_records()
     trainer.save_checkpoint(filename="ckpt_ending.pth")
+    exp_record = {"cost_time": cost_time, "episodes": episodes}
+    recorder.write_config(config=exp_record, filename="exp_record.json")
 
     logger.info("total time cost {:.3f} h ".format(cost_time))
     logger.info(

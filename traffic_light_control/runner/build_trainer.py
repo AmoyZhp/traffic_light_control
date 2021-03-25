@@ -1,7 +1,9 @@
+from hprl.env.multi_agent_env import MultiAgentEnv
 import logging
 import datetime
 import os
 import hprl
+import hprl.recorder as hprecroder
 
 logger = logging.getLogger(__package__)
 
@@ -26,10 +28,9 @@ ADVANTAGE_TYPE = hprl.AdvantageTypes.QMinusV
 
 def build_trainer(args, env, models):
     if not args.resume:
-        trainer = _build_trainer(args, env, models)
+        return _build_trainer(args, env, models)
     else:
-        trainer = load_trainer(args, env, models)
-    return trainer
+        return load_trainer(args, env, models)
 
 
 def load_trainer(args, env, models):
@@ -49,7 +50,7 @@ def load_trainer(args, env, models):
     return trainer
 
 
-def _build_trainer(args, env, models):
+def _build_trainer(args, env: MultiAgentEnv, models):
     recording = args.recording
     base_dir = None
     if recording:
@@ -62,22 +63,37 @@ def _build_trainer(args, env, models):
 
     trainer_config = _get_trainer_config(
         args=args,
-        action_space=env.get_local_action_space(),
-        state_space=env.get_local_state_space(),
+        local_state_space=env.get_local_state_space(),
+        local_action_space=env.get_local_action_space(),
+        central_state_space=env.get_central_state_space(),
+        central_action_space=env.get_central_action_space(),
         record_base_dir=base_dir,
     )
+    if recording:
+        recorder = hprecroder.TorchRecorder(base_dir)
+    else:
+        recorder = hprecroder.Printer()
     trainer = hprl.build_trainer(
         config=trainer_config,
         env=env,
         models=models,
+        recorder=recorder,
     )
-    return trainer
+    recorder.write_config(config=env.setting, filename="env_setting.json")
+    recorder.write_config(config=repr(models), filename="model_setting.data")
+    recorder.write_config(
+        config=trainer.get_config(),
+        filename="initial_config.json",
+    )
+    return trainer, recorder
 
 
 def _get_trainer_config(
     args,
-    action_space,
-    state_space,
+    local_state_space,
+    local_action_space,
+    central_state_space,
+    central_action_space,
     record_base_dir,
 ):
     capacity = args.capacity
@@ -94,15 +110,15 @@ def _get_trainer_config(
     update_period = args.update_period
     inner_epoch = args.inner_epoch
     clip_param = args.clip_param
-    action_space = action_space
-    state_space = state_space
     policy_config = {
         "critic_lr": critic_lr,
         "actor_lr": actor_lr,
         "discount_factor": discount_factor,
         "update_period": update_period,
-        "action_space": action_space,
-        "state_space": state_space,
+        "central_state_space": central_state_space,
+        "central_action_space": central_action_space,
+        "local_action_space": local_action_space,
+        "local_state_space": local_state_space,
         "eps_frame": eps_frame,
         "eps_init": eps_init,
         "eps_min": eps_min,

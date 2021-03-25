@@ -33,6 +33,11 @@ class MultiAgentEnv(metaclass=abc.ABCMeta):
     def get_local_state_space(self):
         ...
 
+    @property
+    @abc.abstractmethod
+    def setting(self):
+        ...
+
     @abc.abstractmethod
     def get_env_name(self):
         ...

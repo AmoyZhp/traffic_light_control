@@ -1,3 +1,4 @@
+from envs.road import Road
 import logging
 from hprl.util.typing import Action
 from envs.intersection import Intersection
@@ -28,16 +29,19 @@ class TrafficLightCtrlEnv(hprl.MultiAgentEnv):
         self.interval = interval
         self.max_time = max_time
         self.time = 0
-        self.central_state_space = 0
-        self.central_action_space = len(
-            self.intersections_id) * self.ACTION_SPACE
         self.local_action_space = {}
         self.local_state_space = {}
-        for id in self.intersections_id:
-            s_space = self.intersections[id].get_state_space()
-            self.central_state_space += s_space
-            self.local_state_space[id] = s_space
+        self.roads_set: Dict[str, Road] = {}
+        for id, inter in self.intersections.items():
+            self.local_state_space[id] = inter.get_state_space()
             self.local_action_space[id] = self.ACTION_SPACE
+            roads = inter.get_roads()
+            for r in roads.values():
+                if r.id not in self.roads_set.keys():
+                    self.roads_set[r.id] = r
+
+        self.central_state_space = len(self.roads_set.values()) * 3
+        self.central_action_space = self.ACTION_SPACE**len(self.intersections)
         self._log_init_info()
 
     def _log_init_info(self):
@@ -53,6 +57,8 @@ class TrafficLightCtrlEnv(hprl.MultiAgentEnv):
             logger.info("intersection %s", id)
             logger.info("\t local state space is %d", s_space)
             logger.info("\t local action space is %d", self.ACTION_SPACE)
+        logger.info("roads set : %s", list(self.roads_set.keys()))
+
         logger.info("Traffic Ligth Ctrl Env init info end")
 
     def step(
@@ -90,13 +96,13 @@ class TrafficLightCtrlEnv(hprl.MultiAgentEnv):
     def _compute_state(self) -> hprl.State:
 
         state = {}
-        central_state = []
         for id in self.intersections_id:
             item = self.intersections[id]
             state[id] = item.to_tensor()
-            central_state.append(item.to_tensor())
-        central_state = np.hstack(central_state)
-
+        roads = []
+        for r in self.roads_set.values():
+            roads.append(r.to_tensor())
+        central_state = np.hstack(roads)
         state = hprl.State(central=central_state, local=state)
         return state
 
@@ -135,6 +141,20 @@ class TrafficLightCtrlEnv(hprl.MultiAgentEnv):
 
     def get_env_name(self):
         return self.name
+
+    @property
+    def setting(self):
+        _setting = {
+            "max_time": self.max_time,
+            "interval": self.interval,
+            "env_name": self.get_env_name(),
+            "agents_id": self.get_agents_id(),
+            "central_state_space": self.get_central_state_space(),
+            "central_action_space": self.get_central_action_space(),
+            "local_action_space": self.get_local_action_space(),
+            "local_state_space": self.get_local_state_space(),
+        }
+        return _setting
 
 
 class PhaseChosenEnv(TrafficLightCtrlEnv):

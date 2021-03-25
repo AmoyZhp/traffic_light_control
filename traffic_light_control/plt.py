@@ -6,6 +6,7 @@ import json
 def plot(filenames: List[str]):
     records = {}
     for fname in filenames:
+        fname = f"records/{fname}/log/records.json"
         with open(fname, "r") as f:
             records[fname] = json.load(f)
     travel_time_fig, travel_time_ax = plt.subplots()
@@ -34,9 +35,9 @@ def plot(filenames: List[str]):
 
 if __name__ == "__main__":
     names = [
-        "records/1x3_VDN_2021_3_24_14_12_6/log/records.json",
-        "records/1x3_QMIX_2021_3_24_14_15_17/log/records.json",
-        "records/1x3_IQL_2021_3_24_14_13_23/log/records.json",
+        "1x3_IQL_2021_3_24_14_25_1",
+        "1x3_QMIX_2021_3_24_23_10_16",
+        "1x3_VDN_2021_3_24_14_24_20",
     ]
 
     plot(names)

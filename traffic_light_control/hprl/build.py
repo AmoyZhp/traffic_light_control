@@ -1,3 +1,4 @@
+from hprl.recorder.recorder import Recorder
 import gym
 from hprl.env.gym_wrapper import GymWrapper
 import hprl.policy.dqn as dqn
@@ -19,22 +20,23 @@ def build_trainer(
     config: Dict,
     env: MultiAgentEnv,
     models: Dict,
+    recorder: Recorder = None,
 ) -> Trainer:
 
     trainer_type = config["type"]
     trainer = None
     if trainer_type == PolicyTypes.IQL:
-        trainer = dqn.build_iql_trainer(config, env, models)
+        trainer = dqn.build_iql_trainer(config, env, models, recorder)
     elif trainer_type == PolicyTypes.IAC:
         trainer = ac.build_iac_trainer(config, env, models)
     elif trainer_type == PolicyTypes.PPO:
         trainer = ac.build_ppo_trainer(config, env, models)
     elif trainer_type == PolicyTypes.VDN:
-        trainer = vdn.build_vdn_trainer(config, env, models)
+        trainer = vdn.build_vdn_trainer(config, env, models, recorder)
     elif trainer_type == PolicyTypes.COMA:
         trainer = coma.build_coma_trainer(config, env, models)
     elif trainer_type == PolicyTypes.QMIX:
-        trainer = qmix.build_qmix_trainer(config, env, models)
+        trainer = qmix.build_qmix_trainer(config, env, models, recorder)
     else:
         raise ValueError("train type %s is invalid", trainer_type)
     return trainer

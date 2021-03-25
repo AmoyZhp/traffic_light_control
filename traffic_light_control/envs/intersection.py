@@ -20,7 +20,7 @@ class Intersection():
         self.phase_plan = phase_plan
         self.current_phase_index = init_phase_index
         self.roadlinks = roadlinks
-        self.roads = {}
+        self.roads: Dict[str, Road] = {}
 
         self.state_space = 0
         for rlink in self.roadlinks:
@@ -39,6 +39,9 @@ class Intersection():
         # second belong to next phase
         self.phase_space = len(self.roadlinks)
         self.state_space += 2 * self.phase_space
+
+    def get_roads(self):
+        return self.roads
 
     def get_state_space(self):
         return self.state_space

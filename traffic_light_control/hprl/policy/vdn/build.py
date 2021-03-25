@@ -1,3 +1,4 @@
+from hprl.recorder.recorder import Recorder
 from hprl.replaybuffer.prioritized_replay_buffer import MultiAgentPER
 from hprl.replaybuffer.common_buffer import MultiAgentCommonBuffer
 from hprl.policy.decorator.epsilon_greedy import MultiAgentEpsilonGreedy
@@ -19,6 +20,7 @@ def build_vdn_trainer(
     config: Dict,
     env: MultiAgentEnv,
     models,
+    recorder: Recorder = None,
 ):
     buffer_config = config["buffer"]
     policy_config = config["policy"]
@@ -32,8 +34,8 @@ def build_vdn_trainer(
     eps_frame = policy_config["eps_frame"]
     eps_min = policy_config["eps_min"]
     eps_init = policy_config["eps_init"]
-    action_space = policy_config["action_space"]
-    state_space = policy_config["state_space"]
+    local_action_space = policy_config["local_action_space"]
+    local_state_space = policy_config["local_state_space"]
     logger.info("=== === === build VDN trainer === === ===")
 
     prioritiezed = False
@@ -60,8 +62,8 @@ def build_vdn_trainer(
         critic_lr=critic_lr,
         discount_factor=discount_factor,
         update_period=update_period,
-        action_space=action_space,
-        state_space=state_space,
+        local_action_space=local_action_space,
+        local_state_space=local_state_space,
         loss_fn=loss_fn,
         prioritized=prioritiezed,
     )
@@ -71,12 +73,13 @@ def build_vdn_trainer(
         eps_frame=eps_frame,
         eps_min=eps_min,
         eps_init=eps_init,
-        action_space=action_space,
+        action_space=local_action_space,
     )
-    recorder = Printer()
-    if executing_config["recording"]:
-        recorder = TorchRecorder(executing_config["record_base_dir"])
-        logger.info("\t training will be recorded")
+    if recorder is None:
+        if executing_config["recording"]:
+            recorder = TorchRecorder(executing_config["record_base_dir"])
+        else:
+            recorder = Printer()
     trainer = matrainer.OffPolicy(
         type=PolicyTypes.VDN,
         config=executing_config,

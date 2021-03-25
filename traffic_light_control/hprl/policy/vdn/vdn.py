@@ -19,8 +19,8 @@ class VDN(MultiAgentPolicy):
         critic_lr: int,
         discount_factor: float,
         update_period: int,
-        action_space,
-        state_space,
+        local_action_space,
+        local_state_space,
         loss_fn,
         prioritized,
         device=None,
@@ -49,19 +49,19 @@ class VDN(MultiAgentPolicy):
         self.critic_lr = critic_lr
         self.discount_factor = discount_factor
         self.update_period = update_period
-        self.action_space = action_space
-        self.state_space = state_space
+        self.local_action_space = local_action_space
+        self.local_state_space = local_state_space
         self.prioritized = prioritized
         logger.info("\t critic lr : %f", self.critic_lr)
         logger.info("\t discount factor : %f", self.discount_factor)
         logger.info("\t update period : %d", self.update_period)
         logger.info("\t prioritized : %s", self.prioritized)
         for id in self.agents_id:
-            action_space = self.action_space[id]
-            state_space = self.state_space[id]
+            local_action_space = self.local_action_space[id]
+            local_action_space = self.local_state_space[id]
             logger.info("\t agents %s", id)
-            logger.info("\t\t action space is %s", action_space)
-            logger.info("\t\t state space is %s", state_space)
+            logger.info("\t\t action space is %s", local_action_space)
+            logger.info("\t\t state space is %s", local_action_space)
         logger.info("VDN init done")
 
     def compute_action(self, state: State) -> Action:
@@ -184,8 +184,8 @@ class VDN(MultiAgentPolicy):
             "critic_lr": self.critic_lr,
             "discount_factor": self.discount_factor,
             "update_period": self.update_period,
-            "action_space": self.action_space,
-            "state_space": self.state_space,
+            "local_action_space": self.local_action_space,
+            "local_state_space": self.local_state_space,
         }
         return config
 
