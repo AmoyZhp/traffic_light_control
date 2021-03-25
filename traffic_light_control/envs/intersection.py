@@ -38,7 +38,7 @@ class Intersection():
         # first phase space is current phase
         # second belong to next phase
         self.phase_space = len(self.roadlinks)
-        self.state_space += 2 * self.phase_space
+        self.state_space += self.phase_space
 
     def get_roads(self):
         return self.roads
@@ -121,16 +121,6 @@ class Intersection():
             current_phase_tensor[i] = 1
 
         tensor = np.hstack((tensor, current_phase_tensor))
-
-        next_phase_index = (self.current_phase_index + 1) % len(
-            self.phase_plan)
-
-        next_phase = self.phase_plan[next_phase_index]
-        next_phase_tensor = np.zeros(self.phase_space)
-        for i in next_phase:
-            next_phase_tensor[i] = 1
-
-        tensor = np.hstack((tensor, next_phase_tensor))
         return tensor
 
     def _road_link_state(self):
