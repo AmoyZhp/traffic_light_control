@@ -59,8 +59,8 @@ class MaxPressureEnv():
             for i in range(len(phase_plans)):
                 for road_link_index in phase_plans[i]:
                     rlink = roadlinks[road_link_index]
-                    pressure += abs(self.cal_roadlink_pressure(rlink))
-                pressure = pressure
+                    pressure += self.cal_roadlink_pressure(rlink)
+                pressure = abs(pressure)
                 phases_pressure.append(pressure)
             local_state[id] = phases_pressure
 
@@ -75,10 +75,8 @@ class MaxPressureEnv():
             if (in_road.get_capacity(dir_) == 0
                     or out_road.get_capacity(dir_) == 0):
                 continue
-            in_density = in_road.get_vehicles(dir_) / in_road.get_capacity(
-                dir_)
-            out_density = out_road.get_vehicles(dir_) / out_road.get_capacity(
-                dir_)
+            in_density = in_road.get_vehicles(dir_)
+            out_density = out_road.get_vehicles(dir_)
             traffic_mov_pres = in_density - out_density
             r_pressure += traffic_mov_pres
         pressure = r_pressure

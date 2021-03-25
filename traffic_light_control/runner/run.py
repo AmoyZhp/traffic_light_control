@@ -121,6 +121,7 @@ def max_pressure_eval(args):
             for i in range(len(local_s)):
                 if local_s[i] > max_pressure:
                     action = i
+                    max_pressure = local_s[i]
             actions[id] = action
 
         state, reward, done, info = env.step(Action(local=actions))
