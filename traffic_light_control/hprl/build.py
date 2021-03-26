@@ -39,6 +39,7 @@ def build_trainer(
         trainer = qmix.build_qmix_trainer(config, env, models, recorder)
     else:
         raise ValueError("train type %s is invalid", trainer_type)
+
     return trainer
 
 

@@ -134,6 +134,12 @@ def _add_path_related_args(parser: argparse.ArgumentParser):
         default=None,
         help="name of checkpoint file",
     )
+    parser.add_argument(
+        "--record_dir_suffix",
+        type=str,
+        default="",
+        help="record direction name suffix",
+    )
     return parser
 
 

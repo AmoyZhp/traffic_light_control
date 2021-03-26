@@ -58,6 +58,7 @@ def _build_trainer(args, env: MultiAgentEnv, models):
             BASE_RECORDS_DIR,
             args.env,
             args.policy.value,
+            args.record_dir_suffix,
         )
         logger.info("records dir created : {}".format(base_dir))
 
@@ -148,7 +149,12 @@ def _get_trainer_config(
     return trainner_config
 
 
-def _create_record_dir(root_dir, env_id, policy_id):
+def _create_record_dir(
+    root_dir,
+    env_id,
+    policy_id,
+    suffix="",
+):
     # 创建的目录
     date = datetime.datetime.now()
     sub_dir = "{}_{}_{}_{}_{}_{}_{}_{}".format(
@@ -162,6 +168,8 @@ def _create_record_dir(root_dir, env_id, policy_id):
         date.second,
     )
     record_dir = f"{root_dir}/{sub_dir}"
+    if suffix:
+        record_dir = f"{record_dir}_{suffix}"
     if not os.path.exists(record_dir):
         os.mkdir(record_dir)
     else:
