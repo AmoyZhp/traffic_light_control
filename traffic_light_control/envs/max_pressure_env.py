@@ -57,6 +57,16 @@ class MaxPressureEnv():
             roadlinks = item.roadlinks
             phases_pressure = []
             for i in range(len(phase_plans)):
+                if i == 7:
+                    for road_link_index in phase_plans[i]:
+                        rlink = roadlinks[road_link_index]
+                        for mv in Movement:
+                            print("mov ", mv)
+                            print("incoming stream :",
+                                  rlink[Stream.IN].get_vehicles(mv))
+                            print("out stream :",
+                                  rlink[Stream.OUT].get_vehicles(mv))
+
                 for road_link_index in phase_plans[i]:
                     rlink = roadlinks[road_link_index]
                     pressure += self.cal_roadlink_pressure(rlink)

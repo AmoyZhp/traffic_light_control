@@ -8,12 +8,50 @@ PHASE_SPACE = 12
 ROAD_STATE = True
 
 
+class RoadLink():
+    def __init__(
+        self,
+        start_road: Road,
+        end_road: Road,
+        lane_links: List[List[str]],
+        movement: Movement,
+    ) -> None:
+        self._start_road = start_road
+        self._end_road = end_road
+        self.lane_links = lane_links
+        self.movement = movement
+
+    @property
+    def start_road(self):
+        return self._start_road
+
+    @property
+    def end_road(self):
+        return self._end_road
+
+    def cal_pressure(self):
+        pressure = 0.0
+        for lane_link in self.lane_links:
+            pressure += self._cal_lane_link_pressure(lane_link)
+        pressure /= len(self.lane_links)
+        return pressure
+
+    def _cal_lane_link_pressure(self, lane_link: List[str]):
+        assert len(lane_link) == 2
+        start_lane_id = lane_link[0]
+        end_lane_id = lane_link[1]
+        incoming_lane = self.start_road.get_lane(start_lane_id)
+        outgoing_lane = self.end_road.get_lane(end_lane_id)
+        pressure = incoming_lane.get_density() - outgoing_lane.get_density()
+        return pressure
+
+
 class Intersection():
     def __init__(
         self,
         id: str,
         phase_plan: List[List[int]],
-        roadlinks: List[Dict[Stream, Road]],
+        roadlinks: List[RoadLink],
         init_phase_index: int = 0,
     ) -> None:
         self.id = id
@@ -22,12 +60,15 @@ class Intersection():
         self.roadlinks = roadlinks
         self.roads: Dict[str, Road] = {}
 
-        self.state_space = 0
         for rlink in self.roadlinks:
-            for road in rlink.values():
-                if road.id not in self.roads:
-                    self.roads[road.id] = road
+            start_road = rlink.start_road
+            if start_road.id not in self.roads:
+                self.roads[start_road.id] = start_road
+            end_road = rlink.end_road
+            if end_road.id not in self.roads:
+                self.roads[end_road.id] = end_road
 
+        self.state_space = 0
         if ROAD_STATE:
             for road in self.roads.values():
                 self.state_space += road.get_state_space()

@@ -123,7 +123,9 @@ def max_pressure_eval(args):
                     action = i
                     max_pressure = local_s[i]
             actions[id] = action
-
+        print("current env time is : ", env.time)
+        print("state : ", state)
+        print("action :", action)
         state, reward, done, info = env.step(Action(local=actions))
         sum_reward += reward
         if done:
