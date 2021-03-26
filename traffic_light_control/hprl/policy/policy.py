@@ -13,6 +13,7 @@ class PolicyTypes(Enum):
     VDN = "VDN"
     COMA = "COMA"
     QMIX = "QMIX"
+    MP = "MP"
 
 
 class AdvantageTypes(Enum):

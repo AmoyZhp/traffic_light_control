@@ -1,7 +1,10 @@
+from hprl.util.typing import Action
+import json
 import logging
+from typing import List
 from runner.build_env import build_env
 from runner.build_model import build_model
-from runner.build_trainer import build_trainer, load_trainer
+from runner.build_trainer import BASE_RECORDS_DIR, build_trainer, load_trainer, create_record_dir
 from runner.build_baseline_trainer import build_baseline_trainer
 import time
 import hprl
@@ -84,6 +87,9 @@ def _baseline_test(args):
             buffer_type=args.replay_buffer,
             batch_size=args.batch_size,
         )
+    elif args.policy == hprl.PolicyTypes.MP:
+        max_pressure_eval(args)
+        return
     else:
         trainer, episodes = build_baseline_trainer(
             env_id=args.env,
@@ -94,3 +100,48 @@ def _baseline_test(args):
     if args.episodes > 0:
         episodes = args.episodes
     trainer.train(episodes)
+
+
+def max_pressure_eval(args):
+    config = {
+        "id": args.env,
+        "interval": 5,
+        "thread_num": args.env_thread_num,
+        "save_replay": args.save_replay,
+    }
+    env = envs.make_mp_env(config)
+    state = env.reset()
+    sum_reward = 0.0
+    avg_travel_time = 0
+    while True:
+        actions = {}
+        for id, local_s in state.local.items():
+            action = 0
+            max_pressure = local_s[0]
+            for i in range(len(local_s)):
+                if local_s[i] > max_pressure:
+                    action = i
+                    max_pressure = local_s[i]
+            actions[id] = action
+
+        state, reward, done, info = env.step(Action(local=actions))
+        sum_reward += reward
+        if done:
+            avg_travel_time = info["avg_travel_time"]
+            break
+    result = {
+        "reward": sum_reward,
+        "avg_travel_time": avg_travel_time,
+    }
+    recording = args.recording
+    base_dir = None
+    if recording:
+        base_dir = create_record_dir(
+            BASE_RECORDS_DIR,
+            args.env,
+            args.policy.value,
+        )
+        logger.info("records dir created : {}".format(base_dir))
+        filepath = f"{base_dir}/result.json"
+        with open(filepath, "w") as f:
+            json.dump(result, f)

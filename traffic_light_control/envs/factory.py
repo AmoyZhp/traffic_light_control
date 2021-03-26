@@ -1,3 +1,4 @@
+from envs.max_pressure_env import MaxPressureEnv
 from envs.traffic_light_ctrl_env import TrafficLightCtrlEnv
 from typing import Dict, List
 from envs.intersection import Intersection
@@ -35,8 +36,27 @@ def get_default_config_for_multi():
 
 
 def make(config):
+    eng, intersections, flow_info = _parase_roadnet(config)
+    env = TrafficLightCtrlEnv(
+        name=config["id"],
+        eng=eng,
+        max_time=flow_info["max_time"],
+        interval=config["interval"],
+        intersections=intersections,
+    )
+    return env
 
-    return _get_env_by_roadnet(config)
+
+def make_mp_env(config):
+    eng, intersections, flow_info = _parase_roadnet(config)
+    env = MaxPressureEnv(
+        name=config["id"],
+        eng=eng,
+        max_time=flow_info["max_time"],
+        interval=config["interval"],
+        intersections=intersections,
+    )
+    return env
 
 
 def _id_shortcut_parased(id_):
@@ -56,7 +76,7 @@ def _id_shortcut_parased(id_):
     return id_
 
 
-def _get_env_by_roadnet(config):
+def _parase_roadnet(config):
     id_ = _id_shortcut_parased(config["id"])
     cityflow_config_dir = CITYFLOW_CONFIG_ROOT_DIR + id_ + "/"
     cityflow_config_file = cityflow_config_dir + "config.json"
@@ -80,15 +100,7 @@ def _get_env_by_roadnet(config):
         )
     except Exception as ex:
         raise ex
-
-    env = TrafficLightCtrlEnv(
-        name=config["id"],
-        eng=eng,
-        max_time=flow_info["max_time"],
-        interval=config["interval"],
-        intersections=intersections,
-    )
-    return env
+    return eng, intersections, flow_info
 
 
 def _parse_cityflow_file(

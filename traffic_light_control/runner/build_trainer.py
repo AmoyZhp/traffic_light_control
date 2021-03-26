@@ -62,6 +62,10 @@ def _build_trainer(args, env: MultiAgentEnv, models):
         )
         logger.info("records dir created : {}".format(base_dir))
 
+    if recording:
+        recorder = hprecroder.TorchRecorder(base_dir)
+    else:
+        recorder = hprecroder.Printer()
     trainer_config = _get_trainer_config(
         args=args,
         local_state_space=env.get_local_state_space(),
@@ -70,10 +74,6 @@ def _build_trainer(args, env: MultiAgentEnv, models):
         central_action_space=env.get_central_action_space(),
         record_base_dir=base_dir,
     )
-    if recording:
-        recorder = hprecroder.TorchRecorder(base_dir)
-    else:
-        recorder = hprecroder.Printer()
     trainer = hprl.build_trainer(
         config=trainer_config,
         env=env,
