@@ -171,46 +171,51 @@ def _parase_roadlink(roadlinks_json, roads_info, eng):
 
     for roadlink_json in roadlinks_json:
 
-        out_road_id = roadlink_json["startRoad"]
-        in_road_id = roadlink_json["endRoad"]
-        roadlinks_temp.append({Stream.OUT: out_road_id, Stream.IN: in_road_id})
+        incoming_road_id = roadlink_json["startRoad"]
+        outgoing_road_id = roadlink_json["endRoad"]
+        roadlinks_temp.append({
+            Stream.IN: incoming_road_id,
+            Stream.OUT: outgoing_road_id,
+        })
 
         link_type = Movement(roadlink_json["type"])
         lanelinks = roadlink_json["laneLinks"]
-        out_lanes = []
-        in_lanes = []
-        out_lane_ids = []
-        in_lane_ids = []
+        incoming_lanes = []
+        outgoing_lanes = []
+        incoming_lanes_id = []
+        outgoing_lanes_id = []
         for lane_json in lanelinks:
             start_index = lane_json["startLaneIndex"]
             end_index = lane_json["endLaneIndex"]
-            out_lane_id = "{}_{}".format(out_road_id, start_index)
-            in_lane_id = "{}_{}".format(in_road_id, end_index)
-            if out_lane_id not in out_lane_ids:
-                out_lane_ids.append(out_lane_id)
-                out_lanes.append(
-                    Lane(out_lane_id, roads_info[out_road_id]["capacity"]))
-            if in_lane_id not in in_lane_ids:
-                in_lane_ids.append(in_lane_id)
-                in_lanes.append(
-                    Lane(in_lane_id, roads_info[in_road_id]["capacity"]))
+            incoming_lane_id = "{}_{}".format(incoming_road_id, start_index)
+            outgoing_lane_id = "{}_{}".format(outgoing_road_id, end_index)
+            if incoming_lane_id not in incoming_lanes_id:
+                incoming_lanes_id.append(incoming_lane_id)
+                incoming_lanes.append(
+                    Lane(incoming_lane_id,
+                         roads_info[incoming_road_id]["capacity"]))
+            if outgoing_lane_id not in outgoing_lanes_id:
+                outgoing_lanes_id.append(outgoing_lane_id)
+                outgoing_lanes.append(
+                    Lane(outgoing_lane_id,
+                         roads_info[outgoing_road_id]["capacity"]))
 
-        if out_road_id not in roads_lanes_temp.keys():
-            roads_lanes_temp[out_road_id] = {}
-        if in_road_id not in roads_lanes_temp.keys():
-            roads_lanes_temp[in_road_id] = {}
-        roads_lanes_temp[out_road_id][link_type] = out_lanes
-        roads_lanes_temp[in_road_id][link_type] = in_lanes
+        if incoming_road_id not in roads_lanes_temp.keys():
+            roads_lanes_temp[incoming_road_id] = {}
+        if outgoing_road_id not in roads_lanes_temp.keys():
+            roads_lanes_temp[outgoing_road_id] = {}
+        roads_lanes_temp[incoming_road_id][link_type] = incoming_lanes
+        roads_lanes_temp[outgoing_road_id][link_type] = outgoing_lanes
 
     roadlinks = []
     for temp in roadlinks_temp:
-        out_id = temp[Stream.OUT]
         in_id = temp[Stream.IN]
-        out_lanes = roads_lanes_temp[out_id]
-        in_lanes = roads_lanes_temp[in_id]
+        out_id = temp[Stream.OUT]
+        incoming_lanes = roads_lanes_temp[in_id]
+        outgoing_lanes = roads_lanes_temp[out_id]
         rlink = {
-            Stream.OUT: Road(id=out_id, mov_lanes=out_lanes, eng=eng),
-            Stream.IN: Road(id=in_id, mov_lanes=in_lanes, eng=eng)
+            Stream.IN: Road(id=in_id, mov_lanes=incoming_lanes, eng=eng),
+            Stream.OUT: Road(id=out_id, mov_lanes=outgoing_lanes, eng=eng),
         }
         roadlinks.append(rlink)
     return roadlinks

@@ -77,24 +77,24 @@ class Intersection():
         pressure = 0.0
         cnt = 0
         for rlink in self.roadlinks:
-            r_pressure = 0.0
-            out_road = rlink[Stream.OUT]
-            in_road = rlink[Stream.IN]
-            for dir_ in Movement:
-                if (in_road.get_capacity(dir_) == 0
-                        or out_road.get_capacity(dir_) == 0):
+            road_press = 0.0
+            incoming_road = rlink[Stream.IN]
+            outgoing_road = rlink[Stream.OUT]
+            # because vehicle can change lane in outgoing road
+            # so outgoring density is the road density
+            out_road_density = outgoing_road.get_density()
+            assert out_road_density <= 1 and out_road_density >= 0
+            for direction in Movement:
+                if (incoming_road.get_capacity(direction) == 0):
                     continue
-                in_density = in_road.get_vehicles(dir_) / in_road.get_capacity(
-                    dir_)
-                out_density = out_road.get_vehicles(
-                    dir_) / out_road.get_capacity(dir_)
-                traffic_mov_pres = in_density - out_density
-                # scaling
-                traffic_mov_pres /= 2.0
-                r_pressure += traffic_mov_pres
+                in_density = incoming_road.get_vehicles(
+                    direction) / incoming_road.get_capacity(direction)
+                movement_press = in_density - out_road_density
+                assert movement_press <= 1 and movement_press >= -1
+                road_press += movement_press
                 cnt += 1
 
-            pressure += r_pressure
+            pressure += road_press
         pressure = abs(pressure)
         # scaling
         pressure /= cnt

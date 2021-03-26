@@ -32,17 +32,17 @@ class Road():
         # each dim reprensent one movement
         self.state_space = len(self.id_lanes.keys())
 
-    def get_capacity(self, streamDir: Movement) -> int:
-        if streamDir not in self.mov_lanes.keys():
+    def get_capacity(self, stream_dir: Movement) -> int:
+        if stream_dir not in self.mov_lanes.keys():
             return 0
 
-        return self.stream_capacity[streamDir]
+        return self.stream_capacity[stream_dir]
 
-    def get_vehicles(self, streamDir: Movement) -> int:
-        if streamDir not in self.mov_lanes.keys():
+    def get_vehicles(self, stream_dir: Movement) -> int:
+        if stream_dir not in self.mov_lanes.keys():
             return 0
         vehicles = 0
-        directed_lanes = self.mov_lanes[streamDir]
+        directed_lanes = self.mov_lanes[stream_dir]
         vehicles_dict = self.eng.get_lane_vehicle_count()
         for lane in directed_lanes:
             if lane.get_id() not in vehicles_dict.keys():
@@ -50,10 +50,21 @@ class Road():
             vehicles += vehicles_dict[lane.get_id()]
         return vehicles
 
-    def get_waiting_vehicles(self, streamDir: Movement) -> int:
-        if streamDir not in self.mov_lanes.keys():
+    def get_density(self) -> int:
+        cnt = 0
+        density = 0.0
+        for dir in Movement:
+            if not self.get_capacity(dir):
+                continue
+            density += self.get_vehicles(dir) / self.get_capacity(dir)
+            cnt += 1
+        density /= cnt
+        return density
+
+    def get_waiting_vehicles(self, stream_dir: Movement) -> int:
+        if stream_dir not in self.mov_lanes.keys():
             return 0
-        directed_lanes = self.mov_lanes[streamDir]
+        directed_lanes = self.mov_lanes[stream_dir]
         vehicles = 0
         vehicles_dict = self.eng.get_lane_waiting_vehicle_count()
         for lane in directed_lanes:
