@@ -1,5 +1,6 @@
 from envs.max_pressure_env import MaxPressureEnv
 from envs.traffic_light_ctrl_env import TrafficLightCtrlEnv
+from envs.traffic_light_ctrl_env import PhaseChosenEnv, TrafficLightCtrlEnv
 from typing import Dict, List
 from envs.intersection import Intersection
 from envs.lane import Lane
