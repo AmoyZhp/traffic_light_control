@@ -2,7 +2,7 @@ from envs.enum import Movement, Stream
 from envs.road import Road
 import logging
 from hprl.util.typing import Action
-from envs.intersection import Intersection
+from envs.intersection import Intersection, RoadLink
 from typing import Dict, List, Tuple
 import hprl
 import numpy as np
@@ -29,15 +29,27 @@ class MaxPressureEnv():
 
     def step(self, action: hprl.Action):
         self._process_action(action)
-        for _ in range(self.interval):
-            self.eng.next_step()
-
+        self._eng_step()
         self.time += self.interval
         next_state = self._compute_state()
         reward = self._compute_reward()
         done = False if self.time < self.max_time else True
         info = self._get_info()
         return next_state, reward, done, info
+
+    def _eng_step(self):
+        for _ in range(self.interval):
+            self.eng.next_step()
+        self._update()
+
+    def _update(self):
+        vehicles_dict = self.eng.get_lane_vehicle_count()
+        waiting_vehicles_dict = self.eng.get_lane_waiting_vehicle_count()
+        for inter in self.intersections.values():
+            inter.update(
+                vehicles_data_pool=vehicles_dict,
+                waiting_vehicles_data_pool=waiting_vehicles_dict,
+            )
 
     def _get_info(self):
         info = {"avg_travel_time": self.eng.get_average_travel_time()}
@@ -51,46 +63,21 @@ class MaxPressureEnv():
     def _compute_state(self) -> hprl.State:
         local_state = {}
         for id in self.intersections_id:
-            pressure = 0.0
             item = self.intersections[id]
-            phase_plans = item.phase_plan
-            roadlinks = item.roadlinks
+            phase_plans: List[List[int]] = item.phase_plan
+            roadlinks: List[RoadLink] = item.roadlinks
             phases_pressure = []
-            for i in range(len(phase_plans)):
-                if i == 7:
-                    for road_link_index in phase_plans[i]:
-                        rlink = roadlinks[road_link_index]
-                        for mv in Movement:
-                            print("mov ", mv)
-                            print("incoming stream :",
-                                  rlink[Stream.IN].get_vehicles(mv))
-                            print("out stream :",
-                                  rlink[Stream.OUT].get_vehicles(mv))
-
-                for road_link_index in phase_plans[i]:
-                    rlink = roadlinks[road_link_index]
-                    pressure += self.cal_roadlink_pressure(rlink)
+            for phase in phase_plans:
+                pressure = 0.0
+                for rlink_index in phase:
+                    rlink = roadlinks[rlink_index]
+                    pressure += rlink.pressure
                 pressure = abs(pressure)
                 phases_pressure.append(pressure)
             local_state[id] = phases_pressure
 
         state = hprl.State(central={}, local=local_state)
         return state
-
-    def cal_roadlink_pressure(self, rlink):
-        r_pressure = 0.0
-        out_road = rlink[Stream.OUT]
-        in_road = rlink[Stream.IN]
-        for dir_ in Movement:
-            if (in_road.get_capacity(dir_) == 0
-                    or out_road.get_capacity(dir_) == 0):
-                continue
-            in_density = in_road.get_vehicles(dir_)
-            out_density = out_road.get_vehicles(dir_)
-            traffic_mov_pres = in_density - out_density
-            r_pressure += traffic_mov_pres
-        pressure = r_pressure
-        return pressure
 
     def _compute_reward(self):
         central_reward = 0.0
@@ -104,36 +91,8 @@ class MaxPressureEnv():
     def reset(self) -> np.ndarray:
         self.eng.reset()
         self.time = 0
+        self._update()
         return self._compute_state()
-
-    def get_central_action_space(self):
-        return self.central_action_space
-
-    def get_local_action_space(self):
-        return self.local_action_space
-
-    def get_central_state_space(self):
-        return self.central_state_space
-
-    def get_local_state_space(self):
-        return self.local_state_space
-
-    def get_agents_id(self) -> List[str]:
-        return self.intersections_id
 
     def get_env_name(self):
         return self.name
-
-    @property
-    def setting(self):
-        _setting = {
-            "max_time": self.max_time,
-            "interval": self.interval,
-            "env_name": self.get_env_name(),
-            "agents_id": self.get_agents_id(),
-            "central_state_space": self.get_central_state_space(),
-            "central_action_space": self.get_central_action_space(),
-            "local_action_space": self.get_local_action_space(),
-            "local_state_space": self.get_local_state_space(),
-        }
-        return _setting

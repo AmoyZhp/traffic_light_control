@@ -9,86 +9,112 @@ class Road():
     def __init__(
         self,
         id: str,
-        mov_lanes: Dict[Movement, List[Lane]],
-        eng: cityflow.Engine,
+        lanes: Dict[str, Lane],
+        start: str,
+        end: str,
     ) -> None:
-        self.id = id
-        self.eng = eng
-        self.mov_lanes = mov_lanes
-        self.id_lanes: Dict[str, Lane] = {}
-        for lanes in self.mov_lanes.values():
-            for lane in lanes:
-                if lane.get_id() not in self.id_lanes.keys():
-                    self.id_lanes[lane.get_id()] = lane
+        self._id = id
+        self._lanes = lanes
+        self._start = start
+        self._end = end
 
-        self.stream_capacity: Dict[Movement, int] = {
+        self._incomings_capacity: Dict[Movement, int] = {
             Movement.STRAIGHT: 0,
             Movement.LEFT: 0,
             Movement.RIGHT: 0,
         }
-        for direction, directed_lanes in self.mov_lanes.items():
-            for lane in directed_lanes:
-                self.stream_capacity[direction] += lane.get_capacity()
-        # each dim reprensent one movement
-        self.state_space = len(self.id_lanes.keys())
 
-    def get_capacity(self, stream_dir: Movement) -> int:
-        if stream_dir not in self.mov_lanes.keys():
-            return 0
+        self._capacity = 0
+        for lane in self._lanes.values():
+            self._capacity += lane._capacity
+            if lane.incoming_type is not None:
+                self._incomings_capacity[lane.incoming_type] += lane._capacity
+        self._state_space = len(self._lanes.keys())
 
-        return self.stream_capacity[stream_dir]
+        self._vehicles = 0
+        self._waiting_vehicles = 0
+        self._incoming_vehicles: Dict[Movement, int] = {}
+        self._incoming_watiting_vehicles: Dict[Movement, int] = {}
 
-    def get_vehicles(self, stream_dir: Movement) -> int:
-        if stream_dir not in self.mov_lanes.keys():
-            return 0
-        vehicles = 0
-        directed_lanes = self.mov_lanes[stream_dir]
-        vehicles_dict = self.eng.get_lane_vehicle_count()
-        for lane in directed_lanes:
-            if lane.get_id() not in vehicles_dict.keys():
-                print("key error of lane id {}".format(lane.get_id()))
-            vehicles += vehicles_dict[lane.get_id()]
-        return vehicles
+    def update(
+        self,
+        vehicles_data_pool,
+        waiting_vehicles_data_pool,
+    ):
+        for lane in self._lanes.values():
+            lane.update(
+                vehicles_data_pool=vehicles_data_pool,
+                waiting_vehicles_data_pool=waiting_vehicles_data_pool,
+            )
+        self._vehicles = 0
+        self._waiting_vehicles = 0
+        for incoming_type in Movement:
+            self._incoming_vehicles[incoming_type] = 0
+            self._incoming_watiting_vehicles[incoming_type] = 0
+        for lane in self._lanes.values():
+            self._vehicles += lane.vehicles
+            self._waiting_vehicles += lane._waiting_vehicles
+            if lane._incoming_type is not None:
+                self._incoming_vehicles[lane.incoming_type] += lane.vehicles
+                self._incoming_watiting_vehicles[
+                    lane.incoming_type] += lane.waiting_vehicles
 
-    def get_density(self) -> int:
-        cnt = 0
-        density = 0.0
-        for dir in Movement:
-            if not self.get_capacity(dir):
-                continue
-            density += self.get_vehicles(dir) / self.get_capacity(dir)
-            cnt += 1
-        density /= cnt
-        return density
+    def get_incoming_capacity(self, stream_dir: Movement) -> int:
+        return self._incomings_capacity[stream_dir]
 
-    def get_waiting_vehicles(self, stream_dir: Movement) -> int:
-        if stream_dir not in self.mov_lanes.keys():
-            return 0
-        directed_lanes = self.mov_lanes[stream_dir]
-        vehicles = 0
-        vehicles_dict = self.eng.get_lane_waiting_vehicle_count()
-        for lane in directed_lanes:
-            if lane.get_id() in vehicles_dict.keys():
-                vehicles += vehicles_dict[lane.get_id()]
-        return vehicles
+    def get_incoming_vehicles(self, stream_dir: Movement) -> int:
+        return self._incoming_vehicles[stream_dir]
 
-    def get_state_space(self):
-        return self.state_space
+    def get_incoming_waiting_vehicles(self, stream_dir: Movement) -> int:
+        return self._incoming_watiting_vehicles[stream_dir]
 
-    def to_tensor(self) -> np.ndarray:
-        tensor = np.zeros(self.state_space)
-        vehicles_dict = self.eng.get_lane_vehicle_count()
-        lanes = list(self.id_lanes.values())
-        for i in range(self.state_space):
-            lane = lanes[i]
-            vehicle_on_lane = vehicles_dict[lane.get_id()]
-            density = vehicle_on_lane / lane.get_capacity()
-            tensor[i] = density
-        return tensor
+    def get_lane(self, id):
+        return self._lanes[id]
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def start(self):
+        return self._start
+
+    @property
+    def end(self):
+        return self._end
+
+    @property
+    def capacity(self):
+        return self._capacity
+
+    @property
+    def vehicles(self):
+        return self._vehicles
+
+    @property
+    def waiting_vehicles(self):
+        return self._waiting_vehicles
+
+    @property
+    def density(self) -> int:
+        return self._vehicles / self._capacity
+
+    @property
+    def state_space(self):
+        return self._state_space
+
+    @property
+    def tensor(self) -> np.ndarray:
+        vec = []
+        for lane in self._lanes.values():
+            vec.append(lane.density)
+        _tensor = np.array(vec, dtype=np.float)
+        assert _tensor.shape[0] == self._state_space
+        return _tensor
 
     def __repr__(self) -> str:
         str_ = "Road[ \n"
-        for dir_, lane in self.mov_lanes.items():
+        for dir_, lane in self._lanes.items():
             str_ += " {} [{}] \n".format(dir_, lane)
         str_ += "]"
         return str_

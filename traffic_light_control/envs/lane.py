@@ -1,20 +1,57 @@
+from typing import Dict
+from envs.enum import Movement
+
+
 class Lane():
-    def __init__(self, id: str, capacity: int, vehicles=0) -> None:
-        self.id = id
-        self.capacity = capacity
-        self.vehicles = vehicles
+    def __init__(
+        self,
+        id: str,
+        belonged_road: str,
+        capacity: int,
+        incoming_type: Movement,
+    ) -> None:
+        self._id = id
+        self._belonged_road = belonged_road
+        self._capacity = capacity
+        self._incoming_type = incoming_type
+        self._vehicles = 0
+        self._waiting_vehicles = 0
 
-    def get_capacity(self) -> int:
-        return self.capacity
+    def update(
+        self,
+        vehicles_data_pool,
+        waiting_vehicles_data_pool,
+    ):
+        self._vehicles = vehicles_data_pool[self._id]
+        self._waiting_vehicles = waiting_vehicles_data_pool[self._id]
 
-    def set_vehicles(self, vehicles) -> int:
-        self.vehicles = vehicles
+    @property
+    def density(self):
+        return self._vehicles / self._capacity
 
-    def get_vehicles(self) -> int:
-        return self.vehicles
+    @property
+    def id(self):
+        return self._id
 
-    def get_id(self) -> str:
-        return self.id
+    @property
+    def belonged_road(self):
+        return self._belonged_road
+
+    @property
+    def capacity(self):
+        return self._capacity
+
+    @property
+    def incoming_type(self):
+        return self._incoming_type
+
+    @property
+    def vehicles(self):
+        return self._vehicles
+
+    @property
+    def waiting_vehicles(self):
+        return self._waiting_vehicles
 
     def __repr__(self) -> str:
-        return "Lane[ id {} , capacity {} ]".format(self.id, self.capacity)
+        return "Lane[ id {} , capacity {} ]".format(self._id, self._capacity)

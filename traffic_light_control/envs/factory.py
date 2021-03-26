@@ -2,7 +2,7 @@ from envs.max_pressure_env import MaxPressureEnv
 from envs.traffic_light_ctrl_env import TrafficLightCtrlEnv
 from envs.traffic_light_ctrl_env import PhaseChosenEnv, TrafficLightCtrlEnv
 from typing import Dict, List
-from envs.intersection import Intersection
+from envs.intersection import Intersection, RoadLink
 from envs.lane import Lane
 from envs.road import Road
 import cityflow
@@ -13,30 +13,21 @@ from envs.enum import Stream, Movement
 CITYFLOW_CONFIG_ROOT_DIR = "cityflow_config/"
 
 
-def get_default_config_for_single():
-    config = {
-        "id": "1x1",
-        "thread_num": 1,
-        "save_replay": False,
-        "max_time": 3600,
-        "interval": 5,
-    }
-    return config
-
-
-def get_default_config_for_multi():
-    config = {
-        "id": "1x3",
-        "thread_num": 1,
-        "save_replay": False,
-        "max_time": 3600,
-        "interval": 5,
-    }
-    return config
-
-
 def make(config):
-    eng, intersections, flow_info = _parase_roadnet(config)
+    id_ = _id_shortcut_parased(config["id"])
+    cityflow_config_dir = CITYFLOW_CONFIG_ROOT_DIR + id_ + "/"
+    cityflow_config_file = cityflow_config_dir + "config.json"
+    try:
+        eng = cityflow.Engine(cityflow_config_file, config["thread_num"])
+        eng.set_save_replay(config["save_replay"])
+    except Exception as ex:
+        raise ex
+
+    flow_file_path = cityflow_config_dir + "flow.json"
+    roadnet_file_path = cityflow_config_dir + "roadnet.json"
+    flow_info = _parase_flow(flow_file_path)
+    intersections = _parase_roadnet(roadnet_file_path, flow_info)
+
     env = TrafficLightCtrlEnv(
         name=config["id"],
         eng=eng,
@@ -48,7 +39,20 @@ def make(config):
 
 
 def make_mp_env(config):
-    eng, intersections, flow_info = _parase_roadnet(config)
+    id_ = _id_shortcut_parased(config["id"])
+    cityflow_config_dir = CITYFLOW_CONFIG_ROOT_DIR + id_ + "/"
+    cityflow_config_file = cityflow_config_dir + "config.json"
+    try:
+        eng = cityflow.Engine(cityflow_config_file, config["thread_num"])
+        eng.set_save_replay(config["save_replay"])
+    except Exception as ex:
+        raise ex
+
+    flow_file_path = cityflow_config_dir + "flow.json"
+    roadnet_file_path = cityflow_config_dir + "roadnet.json"
+    flow_info = _parase_flow(flow_file_path)
+    intersections = _parase_roadnet(roadnet_file_path, flow_info)
+
     env = MaxPressureEnv(
         name=config["id"],
         eng=eng,
@@ -76,44 +80,16 @@ def _id_shortcut_parased(id_):
     return id_
 
 
-def _parase_roadnet(config):
-    id_ = _id_shortcut_parased(config["id"])
-    cityflow_config_dir = CITYFLOW_CONFIG_ROOT_DIR + id_ + "/"
-    cityflow_config_file = cityflow_config_dir + "config.json"
-    try:
-        eng = cityflow.Engine(cityflow_config_file, config["thread_num"])
-        eng.set_save_replay(config["save_replay"])
-    except Exception as ex:
-        raise ex
-
-    roadnet_file = cityflow_config_dir + "roadnet.json"
-    flow_file = cityflow_config_dir + "flow.json"
-
-    try:
-        flow_json = json.load(open(flow_file))
-        flow_info = _parase_flow_info(flow_json)
-        intersections = _parse_cityflow_file(
-            roadnet_file=roadnet_file,
-            flow_info=flow_info,
-            config_file=cityflow_config_dir,
-            eng=eng,
-        )
-    except Exception as ex:
-        raise ex
-    return eng, intersections, flow_info
-
-
-def _parse_cityflow_file(
-    roadnet_file,
+def _parase_roadnet(
+    roadnet_file_path,
     flow_info,
-    config_file,
-    eng,
 ) -> Dict[str, Intersection]:
-
-    roadnet_json = json.load(open(roadnet_file))
-    roads_info = _parase_roads_info(roadnet_json["roads"])
-    for r in roads_info.values():
-        r["capacity"] = int(r["length"] / flow_info["vehicle"]["proportion"])
+    with open(roadnet_file_path, "r") as f:
+        roadnet_json = json.load(f)
+    roads_info = _parase_roads_json(
+        roadnet_json["roads"],
+        flow_info["vehicle"]["proportion"],
+    )
 
     inters = {}
     for inter_json in roadnet_json["intersections"]:
@@ -123,17 +99,25 @@ def _parse_cityflow_file(
             inter_json["trafficLight"]["lightphases"])
         if len(phase_plan) == 1:
             continue
-        roadlinks = _parase_roadlink(inter_json["roadLinks"], roads_info, eng)
+        roadlinks, roads = _parase_roadlink(
+            inter_json["roadLinks"],
+            roads_info,
+        )
 
         inter_id = inter_json["id"]
 
-        inters[inter_id] = Intersection(id=inter_id,
-                                        roadlinks=roadlinks,
-                                        phase_plan=phase_plan)
+        inters[inter_id] = Intersection(
+            id=inter_id,
+            phase_plan=phase_plan,
+            roadlinks=roadlinks,
+            roads=roads,
+        )
     return inters
 
 
-def _parase_flow_info(flow_json):
+def _parase_flow(flow_file_path):
+    with open(flow_file_path, "r") as f:
+        flow_json = json.load(f)
     flow = {}
     vehicle_json = flow_json[0]["vehicle"]
     vehicle_proportion = float(vehicle_json["length"]) + float(
@@ -145,7 +129,7 @@ def _parase_flow_info(flow_json):
     return flow
 
 
-def _parase_roads_info(roads_json):
+def _parase_roads_json(roads_json, vehicle_proportion):
     roads_info = {}
     for r_json in roads_json:
         id_ = r_json["id"]
@@ -155,70 +139,86 @@ def _parase_roads_info(roads_json):
         x2 = float(points[1]["x"])
         y2 = float(points[1]["y"])
         length = math.sqrt(math.pow((x1 - x2), 2) + math.pow((y1 - y2), 2))
+        lanes_id = []
+        for i in range(len(r_json["lanes"])):
+            lanes_id.append(f"{id_}_{i}")
 
-        roads_info[id_] = {"length": length}
+        roads_info[id_] = {
+            "length": length,
+            "start": r_json["startIntersection"],
+            "end": r_json["endIntersection"],
+            "lanes_id": lanes_id,
+            "lane_capacity": int(length / vehicle_proportion),
+        }
 
     return roads_info
 
 
-def _parase_roadlink(roadlinks_json, roads_info, eng):
+def _parase_roadlink(roadlinks_json, roads_info):
 
-    # 以下两个字典作为中间变量，用来得到最后 roadlinks
-    # roadlinks temp 记录每条 roadlink 的 road id
-    roadlinks_temp: List[Dict[Stream, str]] = []
-    # roads_lanes_temp 用来记录每条 road 下的 lanes
-    roads_lanes_temp = {}
-
+    roadlinks_info = []
+    lanes_incoming_type = {}
     for roadlink_json in roadlinks_json:
 
-        incoming_road_id = roadlink_json["startRoad"]
-        outgoing_road_id = roadlink_json["endRoad"]
-        roadlinks_temp.append({
-            Stream.IN: incoming_road_id,
-            Stream.OUT: outgoing_road_id,
+        start_road_id = roadlink_json["startRoad"]
+        end_road_id = roadlink_json["endRoad"]
+
+        incoming_type = Movement(roadlink_json["type"])
+
+        lane_links_json = roadlink_json["laneLinks"]
+        # store a pair (start index, end index)
+        lane_links = []
+        for lane_json in lane_links_json:
+            start_lane_id = "{}_{}".format(start_road_id,
+                                           lane_json["startLaneIndex"])
+            end_lane_id = "{}_{}".format(end_road_id,
+                                         lane_json["endLaneIndex"])
+            lane_links.append([start_lane_id, end_lane_id])
+            if start_lane_id not in lanes_incoming_type.keys():
+                lanes_incoming_type[start_lane_id] = incoming_type
+
+        roadlinks_info.append({
+            "start": start_road_id,
+            "end": end_road_id,
+            "lane_links": lane_links,
+            "link_type": incoming_type,
         })
 
-        link_type = Movement(roadlink_json["type"])
-        lanelinks = roadlink_json["laneLinks"]
-        incoming_lanes = []
-        outgoing_lanes = []
-        incoming_lanes_id = []
-        outgoing_lanes_id = []
-        for lane_json in lanelinks:
-            start_index = lane_json["startLaneIndex"]
-            end_index = lane_json["endLaneIndex"]
-            incoming_lane_id = "{}_{}".format(incoming_road_id, start_index)
-            outgoing_lane_id = "{}_{}".format(outgoing_road_id, end_index)
-            if incoming_lane_id not in incoming_lanes_id:
-                incoming_lanes_id.append(incoming_lane_id)
-                incoming_lanes.append(
-                    Lane(incoming_lane_id,
-                         roads_info[incoming_road_id]["capacity"]))
-            if outgoing_lane_id not in outgoing_lanes_id:
-                outgoing_lanes_id.append(outgoing_lane_id)
-                outgoing_lanes.append(
-                    Lane(outgoing_lane_id,
-                         roads_info[outgoing_road_id]["capacity"]))
+    roads: Dict[str, Road] = {}
+    for road_id, info in roads_info.items():
+        lanes: Dict[str, Lane] = {}
+        for lane_id in info["lanes_id"]:
+            incoming_type = lanes_incoming_type.get(lane_id, None)
+            lanes[lane_id] = Lane(
+                id=lane_id,
+                belonged_road=road_id,
+                capacity=info["lane_capacity"],
+                incoming_type=incoming_type,
+            )
+        road = Road(
+            id=road_id,
+            start=info["start"],
+            end=info["end"],
+            lanes=lanes,
+        )
+        roads[road_id] = road
 
-        if incoming_road_id not in roads_lanes_temp.keys():
-            roads_lanes_temp[incoming_road_id] = {}
-        if outgoing_road_id not in roads_lanes_temp.keys():
-            roads_lanes_temp[outgoing_road_id] = {}
-        roads_lanes_temp[incoming_road_id][link_type] = incoming_lanes
-        roads_lanes_temp[outgoing_road_id][link_type] = outgoing_lanes
+    roadlinks: List[RoadLink] = []
+    for rlink_info in roadlinks_info:
 
-    roadlinks = []
-    for temp in roadlinks_temp:
-        in_id = temp[Stream.IN]
-        out_id = temp[Stream.OUT]
-        incoming_lanes = roads_lanes_temp[in_id]
-        outgoing_lanes = roads_lanes_temp[out_id]
-        rlink = {
-            Stream.IN: Road(id=in_id, mov_lanes=incoming_lanes, eng=eng),
-            Stream.OUT: Road(id=out_id, mov_lanes=outgoing_lanes, eng=eng),
-        }
-        roadlinks.append(rlink)
-    return roadlinks
+        start_road = roads[rlink_info["start"]]
+        end_road = roads[rlink_info["end"]]
+        lane_links: List[List[str]] = rlink_info["lane_links"]
+        incoming_type = rlink_info["link_type"]
+        roadlink = RoadLink(
+            start_road=start_road,
+            end_road=end_road,
+            lane_links=lane_links,
+            movement=incoming_type,
+        )
+        roadlinks.append(roadlink)
+
+    return roadlinks, roads
 
 
 def _parase_phase_plan(phase_plan_json):
@@ -226,3 +226,25 @@ def _parase_phase_plan(phase_plan_json):
     for phase_json in phase_plan_json:
         phase_plan.append(phase_json["availableRoadLinks"])
     return phase_plan
+
+
+def get_default_config_for_single():
+    config = {
+        "id": "1x1",
+        "thread_num": 1,
+        "save_replay": False,
+        "max_time": 3600,
+        "interval": 5,
+    }
+    return config
+
+
+def get_default_config_for_multi():
+    config = {
+        "id": "1x3",
+        "thread_num": 1,
+        "save_replay": False,
+        "max_time": 3600,
+        "interval": 5,
+    }
+    return config
