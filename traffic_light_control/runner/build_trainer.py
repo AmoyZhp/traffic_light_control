@@ -54,7 +54,7 @@ def _build_trainer(args, env: MultiAgentEnv, models):
     recording = args.recording
     base_dir = None
     if recording:
-        base_dir = _create_record_dir(
+        base_dir = create_record_dir(
             BASE_RECORDS_DIR,
             args.env,
             args.policy.value,
@@ -149,7 +149,7 @@ def _get_trainer_config(
     return trainner_config
 
 
-def _create_record_dir(
+def create_record_dir(
     root_dir,
     env_id,
     policy_id,

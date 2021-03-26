@@ -8,7 +8,6 @@ import cityflow
 import json
 import math
 from envs.enum import Stream, Movement
-import os
 
 CITYFLOW_CONFIG_ROOT_DIR = "cityflow_config/"
 
