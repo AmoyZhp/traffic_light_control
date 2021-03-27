@@ -17,5 +17,5 @@ def build_env(
         "thread_num": thread_num,
         "save_replay": save_replay,
     }
-    env = envs.make(config)
+    env = envs.make_cityflow(config)
     return env

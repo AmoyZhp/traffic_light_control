@@ -1,8 +1,72 @@
+from enum import Enum, auto
 from typing import Dict, List
-import cityflow
 import numpy as np
-from envs.lane import Lane
-from envs.enum import IncomingDirection
+
+
+class IncomingDirection(Enum):
+    STRAIGHT = "go_straight"
+    LEFT = "turn_left"
+    RIGHT = "turn_right"
+
+
+class Stream(Enum):
+    IN = auto()
+    OUT = auto()
+
+
+class Lane():
+    def __init__(
+        self,
+        id: str,
+        belonged_road: str,
+        capacity: int,
+        incoming_type: IncomingDirection,
+    ) -> None:
+        self._id = id
+        self._belonged_road = belonged_road
+        self._capacity = capacity
+        self._incoming_type = incoming_type
+        self._vehicles = 0
+        self._waiting_vehicles = 0
+
+    def update(
+        self,
+        vehicles_data_pool,
+        waiting_vehicles_data_pool,
+    ):
+        self._vehicles = vehicles_data_pool[self._id]
+        self._waiting_vehicles = waiting_vehicles_data_pool[self._id]
+
+    @property
+    def density(self):
+        return self._vehicles / self._capacity
+
+    @property
+    def id(self):
+        return self._id
+
+    @property
+    def belonged_road(self):
+        return self._belonged_road
+
+    @property
+    def capacity(self):
+        return self._capacity
+
+    @property
+    def incoming_type(self):
+        return self._incoming_type
+
+    @property
+    def vehicles(self):
+        return self._vehicles
+
+    @property
+    def waiting_vehicles(self):
+        return self._waiting_vehicles
+
+    def __repr__(self) -> str:
+        return "Lane[ id {} , capacity {} ]".format(self._id, self._capacity)
 
 
 class Road():
@@ -119,3 +183,58 @@ class Road():
             str_ += " {} [{}] \n".format(dir_, lane)
         str_ += "]"
         return str_
+
+
+class RoadLink():
+    def __init__(
+        self,
+        start_road: Road,
+        end_road: Road,
+        lane_links: List[List[str]],
+        movement: IncomingDirection,
+    ) -> None:
+        self._start_road = start_road
+        self._end_road = end_road
+        self._lane_links = lane_links
+        self._in_direction = movement
+
+    @property
+    def start_road(self):
+        return self._start_road
+
+    @property
+    def end_road(self):
+        return self._end_road
+
+    @property
+    def in_direction(self):
+        return self._in_direction
+
+    @property
+    def lane_links(self):
+        return self._lane_links
+
+    @property
+    def pressure(self):
+        start_lanes: Dict[str, Lane] = {}
+        end_lanes: Dict[str, Lane] = {}
+        for lane_link in self._lane_links:
+            assert len(lane_link) == 2
+            start_lane_id = lane_link[0]
+            end_lane_id = lane_link[1]
+            start_lanes[start_lane_id] = self.start_road.get_lane(
+                start_lane_id)
+            end_lanes[end_lane_id] = self.end_road.get_lane(end_lane_id)
+
+        incoming_density = 0.0
+        for lane in start_lanes.values():
+            incoming_density += lane.density
+        incoming_density /= len(start_lanes)
+
+        outgoing_density = 0.0
+        for lane in end_lanes.values():
+            outgoing_density += lane.density
+        outgoing_density /= len(end_lanes)
+
+        _pressure = incoming_density - outgoing_density
+        return _pressure

@@ -1,5 +1,5 @@
 from typing import Dict
-from envs.enum import Movement
+from envs.enum import IncomingDirection
 
 
 class Lane():
@@ -8,7 +8,7 @@ class Lane():
         id: str,
         belonged_road: str,
         capacity: int,
-        incoming_type: Movement,
+        incoming_type: IncomingDirection,
     ) -> None:
         self._id = id
         self._belonged_road = belonged_road

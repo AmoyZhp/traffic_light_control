@@ -1,7 +1,7 @@
 from enum import Enum, auto
 
 
-class Movement(Enum):
+class IncomingDirection(Enum):
     STRAIGHT = "go_straight"
     LEFT = "turn_left"
     RIGHT = "turn_right"

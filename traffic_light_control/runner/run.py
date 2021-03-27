@@ -109,7 +109,7 @@ def max_pressure_eval(args):
         "thread_num": args.env_thread_num,
         "save_replay": args.save_replay,
     }
-    env = envs.make_mp_env(config)
+    env = envs.make_mp_cityflow(config)
     state = env.reset()
     sum_reward = 0.0
     avg_travel_time = 0

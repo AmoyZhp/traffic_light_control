@@ -31,14 +31,13 @@ def build_model(
 
 
 def _get_embed_dim(env_id: str):
-
-    if env_id == "LA_1x4" or env_id == "1x4" or env_id == "2x2":
+    if env_id == "LA_1x4":
         return 256
-    elif env_id == "1x5":
+    elif env_id == "atlanta_1x5":
         return 512
-    elif env_id == "1x3":
+    elif env_id == "syn_1x3_gaussian_500_1h":
         return 128
-    elif env_id == "1x1":
+    elif env_id == "hangzhou_1x1_bc-tyc_18041607_1h":
         return 0
     else:
         raise ValueError("not support env id for get embed dim")

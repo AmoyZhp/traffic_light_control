@@ -1,67 +1,6 @@
-from envs.lane import Lane
 import numpy as np
-from envs.road import Road
-from typing import Dict, List
-from envs.enum import IncomingDirection, Stream
-
-PHASE_SPACE = 12
-
-ROAD_STATE = True
-
-
-class RoadLink():
-    def __init__(
-        self,
-        start_road: Road,
-        end_road: Road,
-        lane_links: List[List[str]],
-        movement: IncomingDirection,
-    ) -> None:
-        self._start_road = start_road
-        self._end_road = end_road
-        self._lane_links = lane_links
-        self._in_direction = movement
-
-    @property
-    def start_road(self):
-        return self._start_road
-
-    @property
-    def end_road(self):
-        return self._end_road
-
-    @property
-    def in_direction(self):
-        return self._in_direction
-
-    @property
-    def lane_links(self):
-        return self._lane_links
-
-    @property
-    def pressure(self):
-        start_lanes: Dict[str, Lane] = {}
-        end_lanes: Dict[str, Lane] = {}
-        for lane_link in self._lane_links:
-            assert len(lane_link) == 2
-            start_lane_id = lane_link[0]
-            end_lane_id = lane_link[1]
-            start_lanes[start_lane_id] = self.start_road.get_lane(
-                start_lane_id)
-            end_lanes[end_lane_id] = self.end_road.get_lane(end_lane_id)
-
-        incoming_density = 0.0
-        for lane in start_lanes.values():
-            incoming_density += lane.density
-        incoming_density /= len(start_lanes)
-
-        outgoing_density = 0.0
-        for lane in end_lanes.values():
-            outgoing_density += lane.density
-        outgoing_density /= len(end_lanes)
-
-        _pressure = incoming_density - outgoing_density
-        return _pressure
+from envs.cityflow.road import Road, RoadLink, IncomingDirection
+from typing import List, Dict
 
 
 class Intersection():
@@ -81,13 +20,8 @@ class Intersection():
         self._validity()
 
         self._state_sapce = 0
-        if ROAD_STATE:
-            for road in self._roads.values():
-                self._state_sapce += road.state_space
-        else:
-            for rlink in self._roadlinks:
-                for road in rlink.values():
-                    self._state_sapce += road.state_space
+        for road in self._roads.values():
+            self._state_sapce += road.state_space
         # first phase space is current phase
         # second belong to next phase
         self._phase_space = len(self._roadlinks)

@@ -1,4 +1,4 @@
-from envs.enum import Movement
+from envs.enum import IncomingDirection
 import json
 import math
 import unittest
@@ -71,7 +71,7 @@ class TestEnvLoad(unittest.TestCase):
         roadlink_1 = roadlinks[0]
         self.assertEqual(roadlink_1.start_road.id, "road_0_1_0")
         self.assertEqual(roadlink_1.end_road.id, "road_1_1_0")
-        self.assertEqual(roadlink_1.in_direction, Movement.STRAIGHT)
+        self.assertEqual(roadlink_1.in_direction, IncomingDirection.STRAIGHT)
         self.assertListEqual(roadlink_1.lane_links[0],
                              ["road_0_1_0_1", "road_1_1_0_0"])
         self.assertListEqual(roadlink_1.lane_links[1],
@@ -82,10 +82,10 @@ class TestEnvLoad(unittest.TestCase):
         intersections = _parase_roadnet(self.roadnet_file, flow_info)
         intersection_1_1 = intersections["intersection_1_1"]
         road_id_1 = "road_0_1_0"
-        self.assertTrue(road_id_1 in intersection_1_1.get_roads())
+        self.assertTrue(road_id_1 in intersection_1_1.roads())
 
-        phase_plan = intersection_1_1.phase_plan
-        rlinks = intersection_1_1.roadlinks
+        phase_plan = intersection_1_1._phases_plan
+        rlinks = intersection_1_1._roadlinks
         phase_1 = phase_plan[0]
         self.assertFalse(phase_1)
 
@@ -98,10 +98,10 @@ class TestEnvLoad(unittest.TestCase):
                              ["road_0_1_0_1", "road_1_1_0_0"])
         self.assertListEqual(rlink_1.lane_links[1],
                              ["road_0_1_0_1", "road_1_1_0_1"])
-        self.assertEqual(rlink_1.in_direction, Movement.STRAIGHT)
+        self.assertEqual(rlink_1.in_direction, IncomingDirection.STRAIGHT)
         self.assertEqual(rlink_2.start_road.id, "road_2_1_2")
         self.assertEqual(rlink_2.end_road.id, "road_1_1_2")
-        self.assertEqual(rlink_2.in_direction, Movement.STRAIGHT)
+        self.assertEqual(rlink_2.in_direction, IncomingDirection.STRAIGHT)
         self.assertListEqual(rlink_2.lane_links[0],
                              ["road_2_1_2_1", "road_1_1_2_0"])
         self.assertListEqual(rlink_2.lane_links[1],
