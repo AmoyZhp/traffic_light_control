@@ -1,5 +1,5 @@
 from envs.max_pressure_env import MaxPressureEnv
-from envs.traffic_light_ctrl_env import TrafficLightCtrlEnv
+from envs.traffic_light_ctrl_env import MaxPressure, TrafficLightCtrlEnv
 from envs.traffic_light_ctrl_env import PhaseChosenEnv, TrafficLightCtrlEnv
 from typing import Dict, List
 from envs.intersection import Intersection, RoadLink
@@ -53,7 +53,7 @@ def make_mp_env(config):
     flow_info = _parase_flow(flow_file_path)
     intersections = _parase_roadnet(roadnet_file_path, flow_info)
 
-    env = MaxPressureEnv(
+    env = MaxPressure(
         name=config["id"],
         eng=eng,
         max_time=flow_info["max_time"],

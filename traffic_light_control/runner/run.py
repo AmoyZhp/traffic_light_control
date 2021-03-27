@@ -124,8 +124,8 @@ def max_pressure_eval(args):
                     max_pressure = local_s[i]
             actions[id] = action
         state, reward, done, info = env.step(Action(local=actions))
-        sum_reward += reward
-        if done:
+        sum_reward += reward.central
+        if done.central:
             avg_travel_time = info["avg_travel_time"]
             break
     result = {

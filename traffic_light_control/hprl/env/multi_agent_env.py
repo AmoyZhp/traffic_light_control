@@ -13,24 +13,29 @@ class MultiAgentEnv(metaclass=abc.ABCMeta):
     def reset(self) -> State:
         ...
 
+    @property
     @abc.abstractmethod
-    def get_agents_id(self) -> List[str]:
+    def agents_id(self) -> List[str]:
         ...
 
+    @property
     @abc.abstractmethod
-    def get_central_action_space(self):
+    def central_action_space(self):
         ...
 
+    @property
     @abc.abstractmethod
-    def get_local_action_space(self):
+    def local_action_space(self):
         ...
 
+    @property
     @abc.abstractmethod
-    def get_central_state_space(self):
+    def central_state_space(self):
         ...
 
+    @property
     @abc.abstractmethod
-    def get_local_state_space(self):
+    def local_state_space(self):
         ...
 
     @property
@@ -38,6 +43,7 @@ class MultiAgentEnv(metaclass=abc.ABCMeta):
     def setting(self):
         ...
 
+    @property
     @abc.abstractmethod
-    def get_env_name(self):
+    def name(self):
         ...
