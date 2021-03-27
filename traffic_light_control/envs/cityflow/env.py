@@ -55,7 +55,7 @@ class CityFlow(hprl.MultiAgentEnv):
     def reset(self) -> np.ndarray:
         self._eng.reset()
         self._update_state()
-        self.time = 0
+        self._time = 0
         return self._compute_state()
 
     def _eng_step(self, action: hprl.Action):
