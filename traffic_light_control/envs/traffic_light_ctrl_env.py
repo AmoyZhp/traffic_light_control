@@ -84,7 +84,7 @@ class CityFlow(hprl.MultiAgentEnv):
 
         roads = []
         for r in self._roads.values():
-            roads.append(r.to_tensor())
+            roads.append(r.tensor)
         central_state = np.hstack(roads)
 
         state = hprl.State(central=central_state, local=local_state)

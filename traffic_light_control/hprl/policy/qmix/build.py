@@ -40,7 +40,7 @@ def build_qmix_trainer(
     logger.info("=== === === build QMIX trainer === === ===")
 
     prioritiezed = False
-    agents_id = env.get_agents_id()
+    agents_id = env.agents_id
     loss_fn = None
     buffer = None
     if buffer_type == ReplayBufferTypes.Prioritized:

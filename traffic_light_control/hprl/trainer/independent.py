@@ -33,7 +33,7 @@ class ILearnerTrainer(Trainer):
         self.recorder = recorder
         self.config = config
 
-        self.agents_id = self.env.get_agents_id()
+        self.agents_id = self.env.agents_id
         self.trained_iteration = 0
 
     def train(self, episodes: int):
@@ -255,7 +255,7 @@ class IOnPolicyTrainer(ILearnerTrainer):
         sim_cost = 0.0
         learn_cost = 0.0
 
-        agents_id = self.env.get_agents_id()
+        agents_id = self.env.agents_id
         samples_batch = {id: SampleBatch() for id in agents_id}
         for _ in range(batch_size):
             record = TrainingRecord()

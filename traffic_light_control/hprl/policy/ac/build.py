@@ -36,7 +36,7 @@ def build_ppo_trainer(
     logger.info("\t inner epoch : %d", inner_epoch)
     logger.info("\t clip param : %f : ", clip_param)
 
-    agents_id = env.get_agents_id()
+    agents_id = env.agents_id
     loss_fn = nn.MSELoss()
     policies = {}
     for id in agents_id:
@@ -95,7 +95,7 @@ def build_iac_trainer(
     logger.info("\t discount factor : %f", discount_factor)
     logger.info("\t update period : %d", update_period)
 
-    agents_id = env.get_agents_id()
+    agents_id = env.agents_id
     loss_fn = nn.MSELoss()
     policies = {}
     for id in agents_id:

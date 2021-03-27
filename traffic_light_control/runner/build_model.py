@@ -13,13 +13,13 @@ def build_model(
     policy: hprl.PolicyTypes,
     env: hprl.MultiAgentEnv,
 ):
-    agents_id = env.get_agents_id()
-    embed_dim = _get_embed_dim(env.get_env_name())
+    agents_id = env.agents_id
+    embed_dim = _get_embed_dim(env.name)
     model_config = {
-        "central_state": env.get_central_state_space(),
-        "local_state": env.get_local_state_space(),
-        "central_action": env.get_central_action_space(),
-        "local_action": env.get_local_action_space(),
+        "central_state": env.central_state_space,
+        "local_state": env.local_state_space,
+        "central_action": env.central_action_space,
+        "local_action": env.local_action_space,
         "embed_dim": embed_dim,
     }
     models = _make_model(

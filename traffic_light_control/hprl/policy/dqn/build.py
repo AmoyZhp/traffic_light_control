@@ -48,7 +48,7 @@ def build_iql_trainer(
     logger.info("\t eps init : %f", eps_init)
 
     prioritiezed = False
-    agents_id = env.get_agents_id()
+    agents_id = env.agents_id
     loss_fn = None
     buffers = {}
     if buffer_type == ReplayBufferTypes.Prioritized:

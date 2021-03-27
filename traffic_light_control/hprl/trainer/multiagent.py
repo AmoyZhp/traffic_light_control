@@ -37,7 +37,7 @@ class MultiAgentTrainer(Trainer):
         self.env = env
         self.policy = policy
         self.recorder = recorder
-        self.agents_id = self.env.get_agents_id()
+        self.agents_id = self.env.agents_id
         self.trained_iteration = 0
 
     def train(self, episodes: int):

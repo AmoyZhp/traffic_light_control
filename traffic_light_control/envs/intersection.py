@@ -195,5 +195,5 @@ class Intersection():
         tensor = np.array([], dtype=np.float)
         for id in sorted(self.roads.keys()):
             road = self.roads[id]
-            tensor = np.hstack((tensor, road.to_tensor()))
+            tensor = np.hstack((tensor, road.tensor))
         return tensor

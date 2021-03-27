@@ -53,7 +53,7 @@ def gym_baseline_trainer(
             raise ValueError("buffre type could be None for IQL")
         config, model = dqn.get_test_setting(buffer_type)
         env = GymWrapper(gym.make("CartPole-v1"))
-        id = env.get_agents_id()[0]
+        id = env.agents_id[0]
         models = {id: model}
         config["policy"]["action_space"][id] = 2
         config["policy"]["state_space"][id] = 4
@@ -69,7 +69,7 @@ def gym_baseline_trainer(
     elif trainer_type == PolicyTypes.IAC:
         config, model = ac.get_ac_test_setting()
         env = GymWrapper(gym.make("CartPole-v1"))
-        id = env.get_agents_id()[0]
+        id = envagents_id[0]
         models = {id: model}
         config["policy"]["action_space"][id] = 2
         config["policy"]["state_space"][id] = 4
@@ -84,7 +84,7 @@ def gym_baseline_trainer(
     elif trainer_type == PolicyTypes.PPO:
         config, model = ac.get_ppo_test_setting()
         env = GymWrapper(gym.make("CartPole-v1"))
-        id = env.get_agents_id()[0]
+        id = env.agents_id[0]
         models = {id: model}
         config["policy"]["action_space"][id] = 2
         config["policy"]["state_space"][id] = 4

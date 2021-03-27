@@ -34,7 +34,7 @@ def build_coma_trainer(
     logger.info("\t inner epoch : %d", inner_epoch)
     logger.info("\t clip param : %f : ", clip_param)
 
-    agents_id = env.get_agents_id()
+    agents_id = env.agents_id
     train_fn = matrainer.on_policy_train_fn
     loss_fn = nn.MSELoss()
     critic_net = models["critic_net"]
