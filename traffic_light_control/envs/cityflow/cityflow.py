@@ -76,3 +76,25 @@ def _build_eng(
     except Exception as ex:
         raise ex
     return eng
+
+
+def get_default_config_for_single():
+    config = {
+        "id": "1x1",
+        "thread_num": 1,
+        "save_replay": False,
+        "max_time": 3600,
+        "interval": 5,
+    }
+    return config
+
+
+def get_default_config_for_multi():
+    config = {
+        "id": "1x3",
+        "thread_num": 1,
+        "save_replay": False,
+        "max_time": 3600,
+        "interval": 5,
+    }
+    return config
