@@ -245,10 +245,8 @@ class MaxPressure(CityFlow):
                 for rlink_index in phase:
                     rlink = roadlinks[rlink_index]
                     pressure += rlink.pressure
-                pressure = abs(pressure)
                 phases_pressure.append(pressure)
             local_state[id] = phases_pressure
-
         state = hprl.State(local=local_state)
         return state
 

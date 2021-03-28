@@ -280,5 +280,5 @@ class RoadLink():
             outgoing_density += lane.density
         outgoing_density /= len(end_lanes)
 
-        _pressure = incoming_density - outgoing_density
-        return _pressure
+        pressure = incoming_density - outgoing_density
+        return pressure
