@@ -26,7 +26,7 @@ def make(config):
     interval = config["interval"]
 
     env = CityFlow(
-        name=id,
+        id=id,
         eng=eng,
         max_time=max_time,
         interval=interval,
@@ -56,7 +56,7 @@ def make_mp(config):
     interval = config["interval"]
 
     env = MaxPressure(
-        name=id,
+        id=id,
         eng=eng,
         max_time=max_time,
         interval=interval,

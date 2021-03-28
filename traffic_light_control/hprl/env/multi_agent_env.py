@@ -45,5 +45,5 @@ class MultiAgentEnv(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def name(self):
+    def id(self):
         ...

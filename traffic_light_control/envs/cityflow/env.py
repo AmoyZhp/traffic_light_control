@@ -12,13 +12,13 @@ class CityFlow(hprl.MultiAgentEnv):
     def __init__(
         self,
         eng,
-        name: str,
+        id: str,
         max_time: int,
         interval: int,
         intersections: Dict[str, Intersection],
     ) -> None:
         self._eng = eng
-        self._name = name
+        self._id = id
         self._intersections = intersections
         self._intersections_id = list(self._intersections.keys())
         self._interval = interval
@@ -70,10 +70,28 @@ class CityFlow(hprl.MultiAgentEnv):
     def _update_state(self):
         vehicles_dict = self._eng.get_lane_vehicle_count()
         waiting_vehicles_dict = self._eng.get_lane_waiting_vehicle_count()
+
+        # lane_vehicles is vehicle ids on each lane.
+        # lane id as key and list of vehicle id as value.
+        lane_vehicles: Dict[str, List[str]] = self._eng.get_lane_vehicles()
+
+        # vehicle_speed is speed of each vehicle
+        # vehicle id as key and corresponding speed as value.
+        vehicle_speed: Dict[str, float] = self._eng.get_vehicle_speed()
+
+        # the outer Dict key is lane id, value is a vehicles:speed dict
+        # the inner Dict key is vehicles id, value is corresonding speed
+        vehicles_speed_pool: Dict[str, Dict[str, float]] = {}
+        for land_id, vehicle_ids in lane_vehicles.items():
+            vehicles_speed_pool[land_id] = {}
+            for v_id in vehicle_ids:
+                vehicles_speed_pool[land_id][v_id] = vehicle_speed[v_id]
+
         for inter in self._intersections.values():
             inter.update(
                 vehicles_data_pool=vehicles_dict,
                 waiting_vehicles_data_pool=waiting_vehicles_dict,
+                vehicles_speed_pool=vehicles_speed_pool,
             )
 
     def _compute_state(self) -> hprl.State:
@@ -94,14 +112,22 @@ class CityFlow(hprl.MultiAgentEnv):
         local_reward = {}
 
         for id, inter in self._intersections.items():
-            r = -inter.pressure
-            local_reward[id] = r
-            central_reward += r
+            local_reward[id] = inter.avg_spped_rate
 
-        central_reward /= len(self._intersections)
+        central_reward = self._compute_avg_speed_rate()
 
         reward = hprl.Reward(central=central_reward, local=local_reward)
         return reward
+
+    def _compute_avg_speed_rate(self):
+        avg_speed_sum = 0.0
+        vehicles_count = 0
+        for road in self._roads.values():
+            avg_speed_sum += road.avg_speed_sum
+            vehicles_count += road.vehicles
+        avg_speed_rate = avg_speed_sum / vehicles_count
+
+        return avg_speed_rate
 
     def _is_terminal(self):
         done = False if self._time < self._max_time else True
@@ -138,7 +164,7 @@ class CityFlow(hprl.MultiAgentEnv):
 
     def _log_init_info(self):
         logger.info("City Flow Env init info : ")
-        logger.info("env name : %s", self._name)
+        logger.info("env id : %s", self._id)
         logger.info("max time : %d", self._max_time)
         logger.info("interval : %d", self._interval)
         logger.info("central state space : %d", self._central_state_space)
@@ -161,7 +187,7 @@ class CityFlow(hprl.MultiAgentEnv):
         _setting = {
             "max_time": self._max_time,
             "interval": self._interval,
-            "name": self._name,
+            "id": self._id,
             "agents_id": self.agents_id,
             "central_state_space": self._central_state_space,
             "central_action_space": self._central_action_space,
@@ -192,20 +218,20 @@ class CityFlow(hprl.MultiAgentEnv):
         return self._intersections_id
 
     @property
-    def name(self):
-        return self._name
+    def id(self):
+        return self._id
 
 
 class MaxPressure(CityFlow):
     def __init__(
         self,
         eng,
-        name: str,
+        id: str,
         max_time: int,
         interval: int,
         intersections: Dict[str, Intersection],
     ) -> None:
-        super().__init__(eng, name, max_time, interval, intersections)
+        super().__init__(eng, id, max_time, interval, intersections)
 
     def _compute_state(self) -> hprl.State:
         local_state = {}

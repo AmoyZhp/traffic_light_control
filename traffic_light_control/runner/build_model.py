@@ -12,9 +12,11 @@ logger = logging.getLogger(__package__)
 def build_model(
     policy: hprl.PolicyTypes,
     env: hprl.MultiAgentEnv,
+    embed_dim=0,
 ):
     agents_id = env.agents_id
-    embed_dim = _get_embed_dim(env.name)
+    if embed_dim <= 0:
+        embed_dim = _get_embed_dim(env.id)
     model_config = {
         "central_state": env.central_state_space,
         "local_state": env.local_state_space,
@@ -36,7 +38,7 @@ def _get_embed_dim(env_id: str):
     elif env_id == "atlanta_1x5":
         return 512
     elif env_id == "syn_1x3_gaussian_500_1h":
-        return 128
+        return 256
     elif env_id == "hangzhou_1x1_bc-tyc_18041607_1h":
         return 0
     else:

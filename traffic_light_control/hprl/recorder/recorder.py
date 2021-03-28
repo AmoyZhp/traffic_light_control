@@ -101,8 +101,8 @@ def draw_avg_travel_time(records: List[TrainingRecord], log_dir: str):
     save_fig(
         y=avg_travel_times,
         x=episodes,
-        x_lable="average travel time",
-        y_label="episodes",
+        y_label="average travel time",
+        x_lable="episodes",
         title=img_name,
         dir=log_dir,
         img_name=img_name,

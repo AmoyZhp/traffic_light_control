@@ -32,7 +32,11 @@ def run():
         thread_num=args.env_thread_num,
         save_replay=args.save_replay,
     )
-    models = build_model(policy=args.policy, env=env)
+    models = build_model(
+        policy=args.policy,
+        env=env,
+        embed_dim=args.qmix_embed,
+    )
 
     if mode == "train":
         _train(args, env, models)

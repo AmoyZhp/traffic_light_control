@@ -215,6 +215,12 @@ def _add_policy_related_args(parser: argparse.ArgumentParser):
         default=AdvantageTypes.QMinusV,
         help="the advantage type of ac like algorithm used",
     )
+    parser.add_argument(
+        "--qmix_embed",
+        type=int,
+        default=0,
+        help="the embed dim of qmix mixing network",
+    )
     return parser
 
 

@@ -82,6 +82,7 @@ def parase_roads_json(roads_json, vehicle_proportion):
         y2 = float(points[1]["y"])
         length = math.sqrt((x1 - x2)**2 + (y1 - y2)**2)
         lanes_id = []
+        max_speed = r_json["lanes"][0]["maxSpeed"]
         for i in range(len(r_json["lanes"])):
             lanes_id.append(f"{id_}_{i}")
 
@@ -90,7 +91,8 @@ def parase_roads_json(roads_json, vehicle_proportion):
             "start": r_json["startIntersection"],
             "end": r_json["endIntersection"],
             "lanes_id": lanes_id,
-            "lane_capacity": max(int(length / vehicle_proportion), 1)
+            "lane_capacity": max(int(length / vehicle_proportion), 1),
+            "max_speed": max_speed,
         }
 
     return roads_info
@@ -136,6 +138,7 @@ def parase_roadlink(roadlinks_json, roads_info):
                 belonged_road=road_id,
                 capacity=info["lane_capacity"],
                 incoming_type=incoming_type,
+                max_speed=info["max_speed"],
             )
         road = Road(
             id=road_id,

@@ -1,13 +1,16 @@
 import numpy as np
+from numpy.core.numeric import flatnonzero
 from envs.cityflow.road import Road, RoadLink, IncomingDirection
 from typing import List, Dict
+
+Phase = List[int]
 
 
 class Intersection():
     def __init__(
         self,
         id: str,
-        phase_plan: List[List[int]],
+        phase_plan: List[Phase],
         roadlinks: List[RoadLink],
         roads: Dict[str, Road],
         init_phase_index: int = 0,
@@ -31,11 +34,13 @@ class Intersection():
         self,
         vehicles_data_pool,
         waiting_vehicles_data_pool,
+        vehicles_speed_pool,
     ):
         for road in self._roads.values():
             road.update(
                 vehicles_data_pool=vehicles_data_pool,
                 waiting_vehicles_data_pool=waiting_vehicles_data_pool,
+                vehicles_speed_pool=vehicles_speed_pool,
             )
 
     def move_to_next_phase(self):
@@ -43,16 +48,21 @@ class Intersection():
             self._phases_plan)
 
     @property
+    def avg_spped_rate(self) -> float:
+        avg_speed_sum = 0.0
+        vehicles_count = 0
+        for road in self._roads.values():
+            avg_speed_sum += road.avg_speed_sum
+            vehicles_count += road.vehicles
+        avg_speed_rate = avg_speed_sum / vehicles_count
+
+        return avg_speed_rate
+
+    @property
     def waiting_rate(self) -> float:
         waiting_rate = 0.0
         for road in self._roads.values():
-            for stream in IncomingDirection:
-                capacity = road.get_incoming_capacity(stream)
-                if capacity == 0:
-                    continue
-                waiting_lane = road.get_incoming_waiting_vehicles(stream)
-                density = waiting_lane / capacity
-                waiting_rate += density
+            waiting_rate = road.waiting_vehicles / road.vehicles
         return waiting_rate
 
     @property

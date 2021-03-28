@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from enum import Enum, auto
 from typing import Dict, List
 import numpy as np
@@ -14,6 +15,16 @@ class Stream(Enum):
     OUT = auto()
 
 
+@dataclass
+class Vehicle():
+    speed: float
+    distance: float
+    drivable: str
+    road: str
+    intersection: str
+    route: str
+
+
 class Lane():
     def __init__(
         self,
@@ -21,25 +32,49 @@ class Lane():
         belonged_road: str,
         capacity: int,
         incoming_type: IncomingDirection,
+        max_speed: float,
     ) -> None:
         self._id = id
         self._belonged_road = belonged_road
         self._capacity = capacity
         self._incoming_type = incoming_type
-        self._vehicles = 0
-        self._waiting_vehicles = 0
+        self._max_speed = max_speed
+        self._vehicles_count = 0
+        self._waiting_vehicles_count = 0
+        self._vehicles: Dict[str, Vehicle] = {}
+        self._vehicles_speed: Dict[str, float] = {}
 
     def update(
         self,
         vehicles_data_pool,
         waiting_vehicles_data_pool,
+        vehicles_speed_pool,
     ):
-        self._vehicles = vehicles_data_pool[self._id]
-        self._waiting_vehicles = waiting_vehicles_data_pool[self._id]
+        self._vehicles_count = vehicles_data_pool[self._id]
+        self._waiting_vehicles_count = waiting_vehicles_data_pool[self._id]
+        self._vehicles_speed = vehicles_speed_pool[self._id]
+
+    @property
+    def avg_speed_rate(self):
+        if not self._vehicles_speed:
+            return 0.0
+        _avg_speed_rate = self.avg_speed_sum / len(self._vehicles_speed)
+        return _avg_speed_rate
+
+    @property
+    def avg_speed_sum(self):
+        _avg_speed = 0.0
+        for speed in self._vehicles_speed.values():
+            _avg_speed += speed / self._max_speed
+        return _avg_speed
+
+    @property
+    def waiting_rate(self):
+        return self._waiting_vehicles_count / self._vehicles_count
 
     @property
     def density(self):
-        return self._vehicles / self._capacity
+        return self._vehicles_count / self._capacity
 
     @property
     def id(self):
@@ -58,15 +93,16 @@ class Lane():
         return self._incoming_type
 
     @property
-    def vehicles(self):
-        return self._vehicles
+    def vehicles_count(self):
+        return self._vehicles_count
 
     @property
-    def waiting_vehicles(self):
-        return self._waiting_vehicles
+    def waiting_vehicles_count(self):
+        return self._waiting_vehicles_count
 
-    def __repr__(self) -> str:
-        return "Lane[ id {} , capacity {} ]".format(self._id, self._capacity)
+    @property
+    def max_speed(self):
+        return self._max_speed
 
 
 class Road():
@@ -104,11 +140,13 @@ class Road():
         self,
         vehicles_data_pool,
         waiting_vehicles_data_pool,
+        vehicles_speed_pool,
     ):
         for lane in self._lanes.values():
             lane.update(
                 vehicles_data_pool=vehicles_data_pool,
                 waiting_vehicles_data_pool=waiting_vehicles_data_pool,
+                vehicles_speed_pool=vehicles_speed_pool,
             )
         self._vehicles = 0
         self._waiting_vehicles = 0
@@ -116,12 +154,13 @@ class Road():
             self._incoming_vehicles[incoming_type] = 0
             self._incoming_watiting_vehicles[incoming_type] = 0
         for lane in self._lanes.values():
-            self._vehicles += lane.vehicles
-            self._waiting_vehicles += lane._waiting_vehicles
+            self._vehicles += lane.vehicles_count
+            self._waiting_vehicles += lane._waiting_vehicles_count
             if lane._incoming_type is not None:
-                self._incoming_vehicles[lane.incoming_type] += lane.vehicles
+                self._incoming_vehicles[
+                    lane.incoming_type] += lane.vehicles_count
                 self._incoming_watiting_vehicles[
-                    lane.incoming_type] += lane.waiting_vehicles
+                    lane.incoming_type] += lane.waiting_vehicles_count
 
     def get_incoming_capacity(self, stream_dir: IncomingDirection) -> int:
         return self._incomings_capacity[stream_dir]
@@ -135,6 +174,18 @@ class Road():
 
     def get_lane(self, id):
         return self._lanes[id]
+
+    @property
+    def avg_speed_rate(self):
+        avg_speed_rate = self.avg_speed_sum / len(self._lanes)
+        return avg_speed_rate
+
+    @property
+    def avg_speed_sum(self):
+        _avg_speed_sum = 0.0
+        for lane in self._lanes.values():
+            _avg_speed_sum += lane.avg_speed_sum
+        return _avg_speed_sum
 
     @property
     def id(self):
@@ -176,13 +227,6 @@ class Road():
         _tensor = np.array(vec, dtype=np.float)
         assert _tensor.shape[0] == self._state_space
         return _tensor
-
-    def __repr__(self) -> str:
-        str_ = "Road[ \n"
-        for dir_, lane in self._lanes.items():
-            str_ += " {} [{}] \n".format(dir_, lane)
-        str_ += "]"
-        return str_
 
 
 class RoadLink():
