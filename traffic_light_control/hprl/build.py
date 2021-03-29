@@ -69,7 +69,7 @@ def gym_baseline_trainer(
     elif trainer_type == PolicyTypes.IAC:
         config, model = ac.get_ac_test_setting()
         env = GymWrapper(gym.make("CartPole-v1"))
-        id = envagents_id[0]
+        id = env.agents_id[0]
         models = {id: model}
         config["policy"]["action_space"][id] = 2
         config["policy"]["state_space"][id] = 4
