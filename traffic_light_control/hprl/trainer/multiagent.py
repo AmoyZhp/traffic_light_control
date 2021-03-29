@@ -40,6 +40,7 @@ class MultiAgentTrainer(Trainer):
         self.recorder = recorder
         self.agents_id = self.env.agents_id
         self.trained_iteration = trained_iter
+        logger.info("batch size : %d", self.config["batch_size"])
 
     def train(self, episodes: int):
         ckpt_frequency = self.config.get("ckpt_frequency", 0)

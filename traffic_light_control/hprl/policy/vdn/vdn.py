@@ -58,7 +58,7 @@ class VDN(MultiAgentPolicy):
         logger.info("\t prioritized : %s", self.prioritized)
         for id in self.agents_id:
             local_action_space = self.local_action_space[id]
-            local_action_space = self.local_state_space[id]
+            local_state_space = self.local_state_space[id]
             logger.info("\t agents %s", id)
             logger.info("\t\t action space is %s", local_action_space)
             logger.info("\t\t state space is %s", local_state_space)

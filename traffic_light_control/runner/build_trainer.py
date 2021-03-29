@@ -48,12 +48,12 @@ def load_trainer(args, env, models):
         record_base_dir: str = config["executing"]["record_base_dir"]
         split_str = record_base_dir.split("_")
         cnt = 0
-        if split_str[-2] == "continue":
+        if split_str[-2] == "cnt":
             cnt = int(split_str[-1])
-            preffix = record_base_dir.split("continue")[0]
-            new_record_base_dir = f"{preffix}continue_{cnt+1}"
+            preffix = record_base_dir.split("cnt")[0]
+            new_record_base_dir = f"{preffix}cnt_{cnt+1}"
         else:
-            new_record_base_dir = f"{record_base_dir}_continue_0"
+            new_record_base_dir = f"{record_base_dir}_cnt_0"
         config["executing"]["record_base_dir"] = new_record_base_dir
     logger.info("new record dir name %s", new_record_base_dir)
     trainer = hprl.load_trainer(env=env, models=models, ckpt=ckpt)
