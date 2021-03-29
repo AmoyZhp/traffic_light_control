@@ -28,7 +28,7 @@ def parase_roadnet(
 ) -> Dict[str, Intersection]:
     with open(roadnet_file_path, "r") as f:
         roadnet_json = json.load(f)
-    roads_info = parase_roads_json(
+    total_roads_info = parase_roads_json(
         roadnet_json["roads"],
         flow_info["vehicle"]["proportion"],
     )
@@ -41,6 +41,10 @@ def parase_roadnet(
             inter_json["trafficLight"]["lightphases"])
         if len(phase_plan) == 1:
             continue
+        inter_roads_id = inter_json["roads"]
+        roads_info = {}
+        for id in inter_roads_id:
+            roads_info[id] = total_roads_info[id]
         roadlinks, roads = parase_roadlink(
             inter_json["roadLinks"],
             roads_info,

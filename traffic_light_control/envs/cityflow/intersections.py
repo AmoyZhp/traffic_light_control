@@ -54,6 +54,8 @@ class Intersection():
         for road in self._roads.values():
             avg_speed_sum += road.avg_speed_sum
             vehicles_count += road.vehicles
+        if not vehicles_count:
+            return 0.0
         avg_speed_rate = avg_speed_sum / vehicles_count
 
         return avg_speed_rate

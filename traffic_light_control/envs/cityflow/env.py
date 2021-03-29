@@ -112,7 +112,7 @@ class CityFlow(hprl.MultiAgentEnv):
         local_reward = {}
 
         for id, inter in self._intersections.items():
-            local_reward[id] = inter.avg_spped_rate
+            local_reward[id] = -inter.pressure
 
         central_reward = self._compute_avg_speed_rate()
 
