@@ -26,6 +26,7 @@ class ILearnerTrainer(Trainer):
         policies: Dict[str, Policy],
         recorder: Recorder,
         config: Dict,
+        trained_iteration=0,
     ):
         self.type = type
         self.env = env
@@ -34,7 +35,7 @@ class ILearnerTrainer(Trainer):
         self.config = config
 
         self.agents_id = self.env.agents_id
-        self.trained_iteration = 0
+        self.trained_iteration = trained_iteration
 
     def train(self, episodes: int):
         ckpt_frequency = self.config.get("ckpt_frequency", 0)
@@ -129,6 +130,7 @@ class ILearnerTrainer(Trainer):
                     break
             record = TrainingRecord(ep, rewards, infos)
             self.recorder.print_record(record, logger, False)
+            self.recorder.add_record(record)
             logger.info("+++++++++ eval episode {} end   +++++++++".format(ep))
 
     def get_records(self):

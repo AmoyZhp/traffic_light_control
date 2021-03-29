@@ -1,3 +1,4 @@
+import os
 from hprl.util.typing import Action
 import json
 import logging
@@ -10,7 +11,7 @@ import time
 import hprl
 import envs
 from runner.args_paraser import create_paraser, args_validity_check
-
+import hprl.recorder as hprecorder
 logger = logging.getLogger(__package__)
 
 
@@ -45,10 +46,16 @@ def run():
 
 
 def _eval(args, env, models):
-    trainer = load_trainer(args, env, models)
+    ckpt_file = args.ckpt_file
+    if not os.path.exists(ckpt_file):
+        raise ValueError("ckeck point file not exits : {}".format(ckpt_file))
+    reader = hprecorder.TorchReader()
+    ckpt = reader.read_ckpt(ckpt_file)
+    config = ckpt["config"]
+    config["executing"]["recording"] = False
+    trainer = hprl.load_trainer(env=env, models=models, ckpt=ckpt)
     episodes = args.episodes
     trainer.eval(episodes)
-    trainer.save_records()
 
 
 def _train(args, env, models):

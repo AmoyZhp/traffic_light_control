@@ -25,6 +25,7 @@ def build_vdn_trainer(
     buffer_config = config["buffer"]
     policy_config = config["policy"]
     executing_config = config["executing"]
+    trained_iteartion = config.get("trained_iteration", 0)
 
     buffer_type = buffer_config["type"]
     capacity = buffer_config["capacity"]
@@ -87,6 +88,7 @@ def build_vdn_trainer(
         policy=p,
         buffer=buffer,
         recorder=recorder,
+        trained_iter=trained_iteartion,
     )
     logger.info("=== === === build VDN trainer done === === ===")
     return trainer

@@ -34,20 +34,30 @@ def build_trainer(args, env, models):
 
 
 def load_trainer(args, env, models):
-    logger.info("resume record dir is {}".format(args.record_dir))
-    logger.info("checkpoint file is {}".format(args.ckpt_file))
-    base_dir = f"{BASE_RECORDS_DIR}/{args.record_dir}"
-    ckpt_dir = ""
-    if not args.ckpt_dir:
-        ckpt_dir = f"{BASE_RECORDS_DIR}/{args.ckpt_dir}"
-    trainer = hprl.load_trainer(
-        env=env,
-        models=models,
-        base_dir=base_dir,
-        checkpoint_dir=ckpt_dir,
-        checkpoint_file=args.ckpt_file,
-    )
-    return trainer
+    ckpt_file = args.ckpt_file
+    recording = args.recording
+    if not os.path.exists(ckpt_file):
+        raise ValueError("ckeck point file not exits : {}".format(ckpt_file))
+    reader = hprecroder.TorchReader()
+    ckpt = reader.read_ckpt(ckpt_file)
+    config = ckpt["config"]
+    if not recording:
+        config["executing"]["recording"] = False
+    else:
+        config["executing"]["recording"] = True
+        record_base_dir: str = config["executing"]["record_base_dir"]
+        split_str = record_base_dir.split("_")
+        cnt = 0
+        if split_str[-2] == "continue":
+            cnt = int(split_str[-1])
+            preffix = record_base_dir.split("continue")[0]
+            new_record_base_dir = f"{preffix}continue_{cnt+1}"
+        else:
+            new_record_base_dir = f"{record_base_dir}_continue_0"
+        config["executing"]["record_base_dir"] = new_record_base_dir
+    logger.info("new record dir name %s", new_record_base_dir)
+    trainer = hprl.load_trainer(env=env, models=models, ckpt=ckpt)
+    return trainer, trainer.recorder
 
 
 def _build_trainer(args, env: MultiAgentEnv, models):

@@ -1,3 +1,4 @@
+from hprl.recorder.torch_recorder import TorchRecorder
 from hprl.recorder.recorder import Recorder
 import gym
 from hprl.env.gym_wrapper import GymWrapper
@@ -69,7 +70,7 @@ def gym_baseline_trainer(
     elif trainer_type == PolicyTypes.IAC:
         config, model = ac.get_ac_test_setting()
         env = GymWrapper(gym.make("CartPole-v1"))
-        id = envagents_id[0]
+        id = env.agents_id[0]
         models = {id: model}
         config["policy"]["action_space"][id] = 2
         config["policy"]["state_space"][id] = 4
@@ -103,7 +104,14 @@ def gym_baseline_trainer(
 def load_trainer(
     env: MultiAgentEnv,
     models: Dict,
-    checkpoint_dir: str,
-    checkpoint_file: str,
-):
-    ...
+    ckpt: Dict,
+) -> Trainer:
+
+    config = ckpt["config"]
+    trainer = build_trainer(
+        config=config,
+        env=env,
+        models=models,
+    )
+    trainer.load_checkpoint(ckpt)
+    return trainer

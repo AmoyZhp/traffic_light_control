@@ -31,6 +31,7 @@ class MultiAgentTrainer(Trainer):
         env: MultiAgentEnv,
         policy: MultiAgentPolicy,
         recorder: Recorder,
+        trained_iter=0,
     ) -> None:
         self.type = type
         self.config = config
@@ -38,7 +39,7 @@ class MultiAgentTrainer(Trainer):
         self.policy = policy
         self.recorder = recorder
         self.agents_id = self.env.agents_id
-        self.trained_iteration = 0
+        self.trained_iteration = trained_iter
 
     def train(self, episodes: int):
         ckpt_frequency = self.config.get("ckpt_frequency", 0)
@@ -150,14 +151,9 @@ class OffPolicy(MultiAgentTrainer):
         policy: MultiAgentPolicy,
         buffer: MultiAgentReplayBuffer,
         recorder: Recorder,
+        trained_iter=0,
     ) -> None:
-        super().__init__(
-            type,
-            config,
-            env,
-            policy,
-            recorder,
-        )
+        super().__init__(type, config, env, policy, recorder, trained_iter)
         self.buffer = buffer
 
     def _train(self, ep: int, episodes: int):

@@ -51,9 +51,9 @@ def args_validity_check(args):
             print("checkpoint file should not be none"
                   "if want to resume training")
             return False
-        if args.record_dir is None or not args.record_dir:
-            print("record dir should not be none" "if want to resume training")
-            return False
+        # if args.record_dir is None or not args.record_dir:
+        #     print("record dir should not be none" "if want to resume training")
+        #     return False
     return True
 
 

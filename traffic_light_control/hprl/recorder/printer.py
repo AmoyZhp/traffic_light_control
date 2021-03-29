@@ -32,6 +32,8 @@ class Printer(Recorder):
         logger.info("    central {:.3f}".format(cumulative_reward.central))
         for k, v in cumulative_reward.local.items():
             logger.info("    agent {} reward is {:.3f} ".format(k, v))
+        logger.info("avg travel time : %f",
+                    record.infos[-1]["avg_travel_time"])
 
     def write_records(self, dir="", filename=""):
         ...
