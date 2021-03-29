@@ -61,7 +61,7 @@ class VDN(MultiAgentPolicy):
             local_action_space = self.local_state_space[id]
             logger.info("\t agents %s", id)
             logger.info("\t\t action space is %s", local_action_space)
-            logger.info("\t\t state space is %s", local_action_space)
+            logger.info("\t\t state space is %s", local_state_space)
         logger.info("VDN init done")
 
     def compute_action(self, state: State) -> Action:
