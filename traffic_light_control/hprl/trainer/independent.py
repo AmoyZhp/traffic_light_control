@@ -155,6 +155,7 @@ class IOffPolicyTrainer(ILearnerTrainer):
         buffers: Dict[str, ReplayBuffer],
         recorder: Recorder,
         config: Dict,
+        trained_iter=0,
     ):
         super(IOffPolicyTrainer, self).__init__(
             type=type,
@@ -162,6 +163,7 @@ class IOffPolicyTrainer(ILearnerTrainer):
             policies=policies,
             recorder=recorder,
             config=config,
+            trained_iteration=trained_iter,
         )
         self.buffers = buffers
 

@@ -56,7 +56,11 @@ def load_trainer(args, env, models):
             new_record_base_dir = f"{record_base_dir}_cnt_0"
         config["executing"]["record_base_dir"] = new_record_base_dir
     logger.info("new record dir name %s", new_record_base_dir)
-    trainer = hprl.load_trainer(env=env, models=models, ckpt=ckpt)
+    trainer = hprl.load_trainer(
+        env=env,
+        models=models,
+        ckpt=ckpt,
+    )
     return trainer, trainer.recorder
 
 

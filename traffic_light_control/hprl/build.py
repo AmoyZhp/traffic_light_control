@@ -22,12 +22,19 @@ def build_trainer(
     env: MultiAgentEnv,
     models: Dict,
     recorder: Recorder = None,
+    load=False,
 ) -> Trainer:
 
     trainer_type = config["type"]
     trainer = None
     if trainer_type == PolicyTypes.IQL:
-        trainer = dqn.build_iql_trainer(config, env, models, recorder)
+        trainer = dqn.build_iql_trainer(
+            config,
+            env,
+            models,
+            recorder,
+            load=load,
+        )
     elif trainer_type == PolicyTypes.IAC:
         trainer = ac.build_iac_trainer(config, env, models)
     elif trainer_type == PolicyTypes.PPO:
@@ -108,10 +115,6 @@ def load_trainer(
 ) -> Trainer:
 
     config = ckpt["config"]
-    trainer = build_trainer(
-        config=config,
-        env=env,
-        models=models,
-    )
+    trainer = build_trainer(config=config, env=env, models=models, load=True)
     trainer.load_checkpoint(ckpt)
     return trainer

@@ -23,12 +23,25 @@ def build_iql_trainer(
     env: MultiAgentEnv,
     models: Dict[str, nn.Module],
     recorder: Recorder = None,
+    load=False,
 ):
 
     buffer_config = config["buffer"]
     policy_config = config["policy"]
     executing_config = config["executing"]
 
+    if load:
+        raw_buffer_config = buffer_config
+        raw_policy_config = policy_config
+        buffer_config = list(raw_buffer_config.values())[0]
+        policy_config = list(raw_policy_config.values())[0]
+        local_action_space = {}
+        local_state_space = {}
+        for id, p_config in raw_policy_config.items():
+            local_action_space[id] = p_config["action_space"]
+            local_state_space[id] = p_config["state_space"]
+        policy_config["local_action_space"] = local_action_space
+        policy_config["local_state_space"] = local_state_space
     buffer_type = buffer_config["type"]
     capacity = buffer_config["capacity"]
     critic_lr = policy_config["critic_lr"]
@@ -102,6 +115,7 @@ def build_iql_trainer(
             recorder = TorchRecorder(executing_config["record_base_dir"])
         else:
             recorder = Printer()
+    trained_iter = config.get("trained_iteration", 0)
     trainer = IOffPolicyTrainer(
         type=PolicyTypes.IQL,
         policies=policies,
@@ -109,6 +123,7 @@ def build_iql_trainer(
         env=env,
         recorder=recorder,
         config=executing_config,
+        trained_iter=trained_iter,
     )
     logger.info("trainer build success")
     return trainer
