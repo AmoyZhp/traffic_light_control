@@ -15,7 +15,7 @@ def build_model(
     embed_dim=0,
 ):
     agents_id = env.agents_id
-    if embed_dim <= 0:
+    if embed_dim <= 0 and policy == hprl.PolicyTypes.QMIX:
         embed_dim = _get_embed_dim(env.id)
     model_config = {
         "central_state": env.central_state_space,
