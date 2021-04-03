@@ -1,9 +1,17 @@
 import logging
 from hprl.util.typing import Reward, TrainingRecord
-from typing import List
+from typing import Dict, List
 import torch
 import matplotlib.pyplot as plt
 import abc
+
+
+def write_ckpt(ckpt: Dict, path: str):
+    torch.save(ckpt, path)
+
+
+def read_ckpt(path: str):
+    return torch.load(path)
 
 
 class Recorder(metaclass=abc.ABCMeta):

@@ -8,6 +8,7 @@ from hprl.build import build_trainer, load_trainer, gym_baseline_trainer
 from hprl.recorder import Recorder
 import os
 import logging
+import hprl.recorder as recorder
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -36,6 +37,7 @@ def log_to_file(path: str = ""):
 
 
 __all__ = [
+    "recorder",
     "log_to_file",
     "load_trainer",
     "build_trainer",

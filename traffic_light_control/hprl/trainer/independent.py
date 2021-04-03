@@ -6,6 +6,8 @@ from hprl.trainer.trainer import Trainer
 from hprl.replaybuffer import ReplayBuffer, PrioritizedReplayBuffer, ReplayBufferTypes
 from hprl.policy import PolicyTypes, Policy
 from hprl.recorder import Recorder
+import hprl
+
 from hprl.env import MultiAgentEnv
 from hprl.util.typing import TrainingRecord, SampleBatch, TransitionTuple, TrajectoryTuple
 from hprl.util.typing import State, Action, Reward, Terminal
@@ -42,14 +44,12 @@ class ILearnerTrainer(Trainer):
         episodes: int,
         ckpt_frequency: int = 0,
     ):
-        for ep in range(episodes):
-            logger.info(
-                "========== train episode %d begin ==========",
-                self.trained_iteration,
-            )
+        for ep in range(1, episodes + 1):
+            self.trained_iteration += 1
+            logger.info(f"========== train episode {ep} begin ==========", )
+            logger.info("total trained iteration : %d", self.trained_iteration)
             # implement _train in subclass
             record = self._train(ep, episodes)
-            self.trained_iteration += 1
             record.set_episode(self.trained_iteration)
             self.recorder.add_record(record)
             fig = True if (ep + 1) % (episodes / 10) == 0 else False
@@ -58,15 +58,11 @@ class ILearnerTrainer(Trainer):
                 logger=logger,
                 fig=fig,
             )
-            if (ckpt_frequency > 0
-                    and self.trained_iteration % ckpt_frequency == 0):
-                self.recorder.write_ckpt(
-                    ckpt=self.get_checkpoint(),
-                    filename=f"ckpt_{self.trained_iteration}.pth",
-                )
-                self.recorder.write_records()
-            logger.info("========= train episode {} end   =========".format(
-                self.trained_iteration))
+            if (ckpt_frequency > 0 and ep % ckpt_frequency == 0):
+                ckpt = self.get_checkpoint()
+                ckpt_path = f"ckpt_{ep}_total_{self.trained_iteration}.pth"
+                hprl.recorder.write_ckpt(ckpt=ckpt, path=ckpt_path)
+            logger.info("========= train end   =========")
 
     @abc.abstractmethod
     def _train(self, ep: int, episodes: int):
