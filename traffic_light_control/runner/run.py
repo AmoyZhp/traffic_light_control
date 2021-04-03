@@ -69,6 +69,7 @@ def _train(args, env, models):
     logger.info("policy : {}".format(args.policy))
     logger.info("buffer : {}".format(args.replay_buffer))
 
+    hprl.log_to_file("mylog.log")
     trainer, recorder = build_trainer(args, env, models)
 
     episodes = args.episodes

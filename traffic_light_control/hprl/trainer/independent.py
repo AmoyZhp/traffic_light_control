@@ -37,15 +37,16 @@ class ILearnerTrainer(Trainer):
         self.agents_id = self.env.agents_id
         self.trained_iteration = trained_iteration
 
-    def train(self, episodes: int):
-        ckpt_frequency = self.config.get("ckpt_frequency", 0)
-        if ckpt_frequency <= 0:
-            logger.info(
-                "checkpoint saved frequnecy is zero, "
-                "therefore checkpoint file will not be saved during training")
+    def train(
+        self,
+        episodes: int,
+        ckpt_frequency: int = 0,
+    ):
         for ep in range(episodes):
-            logger.info("========== train episode {} begin ==========".format(
-                self.trained_iteration))
+            logger.info(
+                "========== train episode %d begin ==========",
+                self.trained_iteration,
+            )
             # implement _train in subclass
             record = self._train(ep, episodes)
             self.trained_iteration += 1
