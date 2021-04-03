@@ -170,6 +170,7 @@ class IOffPolicyTrainer(ILearnerTrainer):
         config: Dict,
         trained_iter=0,
         recorder: Recorder = None,
+        output_dir="",
     ):
         super(IOffPolicyTrainer, self).__init__(
             type=type,
@@ -178,6 +179,7 @@ class IOffPolicyTrainer(ILearnerTrainer):
             recorder=recorder,
             config=config,
             trained_iteration=trained_iter,
+            output_dir=output_dir,
         )
         self.buffers = buffers
 

@@ -29,7 +29,6 @@ def build_iql_trainer(
     buffer_config = config["buffer"]
     policy_config = config["policy"]
     executing_config = config["executing"]
-
     if load:
         raw_buffer_config = buffer_config
         raw_policy_config = policy_config
@@ -110,12 +109,9 @@ def build_iql_trainer(
             eps_init=eps_init,
             action_space=action_space,
         )
-    if recorder is None:
-        if executing_config["recording"]:
-            recorder = TorchRecorder(executing_config["record_base_dir"])
-        else:
-            recorder = Printer()
     trained_iter = config.get("trained_iteration", 0)
+    output_dir = config.get("output_dir", "")
+
     trainer = IOffPolicyTrainer(
         type=PolicyTypes.IQL,
         policies=policies,
@@ -123,6 +119,8 @@ def build_iql_trainer(
         env=env,
         config=executing_config,
         trained_iter=trained_iter,
+        recorder=recorder,
+        output_dir=output_dir,
     )
     logger.info("trainer build success")
     return trainer
