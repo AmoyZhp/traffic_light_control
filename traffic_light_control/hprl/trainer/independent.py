@@ -26,18 +26,23 @@ class ILearnerTrainer(Trainer):
         type: PolicyTypes,
         env: MultiAgentEnv,
         policies: Dict[str, Policy],
-        recorder: Recorder,
         config: Dict,
         trained_iteration=0,
+        records: List[TrainingRecord] = [],
+        recorder: Recorder = None,
     ):
-        self.type = type
-        self.env = env
-        self.policies = policies
-        self.recorder = recorder
-        self.config = config
+        self._type = type
+        self._env = env
+        self._policies = policies
+        self._config = config
 
-        self.agents_id = self.env.agents_id
-        self.trained_iteration = trained_iteration
+        if not recorder:
+            recorder = hprl.recorder.DefaultRecorder()
+        self._recorder = recorder
+        self._records = records
+        self._trained_iteration = trained_iteration
+
+        self._agents_id = self._env.agents_id
 
     def train(
         self,
@@ -45,24 +50,22 @@ class ILearnerTrainer(Trainer):
         ckpt_frequency: int = 0,
     ):
         for ep in range(1, episodes + 1):
-            self.trained_iteration += 1
+            self._trained_iteration += 1
             logger.info(f"========== train episode {ep} begin ==========", )
-            logger.info("total trained iteration : %d", self.trained_iteration)
+            logger.info("total trained iteration : %d",
+                        self._trained_iteration)
             # implement _train in subclass
             record = self._train(ep, episodes)
-            record.set_episode(self.trained_iteration)
-            self.recorder.add_record(record)
-            fig = True if (ep + 1) % (episodes / 10) == 0 else False
-            self.recorder.print_record(
-                record=record,
-                logger=logger,
-                fig=fig,
-            )
+            record.set_episode(self._trained_iteration)
+
+            self._recorder.log_record(record=record, logger=logger)
+            self._records.append(record)
             if (ckpt_frequency > 0 and ep % ckpt_frequency == 0):
                 ckpt = self.get_checkpoint()
-                ckpt_path = f"ckpt_{ep}_total_{self.trained_iteration}.pth"
+                ckpt_path = f"ckpt_{ep}_total_{self._trained_iteration}.pth"
                 hprl.recorder.write_ckpt(ckpt=ckpt, path=ckpt_path)
             logger.info("========= train end   =========")
+        return self._records
 
     @abc.abstractmethod
     def _train(self, ep: int, episodes: int):
@@ -70,13 +73,13 @@ class ILearnerTrainer(Trainer):
 
     def get_checkpoint(self):
         policy_weight = {}
-        for id, p in self.policies.items():
+        for id, p in self._policies.items():
             policy_weight[id] = p.get_weight()
         weight = {
             "policy": policy_weight,
         }
         config = self.get_config()
-        records = self.recorder.get_records()
+        records = self._records
         checkpoint = {
             "config": config,
             "weight": weight,
@@ -88,25 +91,25 @@ class ILearnerTrainer(Trainer):
         weight = checkpoint["weight"]
         records = checkpoint["records"]
         policy_w = weight.get("policy")
-        for id, p in self.policies.items():
+        for id, p in self._policies.items():
             p.set_weight(policy_w[id])
-        self.recorder.add_records(records)
+        self._recorder.add_records(records)
 
     def get_config(self):
         policy_config = {}
-        for id, p in self.policies.items():
+        for id, p in self._policies.items():
             policy_config[id] = p.get_config()
         config = {
-            "type": self.type,
-            "trained_iteration": self.trained_iteration,
+            "type": self._type,
+            "trained_iteration": self._trained_iteration,
             "policy": policy_config,
-            "executing": self.config,
+            "executing": self._config,
         }
         return config
 
     def eval(self, episode: int):
         eval_polices = {}
-        for id, p in self.policies.items():
+        for id, p in self._policies.items():
             eval_polices[id] = p.unwrapped()
 
         for ep in range(episode):
@@ -115,10 +118,10 @@ class ILearnerTrainer(Trainer):
             rewards = []
             infos = []
 
-            state = self.env.reset()
+            state = self._env.reset()
             while True:
                 action = compute_action(eval_polices, state)
-                next_s, r, done, info = self.env.step(action)
+                next_s, r, done, info = self._env.step(action)
                 state = next_s
 
                 rewards.append(r)
@@ -126,21 +129,26 @@ class ILearnerTrainer(Trainer):
                 if done.central:
                     break
             record = TrainingRecord(ep, rewards, infos)
-            self.recorder.print_record(record, logger, False)
-            self.recorder.add_record(record)
+            self._recorder.print_record(record, logger, False)
+            self._recorder.add_record(record)
             logger.info("+++++++++ eval episode {} end   +++++++++".format(ep))
 
     def get_records(self):
-        self.recorder.get_records()
+        self._records
 
     def save_config(self, dir: str = ""):
-        self.recorder.write_config(self.get_config(), dir)
+        self._recorder.write_config(self.get_config(), dir)
 
-    def save_records(self, dir: str = ""):
-        self.recorder.write_records(dir)
+    def save_records(self, path=""):
+        if not path:
+            path = "records.json"
+        self._recorder.write_records(records=self._records, path=path)
 
-    def save_checkpoint(self, dir: str = "", filename: str = ""):
-        self.recorder.write_ckpt(self.get_checkpoint(), dir, filename)
+    def save_checkpoint(self, path=""):
+        ckpt = self.get_checkpoint()
+        if not path:
+            path = f"ckpt_total_{self._trained_iteration}.pth"
+        hprl.recorder.write_ckpt(ckpt=ckpt, path=path)
 
 
 class IOffPolicyTrainer(ILearnerTrainer):
@@ -150,9 +158,9 @@ class IOffPolicyTrainer(ILearnerTrainer):
         env: MultiAgentEnv,
         policies: Dict[str, Policy],
         buffers: Dict[str, ReplayBuffer],
-        recorder: Recorder,
         config: Dict,
         trained_iter=0,
+        recorder: Recorder = None,
     ):
         super(IOffPolicyTrainer, self).__init__(
             type=type,
@@ -165,32 +173,32 @@ class IOffPolicyTrainer(ILearnerTrainer):
         self.buffers = buffers
 
     def _train(self, ep: int, episodes: int):
-        batch_size = self.config["batch_size"]
+        batch_size = self._config["batch_size"]
         beta = 0
 
         buffer_type = self.buffers[list(self.buffers)[0]].type
 
         if buffer_type == ReplayBufferTypes.Prioritized:
-            init_beta = self.config["per_beta"]
+            init_beta = self._config["per_beta"]
             beta = (ep + 1) / episodes * (1 - init_beta) + init_beta
 
         sim_cost = 0.0
         learn_cost = 0.0
 
-        state = self.env.reset()
+        state = self._env.reset()
         record = TrainingRecord()
         while True:
-            action = compute_action(self.policies, state)
+            action = compute_action(self._policies, state)
 
             sim_begin = time.time()
-            next_s, r, done, info = self.env.step(action)
+            next_s, r, done, info = self._env.step(action)
             sim_cost += time.time() - sim_begin
             replay_buffer_store(self.buffers, state, action, r, next_s, done)
             state = next_s
 
             learn_begin = time.time()
             sample_data = replay_buffer_sample(self.buffers, batch_size, beta)
-            priorities = policy_learn(self.policies, sample_data)
+            priorities = policy_learn(self._policies, sample_data)
             if buffer_type == ReplayBufferTypes.Prioritized:
                 idxes = {}
                 for id, element in sample_data.items():
@@ -252,24 +260,24 @@ class IOnPolicyTrainer(ILearnerTrainer):
         )
 
     def _train(self, ep: int, episodes: int):
-        batch_size = self.config["batch_size"]
+        batch_size = self._config["batch_size"]
         sim_cost = 0.0
         learn_cost = 0.0
 
-        agents_id = self.env.agents_id
+        agents_id = self._env.agents_id
         samples_batch = {id: SampleBatch() for id in agents_id}
         for _ in range(batch_size):
             record = TrainingRecord()
             states = {id: [] for id in agents_id}
             rewards = {id: [] for id in agents_id}
             actions = {id: [] for id in agents_id}
-            state = self.env.reset()
+            state = self._env.reset()
             while True:
                 for id in agents_id:
                     states[id].append(state.local[id])
-                action = compute_action(self.policies, state)
+                action = compute_action(self._policies, state)
                 sim_begin = time.time()
-                next_s, r, done, info = self.env.step(action)
+                next_s, r, done, info = self._env.step(action)
                 sim_cost += time.time() - sim_begin
                 state = next_s
 
@@ -291,7 +299,7 @@ class IOnPolicyTrainer(ILearnerTrainer):
                         samples_batch[id].trajectorys.append(traj)
                     break
         learn_begin = time.time()
-        policy_learn(policies=self.policies, samples=samples_batch)
+        policy_learn(policies=self._policies, samples=samples_batch)
         learn_end = time.time()
         learn_cost += (learn_end - learn_begin)
 

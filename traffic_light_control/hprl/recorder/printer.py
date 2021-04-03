@@ -7,6 +7,9 @@ local_logger = logging.getLogger(__package__)
 
 
 class Printer(Recorder):
+    def log_record(self, record: TrainingRecord, logger: logging.Logger):
+        ...
+
     def add_record(self, record=None):
         ...
 

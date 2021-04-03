@@ -16,48 +16,19 @@ def read_ckpt(path: str):
 
 class Recorder(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def add_record(self, record: TrainingRecord):
-        ...
-
-    @abc.abstractmethod
-    def add_records(self, records: List[TrainingRecord]):
-        ...
-
-    @abc.abstractmethod
-    def print_record(
+    def log_record(
         self,
         record: TrainingRecord,
         logger: logging.Logger,
-        fig: bool,
     ):
         ...
 
     @abc.abstractmethod
-    def write_records(self, dir: str, filename: str):
+    def write_records(self, records: List[TrainingRecord], path: str):
         ...
 
     @abc.abstractmethod
-    def read_records(self, dir: str, filename: str):
-        ...
-
-    @abc.abstractmethod
-    def write_ckpt(self, ckpt, dir: str, filename: str):
-        ...
-
-    @abc.abstractmethod
-    def read_ckpt(self, dir: str, filename: str):
-        ...
-
-    @abc.abstractmethod
-    def write_config(self, config, dir: str, filename: str):
-        ...
-
-    @abc.abstractmethod
-    def read_config(self, dir: str, filename: str):
-        ...
-
-    @abc.abstractmethod
-    def get_records(self) -> List[TrainingRecord]:
+    def read_records(self, path: str) -> List[TrainingRecord]:
         ...
 
 

@@ -121,7 +121,6 @@ def build_iql_trainer(
         policies=policies,
         buffers=buffers,
         env=env,
-        recorder=recorder,
         config=executing_config,
         trained_iter=trained_iter,
     )
