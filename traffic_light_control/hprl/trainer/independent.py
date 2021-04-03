@@ -1,6 +1,7 @@
 import abc
 import time
 import logging
+import os
 from typing import Dict, List
 from hprl.trainer.trainer import Trainer
 from hprl.replaybuffer import ReplayBuffer, PrioritizedReplayBuffer, ReplayBufferTypes
@@ -12,7 +13,7 @@ from hprl.env import MultiAgentEnv
 from hprl.util.typing import TrainingRecord, SampleBatch, TransitionTuple, TrajectoryTuple
 from hprl.util.typing import State, Action, Reward, Terminal
 
-logger = logging.getLogger(__package__)
+logger = logging.getLogger(__name__)
 
 
 class ILearnerTrainer(Trainer):
@@ -30,18 +31,24 @@ class ILearnerTrainer(Trainer):
         trained_iteration=0,
         records: List[TrainingRecord] = [],
         recorder: Recorder = None,
+        output_dir: str = "",
     ):
+        if not recorder:
+            recorder = hprl.recorder.DefaultRecorder()
+
+        if output_dir and not os.path.exists(output_dir):
+            raise ValueError(
+                "output directory {} not exists".format(output_dir))
+
         self._type = type
         self._env = env
         self._policies = policies
         self._config = config
 
-        if not recorder:
-            recorder = hprl.recorder.DefaultRecorder()
-        self._recorder = recorder
         self._records = records
+        self._recorder = recorder
+        self._output_dir = output_dir
         self._trained_iteration = trained_iteration
-
         self._agents_id = self._env.agents_id
 
     def train(
@@ -61,9 +68,7 @@ class ILearnerTrainer(Trainer):
             self._recorder.log_record(record=record, logger=logger)
             self._records.append(record)
             if (ckpt_frequency > 0 and ep % ckpt_frequency == 0):
-                ckpt = self.get_checkpoint()
-                ckpt_path = f"ckpt_{ep}_total_{self._trained_iteration}.pth"
-                hprl.recorder.write_ckpt(ckpt=ckpt, path=ckpt_path)
+                self.save_checkpoint()
             logger.info("========= train end   =========")
         return self._records
 
@@ -142,12 +147,16 @@ class ILearnerTrainer(Trainer):
     def save_records(self, path=""):
         if not path:
             path = "records.json"
+            if self._output_dir:
+                path = f"{self._output_dir}/{path}"
         self._recorder.write_records(records=self._records, path=path)
 
     def save_checkpoint(self, path=""):
         ckpt = self.get_checkpoint()
         if not path:
-            path = f"ckpt_total_{self._trained_iteration}.pth"
+            path = f"ckpt_{self._trained_iteration}.pth"
+            if self._output_dir:
+                path = f"{self._output_dir}/{path}"
         hprl.recorder.write_ckpt(ckpt=ckpt, path=path)
 
 
