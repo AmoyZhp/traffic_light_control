@@ -13,11 +13,106 @@ from hprl.policy.decorator import EpsilonGreedy
 from hprl.replaybuffer import CommonBuffer, PrioritizedReplayBuffer
 from hprl.policy.dqn.dqn import DQN
 from hprl.trainer.independent import IOffPolicyTrainer
+import hprl.replaybuffer as replaybuffer
+import hprl.env as hpenv
+from hprl.policy.model_registration import make_model
 
-logger = logging.getLogger(__package__)
+logger = logging.getLogger(__name__)
 
 
 def build_iql_trainer(
+    config: Dict,
+    recorder: Recorder = None,
+):
+    logger.info("start to create IQL trainer")
+    policy_config = config["policy"]
+    env_setting = config["env"]
+    env_id = env_setting["type"]
+    env: MultiAgentEnv = hpenv.make(id=env_id, config=env_setting)
+    agents_id = env.agents_id
+
+    model_id = policy_config["model_id"]
+    model_config = {
+        "central_state": env.central_state_space,
+        "local_state": env.local_state_space,
+        "central_action": env.central_action_space,
+        "local_action": env.local_action_space,
+    }
+    models: Dict = make_model(
+        id=model_id,
+        config=model_config,
+        agents_id=agents_id,
+    )
+
+    buffer_config = config["buffer"]
+    buffer_type = buffer_config["type"]
+    prioritized = False
+    loss_fn = nn.MSELoss()
+    if buffer_type is ReplayBufferTypes.Prioritized:
+        prioritized = True
+        loss_fn = _per_loss_fn
+
+    critic_lr = policy_config["critic_lr"]
+    discount_factor = policy_config["discount_factor"]
+    update_period = policy_config["update_period"]
+    eps_frame = policy_config["eps_frame"]
+    eps_min = policy_config["eps_min"]
+    eps_init = policy_config["eps_init"]
+
+    buffers = {}
+    policies = {}
+    for id in agents_id:
+        buffers[id] = replaybuffer.build(buffer_config)
+        model = models[id]
+        action_space = policy_config["local_action_space"][id]
+        state_space = policy_config["local_state_space"][id]
+        inner_p = DQN(
+            acting_net=model["acting_net"],
+            target_net=model["target_net"],
+            critic_lr=critic_lr,
+            discount_factor=discount_factor,
+            update_period=update_period,
+            action_space=action_space,
+            state_space=state_space,
+            prioritized=prioritized,
+            loss_fn=loss_fn,
+        )
+        logger.info("\t agents %s", id)
+        logger.info("\t\t action space is %s", action_space)
+        logger.info("\t\t state space is %s", state_space)
+        policies[id] = EpsilonGreedy(
+            inner_policy=inner_p,
+            eps_frame=eps_frame,
+            eps_min=eps_min,
+            eps_init=eps_init,
+            action_space=action_space,
+        )
+
+    training_config = config["training"]
+    trained_iter = training_config.get("trained_iteration", 0)
+    output_dir = training_config.get("output_dir", "")
+
+    trainer = IOffPolicyTrainer(
+        type=PolicyTypes.IQL,
+        policies=policies,
+        buffers=buffers,
+        env=env,
+        config=training_config,
+        trained_iter=trained_iter,
+        recorder=recorder,
+        output_dir=output_dir,
+    )
+    logger.info("\t critic lr : %f", critic_lr)
+    logger.info("\t discount factor : %f", discount_factor)
+    logger.info("\t update period : %d", update_period)
+    logger.info("\t eps frame : %d", eps_frame)
+    logger.info("\t eps min : %f", eps_min)
+    logger.info("\t eps init : %f", eps_init)
+    logger.info("trainer build success")
+    return trainer
+
+
+def _build_iql_trainer(
     config,
     env: MultiAgentEnv,
     models: Dict[str, nn.Module],

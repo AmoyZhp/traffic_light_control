@@ -1,4 +1,5 @@
 import os
+from runner.util import plot_avg_travel_time
 from hprl.util.typing import Action
 import json
 import logging
@@ -69,18 +70,25 @@ def _train(args, env, models):
     logger.info("policy : {}".format(args.policy))
     logger.info("buffer : {}".format(args.replay_buffer))
 
-    hprl.log_to_file("mylog.log")
-    trainer, recorder = build_trainer(args, env, models)
+    trainer = build_trainer(args, env, models)
 
     episodes = args.episodes
+    recording = args.recording
+    ckpt_frequency = args.ckpt_frequency
+    if not recording:
+        ckpt_frequency = 0
     begin_time = time.time()
-    _ = trainer.train(episodes)
+    records = trainer.train(episodes=episodes, ckpt_frequency=ckpt_frequency)
     cost_time = (time.time() - begin_time) / 3600
 
-    trainer.save_records()
-    trainer.save_checkpoint(filename="ckpt_ending.pth")
-    exp_record = {"cost_time": cost_time, "episodes": episodes}
-    recorder.write_config(config=exp_record, filename="exp_record.json")
+    if recording:
+        trainer.save_records()
+        trainer.save_checkpoint()
+        hprl.recorder.plot_summation_rewards(records=records, save_fig=True)
+        hprl.recorder.plot_avg_rewards(records=records, save_fig=True)
+        plot_avg_travel_time(records=records, save_fig=True)
+    # exp_record = {"cost_time": cost_time, "episodes": episodes}
+    # recorder.write_config(config=exp_record, filename="exp_record.json")
 
     logger.info("total time cost {:.3f} h ".format(cost_time))
     logger.info(

@@ -9,6 +9,8 @@ from hprl.recorder import Recorder
 import os
 import logging
 import hprl.recorder as recorder
+import hprl.policy as policy
+import hprl.env as env
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -58,4 +60,6 @@ __all__ = [
     "AdvantageTypes",
     "gym_baseline_trainer",
     "Recorder",
+    "policy",
+    "env",
 ]

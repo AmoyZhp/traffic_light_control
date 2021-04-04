@@ -1,3 +1,4 @@
+from runner.util import TrafficRecorder
 from hprl.env.multi_agent_env import MultiAgentEnv
 import logging
 import datetime
@@ -66,7 +67,7 @@ def load_trainer(args, env, models):
 
 def _build_trainer(args, env: MultiAgentEnv, models):
     recording = args.recording
-    base_dir = None
+    base_dir = ""
     if recording:
         base_dir = create_record_dir(
             BASE_RECORDS_DIR,
@@ -75,11 +76,9 @@ def _build_trainer(args, env: MultiAgentEnv, models):
             args.record_dir_suffix,
         )
         logger.info("records dir created : {}".format(base_dir))
+        hprl.log_to_file(base_dir)
 
-    if recording:
-        recorder = hprecroder.TorchRecorder(base_dir)
-    else:
-        recorder = hprecroder.Printer()
+    recorder = TrafficRecorder()
     trainer_config = _get_trainer_config(
         args=args,
         local_state_space=env.local_state_space,
@@ -88,19 +87,21 @@ def _build_trainer(args, env: MultiAgentEnv, models):
         central_action_space=env.central_action_space,
         record_base_dir=base_dir,
     )
-    trainer = hprl.build_trainer(
+    trainer_config["training"]["output_dir"] = base_dir
+    trainer_config["env"] = env.setting
+    trainer_config["env"]["save_replay"] = args.save_replay
+    trainer_config["env"]["thread_num"] = args.env_thread_num
+    trainer = hprl.policy.build_iql_trainer(
         config=trainer_config,
-        env=env,
-        models=models,
         recorder=recorder,
     )
-    recorder.write_config(config=env.setting, filename="env_setting.json")
-    recorder.write_config(config=repr(models), filename="model_setting.data")
-    recorder.write_config(
-        config=trainer.get_config(),
-        filename="initial_config.json",
-    )
-    return trainer, recorder
+    # trainer = hprl.build_trainer(
+    #     config=trainer_config,
+    #     env=env,
+    #     models=models,
+    #     recorder=recorder,
+    # )
+    return trainer
 
 
 def _get_trainer_config(
@@ -126,6 +127,8 @@ def _get_trainer_config(
     inner_epoch = args.inner_epoch
     clip_param = args.clip_param
     policy_config = {
+        "type": args.policy,
+        "model_id": args.policy.value,
         "critic_lr": critic_lr,
         "actor_lr": actor_lr,
         "discount_factor": discount_factor,
@@ -155,7 +158,7 @@ def _get_trainer_config(
     }
     trainner_config = {
         "type": args.policy,
-        "executing": exec_config,
+        "training": exec_config,
         "policy": policy_config,
         "buffer": buffer_config,
     }

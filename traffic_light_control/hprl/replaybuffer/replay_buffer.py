@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import Dict, List, Union
 from enum import Enum
 import abc
 

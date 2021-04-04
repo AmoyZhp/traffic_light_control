@@ -17,6 +17,7 @@ class CityFlow(hprl.MultiAgentEnv):
         interval: int,
         intersections: Dict[str, Intersection],
     ) -> None:
+        self._type = "CityFlow"
         self._eng = eng
         self._id = id
         self._intersections = intersections
@@ -185,6 +186,7 @@ class CityFlow(hprl.MultiAgentEnv):
     @property
     def setting(self):
         _setting = {
+            "type": self._type,
             "max_time": self._max_time,
             "interval": self._interval,
             "id": self._id,
