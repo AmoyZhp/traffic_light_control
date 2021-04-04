@@ -11,7 +11,6 @@ from hprl.policy.policy import PolicyTypes
 from hprl.replaybuffer import ReplayBufferTypes
 from hprl.policy.decorator import EpsilonGreedy
 from hprl.replaybuffer import CommonBuffer, PrioritizedReplayBuffer
-from hprl.recorder import Printer, TorchRecorder
 from hprl.policy.dqn.dqn import DQN
 from hprl.trainer.independent import IOffPolicyTrainer
 

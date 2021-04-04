@@ -3,7 +3,6 @@ from hprl.replaybuffer.prioritized_replay_buffer import MultiAgentPER
 from hprl.policy.qmix.qmix import QMIX
 from hprl.replaybuffer.common_buffer import MultiAgentCommonBuffer
 from hprl.policy.decorator.epsilon_greedy import MultiAgentEpsilonGreedy
-from hprl.recorder import Printer, TorchRecorder
 from hprl.policy.policy import PolicyTypes
 from hprl.replaybuffer import ReplayBufferTypes
 import logging

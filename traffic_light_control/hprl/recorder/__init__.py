@@ -1,12 +1,11 @@
 from hprl.recorder.default import DefaultRecorder
-from hprl.recorder.printer import Printer
-from hprl.recorder.reader import TorchReader
 from hprl.recorder.recorder import (Recorder, read_ckpt, read_records,
-                                    unwrap_records, unwrap_rewards, write_ckpt,
-                                    write_records)
-from hprl.recorder.torch_recorder import TorchRecorder
+                                    plot_summation_rewards, plot_avg_rewards,
+                                    plot_fig, unwrap_records, unwrap_rewards,
+                                    write_ckpt, write_records)
 
 __all__ = [
+    "Recorder",
     "DefaultRecorder",
     "write_ckpt",
     "read_ckpt",
@@ -14,8 +13,7 @@ __all__ = [
     "read_records",
     "unwrap_records",
     "unwrap_rewards",
-    "Recorder",
-    "Printer",
-    "TorchRecorder",
-    "TorchReader",
+    "plot_summation_rewards",
+    "plot_avg_rewards",
+    "plot_fig",
 ]

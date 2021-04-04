@@ -2,7 +2,7 @@ import logging
 from hprl.util.typing import TrainingRecord
 from hprl.recorder.recorder import Recorder
 
-from hprl.recorder.recorder import Recorder, cal_avg_reward, cal_cumulative_reward, draw_train_avg_rewards, draw_train_culumative_rewards
+from hprl.recorder.recorder import Recorder
 local_logger = logging.getLogger(__package__)
 
 
