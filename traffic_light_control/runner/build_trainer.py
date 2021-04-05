@@ -78,7 +78,6 @@ def _build_trainer(args, env: MultiAgentEnv, models):
         logger.info("records dir created : {}".format(base_dir))
         hprl.log_to_file(base_dir)
 
-    recorder = TrafficRecorder()
     trainer_config = _get_trainer_config(
         args=args,
         local_state_space=env.local_state_space,
@@ -91,10 +90,7 @@ def _build_trainer(args, env: MultiAgentEnv, models):
     trainer_config["env"] = env.setting
     trainer_config["env"]["save_replay"] = args.save_replay
     trainer_config["env"]["thread_num"] = args.env_thread_num
-    trainer = hprl.policy.build_iql_trainer(
-        config=trainer_config,
-        recorder=recorder,
-    )
+    trainer = hprl.policy.build_iql_trainer(config=trainer_config)
     # trainer = hprl.build_trainer(
     #     config=trainer_config,
     #     env=env,

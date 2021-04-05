@@ -47,6 +47,14 @@ def unwrap_records(records: List[hprl.TrainingRecord]):
     return records_dict
 
 
+def log_record(record: hprl.TrainingRecord, logger: logging.Logger):
+    hprl.recorder.log_record(record, logger)
+    logger.info(
+        "avg travel time : %f",
+        record.infos[-1]["avg_travel_time"],
+    )
+
+
 class TrafficRecorder(hprl.recorder.DefaultRecorder):
     def __init__(self) -> None:
         super().__init__()

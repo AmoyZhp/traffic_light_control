@@ -3,8 +3,8 @@ from hprl.env.gym_wrapper import GymWrapper
 from hprl.env.registration import register, make
 
 __all__ = [
-    "MultiAgentEnv",
-    "GymWrapper",
     "register",
     "make",
+    "MultiAgentEnv",
+    "GymWrapper",
 ]

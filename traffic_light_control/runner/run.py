@@ -1,5 +1,5 @@
 import os
-from runner.util import plot_avg_travel_time
+from runner.util import log_record, plot_avg_travel_time
 from hprl.util.typing import Action
 import json
 import logging
@@ -17,7 +17,6 @@ logger = logging.getLogger(__package__)
 
 
 def run():
-
     paraser = create_paraser()
     args = paraser.parse_args()
     if not args_validity_check(args):
@@ -78,11 +77,14 @@ def _train(args, env, models):
     if not recording:
         ckpt_frequency = 0
     begin_time = time.time()
-    records = trainer.train(episodes=episodes, ckpt_frequency=ckpt_frequency)
+    records = trainer.train(
+        episodes=episodes,
+        ckpt_frequency=ckpt_frequency,
+        log_record_fn=log_record,
+    )
     cost_time = (time.time() - begin_time) / 3600
 
     if recording:
-        trainer.save_records()
         trainer.save_checkpoint()
         hprl.recorder.plot_summation_rewards(records=records, save_fig=True)
         hprl.recorder.plot_avg_rewards(records=records, save_fig=True)

@@ -1,4 +1,3 @@
-from hprl.recorder.recorder import Recorder
 import logging
 from typing import Dict
 
@@ -20,10 +19,7 @@ from hprl.policy.model_registration import make_model
 logger = logging.getLogger(__name__)
 
 
-def build_iql_trainer(
-    config: Dict,
-    recorder: Recorder = None,
-):
+def build_iql_trainer(config: Dict, ):
     logger.info("start to create IQL trainer")
     policy_config = config["policy"]
     env_setting = config["env"]
@@ -99,7 +95,6 @@ def build_iql_trainer(
         env=env,
         config=training_config,
         trained_iter=trained_iter,
-        recorder=recorder,
         output_dir=output_dir,
     )
     logger.info("\t critic lr : %f", critic_lr)
@@ -116,7 +111,6 @@ def _build_iql_trainer(
     config,
     env: MultiAgentEnv,
     models: Dict[str, nn.Module],
-    recorder: Recorder = None,
     load=False,
 ):
 
@@ -213,7 +207,6 @@ def _build_iql_trainer(
         env=env,
         config=executing_config,
         trained_iter=trained_iter,
-        recorder=recorder,
         output_dir=output_dir,
     )
     logger.info("trainer build success")

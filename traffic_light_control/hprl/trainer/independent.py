@@ -2,12 +2,11 @@ import abc
 import time
 import logging
 import os
-from typing import Dict, List
+from typing import Callable, Dict, List
 from hprl.trainer.trainer import Trainer
 from hprl.replaybuffer import ReplayBuffer, PrioritizedReplayBuffer, ReplayBufferTypes
 from hprl.policy import PolicyTypes, Policy
-from hprl.recorder import Recorder
-import hprl
+from hprl.recorder import log_record, write_ckpt
 
 from hprl.env import MultiAgentEnv
 from hprl.util.typing import TrainingRecord, SampleBatch, TransitionTuple, TrajectoryTuple
@@ -30,12 +29,8 @@ class ILearnerTrainer(Trainer):
         config: Dict,
         trained_iteration=0,
         records: List[TrainingRecord] = [],
-        recorder: Recorder = None,
         output_dir: str = "",
     ):
-        if not recorder:
-            recorder = hprl.recorder.DefaultRecorder()
-
         if output_dir and not os.path.exists(output_dir):
             raise ValueError(
                 "output directory {} not exists".format(output_dir))
@@ -46,7 +41,6 @@ class ILearnerTrainer(Trainer):
         self._config = config
 
         self._records = records
-        self._recorder = recorder
         self._output_dir = output_dir
         self._trained_iteration = trained_iteration
         self._agents_id = self._env.agents_id
@@ -55,6 +49,7 @@ class ILearnerTrainer(Trainer):
         self,
         episodes: int,
         ckpt_frequency: int = 0,
+        log_record_fn: Callable = log_record,
     ):
         for ep in range(1, episodes + 1):
             self._trained_iteration += 1
@@ -65,7 +60,7 @@ class ILearnerTrainer(Trainer):
             record = self._train(ep, episodes)
             record.set_episode(self._trained_iteration)
 
-            self._recorder.log_record(record=record, logger=logger)
+            log_record_fn(record=record, logger=logger)
             self._records.append(record)
             if (ckpt_frequency > 0 and ep % ckpt_frequency == 0):
                 self.save_checkpoint()
@@ -93,12 +88,12 @@ class ILearnerTrainer(Trainer):
         return checkpoint
 
     def load_checkpoint(self, checkpoint: Dict):
+        self._records = checkpoint["records"]
+
         weight = checkpoint["weight"]
-        records = checkpoint["records"]
         policy_w = weight.get("policy")
         for id, p in self._policies.items():
             p.set_weight(policy_w[id])
-        self._recorder.add_records(records)
 
     def get_config(self):
         policy_config = {}
@@ -112,7 +107,11 @@ class ILearnerTrainer(Trainer):
         }
         return config
 
-    def eval(self, episode: int):
+    def eval(
+        self,
+        episode: int,
+        log_record_fn: Callable = log_record,
+    ):
         eval_polices = {}
         for id, p in self._policies.items():
             eval_polices[id] = p.unwrapped()
@@ -134,8 +133,7 @@ class ILearnerTrainer(Trainer):
                 if done.central:
                     break
             record = TrainingRecord(ep, rewards, infos)
-            self._recorder.print_record(record, logger, False)
-            self._recorder.add_record(record)
+            log_record_fn(record=record, logger=logger)
             logger.info("+++++++++ eval episode {} end   +++++++++".format(ep))
 
     def get_records(self):
@@ -149,7 +147,7 @@ class ILearnerTrainer(Trainer):
             path = "records.json"
             if self._output_dir:
                 path = f"{self._output_dir}/{path}"
-        self._recorder.write_records(records=self._records, path=path)
+        hprl.recorder.write_records(records=self._records, path=path)
 
     def save_checkpoint(self, path=""):
         ckpt = self.get_checkpoint()
@@ -157,7 +155,7 @@ class ILearnerTrainer(Trainer):
             path = f"ckpt_{self._trained_iteration}.pth"
             if self._output_dir:
                 path = f"{self._output_dir}/{path}"
-        hprl.recorder.write_ckpt(ckpt=ckpt, path=path)
+        write_ckpt(ckpt=ckpt, path=path)
 
 
 class IOffPolicyTrainer(ILearnerTrainer):
@@ -169,14 +167,12 @@ class IOffPolicyTrainer(ILearnerTrainer):
         buffers: Dict[str, ReplayBuffer],
         config: Dict,
         trained_iter=0,
-        recorder: Recorder = None,
         output_dir="",
     ):
         super(IOffPolicyTrainer, self).__init__(
             type=type,
             env=env,
             policies=policies,
-            recorder=recorder,
             config=config,
             trained_iteration=trained_iter,
             output_dir=output_dir,
@@ -259,14 +255,12 @@ class IOnPolicyTrainer(ILearnerTrainer):
         type: PolicyTypes,
         env: MultiAgentEnv,
         policies: Dict[str, Policy],
-        recorder: Recorder,
         config: Dict,
     ):
         super(IOnPolicyTrainer, self).__init__(
             type=type,
             env=env,
             policies=policies,
-            recorder=recorder,
             config=config,
         )
 
