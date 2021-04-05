@@ -36,6 +36,24 @@ def build_trainer(args, env, models):
 
 def load_trainer(args, env, models):
     ckpt_file = args.ckpt_file
+    if not os.path.exists(ckpt_file):
+        raise ValueError("ckeck point file not exits : {}".format(ckpt_file))
+    recording = args.recording
+    override_config = {}
+    override_config["env"] = {
+        "thread_num": args.env_thread_num,
+        "save_replay": args.save_replay,
+    }
+    trainer = hprl.load_trainer(
+        ckpt_path=ckpt_file,
+        override_config=override_config,
+        recording=recording,
+    )
+    return trainer
+
+
+def _load_trainer(args, env, models):
+    ckpt_file = args.ckpt_file
     recording = args.recording
     if not os.path.exists(ckpt_file):
         raise ValueError("ckeck point file not exits : {}".format(ckpt_file))
@@ -86,7 +104,7 @@ def _build_trainer(args, env: MultiAgentEnv, models):
         central_action_space=env.central_action_space,
         record_base_dir=base_dir,
     )
-    trainer_config["training"]["output_dir"] = base_dir
+    trainer_config["trainer"]["output_dir"] = base_dir
     trainer_config["env"] = env.setting
     trainer_config["env"]["save_replay"] = args.save_replay
     trainer_config["env"]["thread_num"] = args.env_thread_num
@@ -146,6 +164,7 @@ def _get_trainer_config(
         "alpha": args.per_alpha,
     }
     exec_config = {
+        "type": args.policy,
         "batch_size": batch_size,
         "record_base_dir": record_base_dir,
         "ckpt_frequency": args.ckpt_frequency,
@@ -153,8 +172,7 @@ def _get_trainer_config(
         "recording": args.recording,
     }
     trainner_config = {
-        "type": args.policy,
-        "training": exec_config,
+        "trainer": exec_config,
         "policy": policy_config,
         "buffer": buffer_config,
     }

@@ -96,14 +96,26 @@ class ILearnerTrainer(Trainer):
             p.set_weight(policy_w[id])
 
     def get_config(self):
-        policy_config = {}
+        policy_config = list(self._policies.values())[0].get_config()
+        local_action_space = {}
+        local_state_space = {}
         for id, p in self._policies.items():
-            policy_config[id] = p.get_config()
-        config = {
+            local_conf = p.get_config()
+            local_action_space[id] = local_conf["action_space"]
+            local_state_space[id] = local_conf["state_space"]
+        policy_config["local_action_space"] = local_action_space
+        policy_config["local_state_space"] = local_state_space
+        policy_config["model_id"] = self._type.value
+        trainer_config = self._config
+        trainer_config.update({
             "type": self._type,
             "trained_iteration": self._trained_iteration,
+            "output_dir": self._output_dir,
+        })
+        config = {
+            "trainer": trainer_config,
             "policy": policy_config,
-            "executing": self._config,
+            "env": self._env.setting,
         }
         return config
 
@@ -147,7 +159,6 @@ class ILearnerTrainer(Trainer):
             path = "records.json"
             if self._output_dir:
                 path = f"{self._output_dir}/{path}"
-        hprl.recorder.write_records(records=self._records, path=path)
 
     def save_checkpoint(self, path=""):
         ckpt = self.get_checkpoint()
@@ -242,9 +253,7 @@ class IOffPolicyTrainer(ILearnerTrainer):
     def get_config(self):
         config = super().get_config()
 
-        buffer_config = {}
-        for id, buffer in self.buffers.items():
-            buffer_config[id] = buffer.get_config()
+        buffer_config = list(self.buffers.values())[0].get_config()
         config["buffer"] = buffer_config
         return config
 

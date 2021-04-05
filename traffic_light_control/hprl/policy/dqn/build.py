@@ -23,6 +23,7 @@ def build_iql_trainer(config: Dict, ):
     logger.info("start to create IQL trainer")
     policy_config = config["policy"]
     env_setting = config["env"]
+    print(env_setting)
     env_id = env_setting["type"]
     env: MultiAgentEnv = hpenv.make(id=env_id, config=env_setting)
     agents_id = env.agents_id
@@ -84,7 +85,7 @@ def build_iql_trainer(config: Dict, ):
             action_space=action_space,
         )
 
-    training_config = config["training"]
+    training_config = config["trainer"]
     trained_iter = training_config.get("trained_iteration", 0)
     output_dir = training_config.get("output_dir", "")
 

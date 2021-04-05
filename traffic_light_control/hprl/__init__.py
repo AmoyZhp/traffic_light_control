@@ -1,12 +1,3 @@
-from hprl.util.typing import State, Action, Reward, TrainingRecord, Terminal
-from hprl.env import MultiAgentEnv
-from hprl.env import GymWrapper
-from hprl.replaybuffer import MultiAgentReplayBuffer, ReplayBufferTypes
-from hprl.policy import MultiAgentPolicy, PolicyTypes, AdvantageTypes
-from hprl.trainer import Trainer
-from hprl.build import build_trainer, load_trainer, gym_baseline_trainer
-from hprl.recorder import Recorder
-import os
 import logging
 
 logger = logging.getLogger(__name__)
@@ -34,6 +25,16 @@ def log_to_file(path: str = ""):
     filehander.setFormatter(formatter)
     logger.addHandler(filehander)
 
+
+from hprl.util.typing import State, Action, Reward, TrainingRecord, Terminal
+from hprl.env import MultiAgentEnv
+from hprl.env import GymWrapper
+from hprl.replaybuffer import MultiAgentReplayBuffer, ReplayBufferTypes
+from hprl.policy import MultiAgentPolicy, PolicyTypes, AdvantageTypes
+from hprl.trainer import Trainer
+from hprl.build import build_trainer, load_trainer, gym_baseline_trainer
+from hprl.recorder import Recorder
+import os
 
 __all__ = [
     "log_to_file",

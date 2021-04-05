@@ -1,5 +1,6 @@
-from hprl.recorder.torch_recorder import TorchRecorder
-from hprl.recorder.recorder import Recorder
+import os
+from hprl.policy.dqn.build import build_iql_trainer
+from hprl.recorder.recorder import Recorder, read_ckpt
 import gym
 from hprl.env.gym_wrapper import GymWrapper
 import hprl.policy.dqn as dqn
@@ -13,8 +14,18 @@ from hprl.trainer.trainer import Trainer
 from hprl.env import MultiAgentEnv
 from hprl.policy import PolicyTypes
 from hprl.replaybuffer import ReplayBufferTypes
-
+from hprl import log_to_file
+import collections.abc
 logger = logging.getLogger(__package__)
+
+
+def dict_update(d, u):
+    for k, v in u.items():
+        if isinstance(v, collections.abc.Mapping):
+            d[k] = dict_update(d.get(k, {}), v)
+        else:
+            d[k] = v
+    return d
 
 
 def build_trainer(
@@ -109,6 +120,44 @@ def gym_baseline_trainer(
 
 
 def load_trainer(
+    ckpt_path: str,
+    override_config: Dict = {},
+    recording: bool = False,
+):
+    ckpt = read_ckpt(ckpt_path)
+    config: Dict = ckpt["config"]
+    trainer_conf = config["trainer"]
+    policy_type = trainer_conf["type"]
+    if recording:
+        old_output_dir: str = trainer_conf["output_dir"]
+        split_str = old_output_dir.split("_")
+        cnt = 0
+        if split_str[-2] == "cnt":
+            cnt = int(split_str[-1])
+            preffix = old_output_dir.split("cnt")[0]
+            output_dir = f"{preffix}cnt_{cnt+1}"
+        else:
+            output_dir = f"{old_output_dir}_cnt_0"
+        if not os.path.exists(output_dir):
+            os.mkdir(output_dir)
+        log_to_file(output_dir)
+    else:
+        output_dir = ""
+
+    if "trainer" not in override_config:
+        override_config["trainer"] = {}
+    override_config["trainer"]["output_dir"] = output_dir
+    if policy_type == PolicyTypes.IQL:
+        dict_update(config, override_config)
+        trainer = build_iql_trainer(config)
+        trainer.load_checkpoint(ckpt)
+    else:
+        raise ValueError(
+            "policy {} loading function not implement".format(policy_type))
+    return trainer
+
+
+def _load_trainer(
     env: MultiAgentEnv,
     models: Dict,
     ckpt: Dict,
