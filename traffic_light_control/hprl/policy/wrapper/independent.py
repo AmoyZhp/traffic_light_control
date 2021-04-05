@@ -1,9 +1,10 @@
-from hprl.util.typing import Action, SampleBatch, State
 from typing import Dict
+
 from hprl.policy.policy import MultiAgentPolicy, Policy, PolicyTypes
+from hprl.util.typing import Action, SampleBatch, State
 
 
-class Independent(MultiAgentPolicy):
+class IndependentWrapper(MultiAgentPolicy):
     def __init__(
         self,
         type: PolicyTypes,
@@ -53,4 +54,4 @@ class Independent(MultiAgentPolicy):
         policies = {}
         for id, p in self._policies.items():
             policies[id] = p.unwrapped()
-        return Independent(type=self._type, policies=policies)
+        return IndependentWrapper(type=self._type, policies=policies)

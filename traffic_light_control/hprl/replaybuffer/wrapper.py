@@ -1,9 +1,11 @@
 from typing import Dict, List
+
+from hprl.replaybuffer.replay_buffer import (MAgentReplayBuffer, ReplayBuffer,
+                                             ReplayBufferTypes)
 from hprl.util.typing import SampleBatch, Transition, TransitionTuple
-from hprl.replaybuffer.replay_buffer import MultiAgentReplayBuffer, ReplayBuffer, ReplayBufferTypes
 
 
-class IndependentWrapper(MultiAgentReplayBuffer):
+class IndependentWrapper(MAgentReplayBuffer):
     def __init__(
         self,
         type: ReplayBufferTypes,

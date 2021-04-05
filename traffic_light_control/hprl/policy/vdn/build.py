@@ -1,17 +1,19 @@
-from hprl.recorder.recorder import Recorder
-from hprl.replaybuffer.prioritized_replay_buffer import MultiAgentPER
-from hprl.replaybuffer.common_buffer import MultiAgentCommonBuffer
-from hprl.policy.decorator.epsilon_greedy import MultiAgentEpsilonGreedy
-from hprl.policy.vdn.vdn import VDN
-from hprl.replaybuffer.replay_buffer import MultiAgentReplayBuffer
-from hprl.policy.policy import PolicyTypes
-from hprl.replaybuffer import ReplayBufferTypes
 import logging
 from typing import Dict
+
+import hprl.trainer.multiagent as matrainer
 import torch
 import torch.nn as nn
 from hprl.env import MultiAgentEnv
-import hprl.trainer.multiagent as matrainer
+from hprl.policy.decorator.epsilon_greedy import MultiAgentEpsilonGreedy
+from hprl.policy.policy import PolicyTypes
+from hprl.policy.vdn.vdn import VDN
+from hprl.recorder.recorder import Recorder
+from hprl.replaybuffer import ReplayBufferTypes
+from hprl.replaybuffer.common_buffer import MAgentBasisBuffer
+from hprl.replaybuffer.prioritized_replay_buffer import MultiAgentPER
+from hprl.replaybuffer.replay_buffer import MAgentReplayBuffer
+
 logger = logging.getLogger(__package__)
 
 
@@ -52,7 +54,7 @@ def build_vdn_trainer(
     elif buffer_type == ReplayBufferTypes.Common:
         prioritiezed = False
         loss_fn = nn.MSELoss()
-        buffer = MultiAgentCommonBuffer(capacity)
+        buffer = MAgentBasisBuffer(capacity)
     else:
         raise ValueError("replay buffer type {} invalid".format(buffer_type))
     inner_p = VDN(

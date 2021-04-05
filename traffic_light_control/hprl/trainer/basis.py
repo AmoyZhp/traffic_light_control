@@ -1,15 +1,13 @@
 import abc
-from hprl.replaybuffer.replay_buffer import ReplayBufferTypes
 import logging
 import os
 import time
 from typing import Callable, Dict, List
 
 from hprl.env import MultiAgentEnv
-from hprl.policy import MultiAgentPolicy, PolicyTypes
-from hprl.policy.policy import Policy, PolicyTypes
-from hprl.recorder.recorder import log_record, read_ckpt, write_ckpt
-from hprl.replaybuffer import MultiAgentReplayBuffer
+from hprl.policy.policy import MultiAgentPolicy, PolicyTypes
+from hprl.replaybuffer import MAgentReplayBuffer, ReplayBufferTypes
+from hprl.trainer.recording import log_record, read_ckpt, write_ckpt
 from hprl.trainer.trainer import Trainer
 from hprl.util.typing import TrainingRecord, Transition
 
@@ -158,13 +156,13 @@ class BasisTrainer(Trainer):
         return self._records
 
 
-class OffPolicy(BasisTrainer):
+class OffPolicyTrainer(BasisTrainer):
     def __init__(
         self,
         type: PolicyTypes,
         env: MultiAgentEnv,
         policy: MultiAgentPolicy,
-        buffer: MultiAgentReplayBuffer,
+        buffer: MAgentReplayBuffer,
         config: Dict,
         trained_iteration=0,
         records: List[TrainingRecord] = [],

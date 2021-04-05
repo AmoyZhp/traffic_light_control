@@ -1,13 +1,14 @@
-from hprl.replaybuffer.common_buffer import MultiAgentCommonBuffer
-from hprl.policy.coma.coma import COMA
-from hprl.recorder.torch_recorder import TorchRecorder
-from hprl.recorder.printer import Printer
-from hprl.policy.policy import AdvantageTypes, PolicyTypes
 import logging
+from typing import Dict
+
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Dict
 from hprl.env import MultiAgentEnv
+from hprl.policy.coma.coma import COMA
+from hprl.policy.policy import AdvantageTypes, PolicyTypes
+from hprl.recorder.printer import Printer
+from hprl.recorder.torch_recorder import TorchRecorder
+from hprl.replaybuffer.common_buffer import MAgentBasisBuffer
 
 logger = logging.getLogger(__package__)
 
@@ -65,7 +66,7 @@ def build_coma_trainer(
         env=env,
         config=executing_config,
         policy=policy,
-        replay_buffer=MultiAgentCommonBuffer(0),
+        replay_buffer=MAgentBasisBuffer(0),
         train_fn=train_fn,
         recorder=recorder,
     )

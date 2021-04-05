@@ -1,4 +1,5 @@
 from hprl.registration import Registry, EntryPoint
+
 registry = Registry()
 
 

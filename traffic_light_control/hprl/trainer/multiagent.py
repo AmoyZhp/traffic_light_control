@@ -1,15 +1,15 @@
 import abc
-import time
-from hprl.replaybuffer.replay_buffer import ReplayBufferTypes
-from hprl.util.typing import TrainingRecord, Transition
 import logging
+import time
 from typing import Dict
 
-from hprl.trainer.trainer import Trainer
-from hprl.policy import PolicyTypes, MultiAgentPolicy
-from hprl.replaybuffer import MultiAgentReplayBuffer
 from hprl.env import MultiAgentEnv
+from hprl.policy import MultiAgentPolicy, PolicyTypes
 from hprl.recorder import Recorder
+from hprl.replaybuffer import MAgentReplayBuffer
+from hprl.replaybuffer.replay_buffer import ReplayBufferTypes
+from hprl.trainer.trainer import Trainer
+from hprl.util.typing import TrainingRecord, Transition
 
 logger = logging.getLogger(__package__)
 
@@ -150,7 +150,7 @@ class OffPolicy(MultiAgentTrainer):
         config: Dict,
         env: MultiAgentEnv,
         policy: MultiAgentPolicy,
-        buffer: MultiAgentReplayBuffer,
+        buffer: MAgentReplayBuffer,
         recorder: Recorder,
         trained_iter=0,
     ) -> None:

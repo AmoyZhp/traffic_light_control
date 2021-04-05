@@ -1,5 +1,5 @@
-from typing import Callable, Dict, Union
 import importlib
+from typing import Callable, Dict, Union
 
 EntryPoint = Union[Callable, str]
 

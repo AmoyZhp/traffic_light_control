@@ -1,19 +1,18 @@
 import abc
-import numpy as np
-from typing import Dict
-from hprl.util.typing import Action, MultiAgentSampleBatch, SampleBatch, State
-
 from enum import Enum, auto
+from typing import Dict
+
+import numpy as np
+from hprl.util.typing import Action, MultiAgentSampleBatch, SampleBatch, State
 
 
 class PolicyTypes(Enum):
     IQL = "IQL"
-    PPO = "PPO"
+    IPPO = "IPPO"
     IAC = "IAC"
     VDN = "VDN"
     COMA = "COMA"
     QMIX = "QMIX"
-    MP = "MP"
 
 
 class AdvantageTypes(Enum):

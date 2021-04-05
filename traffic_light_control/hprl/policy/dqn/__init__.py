@@ -1,6 +1,8 @@
-from hprl.policy.dqn.build import build_iql_trainer, get_test_setting
+from hprl.policy.dqn.build import build_trainer, get_test_setting
+from hprl.policy.dqn.dqn import DQN
 
 __all__ = [
-    "build_iql_trainer",
+    "DQN",
+    "build_trainer",
     "get_test_setting",
 ]

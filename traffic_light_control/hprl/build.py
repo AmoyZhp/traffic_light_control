@@ -1,21 +1,18 @@
-import os
-from hprl.policy.dqn.build import build_iql_trainer
-from hprl.recorder.recorder import Recorder, read_ckpt
-import gym
-from hprl.env.gym_wrapper import GymWrapper
-import hprl.policy.dqn as dqn
-import hprl.policy.vdn as vdn
-import hprl.policy.ac as ac
-import hprl.policy.coma as coma
-import hprl.policy.qmix as qmix
-import logging
-from typing import Dict, List
-from hprl.trainer.trainer import Trainer
-from hprl.env import MultiAgentEnv
-from hprl.policy import PolicyTypes
-from hprl.replaybuffer import ReplayBufferTypes
-from hprl import log_to_file
 import collections.abc
+import logging
+import os
+from typing import Dict, List
+
+import gym
+
+import hprl.policy.dqn as dqn
+from hprl import log_to_file
+from hprl.env import MultiAgentEnv
+from hprl.env.gym_wrapper import GymWrapper
+from hprl.policy import PolicyTypes
+from hprl.recorder.recorder import Recorder, read_ckpt
+from hprl.replaybuffer import ReplayBufferTypes
+from hprl.trainer.trainer import Trainer
 
 logger = logging.getLogger(__name__)
 

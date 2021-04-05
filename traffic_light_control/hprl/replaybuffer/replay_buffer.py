@@ -1,8 +1,9 @@
-from typing import Dict, List, Union
-from enum import Enum
 import abc
+from enum import Enum
+from typing import Dict, List, Union
 
-from hprl.util.typing import MultiAgentSampleBatch, SampleBatch, SampleBatchType, Trajectory, Transition, TransitionTuple
+from hprl.util.typing import (MultiAgentSampleBatch, SampleBatch, Transition,
+                              TransitionTuple)
 
 
 class ReplayBufferTypes(Enum):
@@ -10,22 +11,34 @@ class ReplayBufferTypes(Enum):
     Prioritized = "PER"
 
 
-class MultiAgentReplayBuffer(metaclass=abc.ABCMeta):
+class MAgentReplayBuffer(metaclass=abc.ABCMeta):
     @property
     @abc.abstractmethod
     def type(self):
         ...
 
     @abc.abstractmethod
-    def store(self, data: Transition, priorities: float):
+    def store(
+        self,
+        data: Transition,
+        priorities: Union[float, Dict[str, float]],
+    ):
         ...
 
     @abc.abstractmethod
-    def sample(self, batch_size: int, beta: float) -> MultiAgentSampleBatch:
+    def sample(
+        self,
+        batch_size: int,
+        beta: float,
+    ) -> Union[MultiAgentSampleBatch, Dict[str, SampleBatch]]:
         ...
 
     @abc.abstractmethod
-    def update_priorities(self, idxes: List[int], priorities: List[float]):
+    def update_priorities(
+        self,
+        idxes: Union[List[float], Dict[str, List[float]]],
+        priorities: Union[List[float], Dict[str, List[float]]],
+    ):
         ...
 
     @abc.abstractmethod
@@ -33,11 +46,11 @@ class MultiAgentReplayBuffer(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def get_weight(self):
+    def get_weight(self) -> Dict:
         ...
 
     @abc.abstractmethod
-    def set_weight(self, weight):
+    def set_weight(self, weight: Dict):
         ...
 
     @abc.abstractmethod

@@ -1,10 +1,8 @@
-from runner.util import TrafficRecorder
-from hprl.env.multi_agent_env import MultiAgentEnv
-import logging
 import datetime
+import logging
 import os
+
 import hprl
-import hprl.recorder as hprecroder
 
 logger = logging.getLogger(__package__)
 
@@ -83,7 +81,7 @@ def _load_trainer(args, env, models):
     return trainer, trainer.recorder
 
 
-def _build_trainer(args, env: MultiAgentEnv, models):
+def _build_trainer(args, env: hprl.MultiAgentEnv, models):
     recording = args.recording
     base_dir = ""
     if recording:
@@ -108,7 +106,7 @@ def _build_trainer(args, env: MultiAgentEnv, models):
     trainer_config["env"] = env.setting
     trainer_config["env"]["save_replay"] = args.save_replay
     trainer_config["env"]["thread_num"] = args.env_thread_num
-    trainer = hprl.policy.build_iql_trainer(config=trainer_config)
+    trainer = hprl.trainer.build_iql_trainer(config=trainer_config)
     # trainer = hprl.build_trainer(
     #     config=trainer_config,
     #     env=env,

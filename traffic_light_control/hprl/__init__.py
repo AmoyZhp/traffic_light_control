@@ -1,4 +1,5 @@
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -26,24 +27,22 @@ def log_to_file(path: str = ""):
     logger.addHandler(filehander)
 
 
-from hprl.util.typing import State, Action, Reward, TrainingRecord, Terminal
-from hprl.env import MultiAgentEnv
-from hprl.env import GymWrapper
-from hprl.replaybuffer import MultiAgentReplayBuffer, ReplayBufferTypes
-from hprl.policy import MultiAgentPolicy, PolicyTypes, AdvantageTypes
+from hprl.build import build_trainer, gym_baseline_trainer, load_trainer
+from hprl.env import GymWrapper, MultiAgentEnv
+from hprl.policy import AdvantageTypes, MultiAgentPolicy, PolicyTypes
+from hprl.replaybuffer import (MAgentReplayBuffer, ReplayBuffer,
+                               ReplayBufferTypes)
 from hprl.trainer import Trainer
-from hprl.build import build_trainer, load_trainer, gym_baseline_trainer
-from hprl.recorder import Recorder
-import os
+from hprl.util.typing import Action, Reward, State, Terminal, TrainingRecord
 
 __all__ = [
-    "log_to_file",
-    "load_trainer",
     "build_trainer",
+    "load_trainer",
+    "log_to_file",
     "Trainer",
     "Policy",
     "MultiAgentPolicy",
-    "MultiAgentReplayBuffer",
+    "MAgentReplayBuffer",
     "ReplayBuffer",
     "MultiAgentEnv",
     "State",
@@ -56,7 +55,4 @@ __all__ = [
     "ReplayBufferTypes",
     "AdvantageTypes",
     "gym_baseline_trainer",
-    "Recorder",
-    "policy",
-    "env",
 ]

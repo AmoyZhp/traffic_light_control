@@ -1,16 +1,18 @@
-from hprl.replaybuffer.replay_buffer import ReplayBuffer, MultiAgentReplayBuffer
-from hprl.replaybuffer.common_buffer import CommonBuffer, MultiAgentCommonBuffer
-from hprl.replaybuffer.prioritized_replay_buffer import PrioritizedReplayBuffer
-from hprl.replaybuffer.replay_buffer import ReplayBufferTypes
-from hprl.replaybuffer.build import build, build_multi
+from hprl.replaybuffer.basis import BasisBuffer, MAgentBasisBuffer
+from hprl.replaybuffer.basis import build as build_basis
+from hprl.replaybuffer.prioritized import MAgentPER, PrioritizedBuffer
+from hprl.replaybuffer.prioritized import build as build_per
+from hprl.replaybuffer.replay_buffer import (MAgentReplayBuffer, ReplayBuffer,
+                                             ReplayBufferTypes)
 
 __all__ = [
-    "build",
-    "build_multi",
+    "build_basis",
+    "build_per",
+    "BasisBuffer",
+    "MAgentBasisBuffer",
+    "PrioritizedBuffer",
+    "MAgentPRB",
+    "MAgentReplayBuffer",
     "ReplayBuffer",
-    "CommonBuffer",
-    "PrioritizedReplayBuffer",
-    "MultiAgentReplayBuffer",
-    "MultiAgentCommonBuffer",
     "ReplayBufferTypes",
 ]

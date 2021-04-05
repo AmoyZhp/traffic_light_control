@@ -2,9 +2,8 @@ import logging
 from typing import Dict, List
 
 import numpy as np
-
-from hprl.util.typing import Action, MultiAgentSampleBatch, SampleBatch, State
 from hprl.policy.policy import MultiAgentPolicy, Policy
+from hprl.util.typing import Action, MultiAgentSampleBatch, SampleBatch, State
 
 logger = logging.getLogger(__name__)
 
@@ -68,7 +67,7 @@ class EpsilonGreedy(Policy):
         return self.inner_policy
 
 
-class MultiAgentEpsilonGreedy(MultiAgentPolicy):
+class MAEpsilonGreedy(MultiAgentPolicy):
     """
         this class is a wrapper
         usually to wrapping the q-learning like policy.

@@ -1,6 +1,6 @@
-from hprl.env.multi_agent_env import MultiAgentEnv
 from hprl.env.gym_wrapper import GymWrapper
-from hprl.env.registration import register, make
+from hprl.env.multi_agent import MultiAgentEnv
+from hprl.env.registration import make, register
 
 __all__ = [
     "register",
