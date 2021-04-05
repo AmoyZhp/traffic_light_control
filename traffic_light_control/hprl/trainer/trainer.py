@@ -1,38 +1,50 @@
 import abc
 import logging
-from typing import Any, Callable, Dict
+from typing import Callable, Dict, List
 
-from hprl.env import MultiAgentEnv
-from hprl.policy import MultiAgentPolicy
-from hprl.replaybuffer import MultiAgentReplayBuffer
 from hprl.util.typing import TrainingRecord
 
-Train_Fn_Type = Callable[[
-    MultiAgentEnv, MultiAgentPolicy, MultiAgentReplayBuffer, Dict, logging.
-    Logger
-], Any]
-Log_Record_Fn_Type = Callable[[TrainingRecord, logging.Logger], Any]
+LogRecordFn = Callable[[TrainingRecord, logging.Logger], None]
+
+logger = logging.getLogger(__name__)
 
 
 class Trainer(metaclass=abc.ABCMeta):
     @abc.abstractmethod
-    def train(self, episode: int):
+    def train(
+        self,
+        episodes: int,
+        ckpt_frequnecy: int,
+        log_record_fn: LogRecordFn,
+    ) -> List[TrainingRecord]:
         ...
 
     @abc.abstractmethod
-    def eval(self, episode: int):
+    def eval(
+        self,
+        episodes: int,
+        log_record_fn: LogRecordFn,
+    ) -> List[TrainingRecord]:
         ...
 
     @abc.abstractmethod
-    def save_checkpoint(self, checkpoint_dir: str, filename: str):
+    def save_checkpoint(self, path: str):
         ...
 
     @abc.abstractmethod
-    def get_checkpoint(self):
+    def load_checkpoint(self, path: str):
         ...
 
     @abc.abstractmethod
-    def load_checkpoint(self, checkpoint: Dict):
+    def get_checkpoint(self) -> Dict:
+        ...
+
+    @abc.abstractmethod
+    def set_weight(self, weight: Dict):
+        ...
+
+    @abc.abstractmethod
+    def get_weight(self):
         ...
 
     @abc.abstractmethod
@@ -40,13 +52,9 @@ class Trainer(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def save_config(self, log_dir: str):
+    def set_reocrds(self, records: List[TrainingRecord]):
         ...
 
     @abc.abstractmethod
     def get_records(self):
-        ...
-
-    @abc.abstractmethod
-    def save_records(self, log_dir: str):
         ...

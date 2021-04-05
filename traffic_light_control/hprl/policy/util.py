@@ -1,5 +1,5 @@
 from typing import List
-from hprl.util.typing import Action, Reward, State, Terminal, Trajectory, TrajectoryTuple, Transition
+from hprl.util.typing import Action, Reward, State, Terminal, Trajectory, TrajectoryTuple
 import torch
 
 

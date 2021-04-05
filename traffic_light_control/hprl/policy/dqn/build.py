@@ -5,21 +5,23 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-from hprl.env import MultiAgentEnv
-from hprl.policy.policy import PolicyTypes
-from hprl.replaybuffer import ReplayBufferTypes
-from hprl.policy.decorator import EpsilonGreedy
-from hprl.replaybuffer import CommonBuffer, PrioritizedReplayBuffer
-from hprl.policy.dqn.dqn import DQN
-from hprl.trainer.independent import IOffPolicyTrainer
-import hprl.replaybuffer as replaybuffer
 import hprl.env as hpenv
+import hprl.replaybuffer as replaybuffer
+from hprl.env import MultiAgentEnv
+from hprl.policy.decorator import EpsilonGreedy
+from hprl.policy.decorator.independent import Independent as PolicyWrapper
+from hprl.policy.dqn.dqn import DQN
 from hprl.policy.model_registration import make_model
+from hprl.policy.policy import PolicyTypes
+from hprl.replaybuffer import (CommonBuffer, PrioritizedReplayBuffer,
+                               ReplayBufferTypes)
+from hprl.replaybuffer.wrapper import IndependentWrapper as BufferWrapper
+from hprl.trainer.basis import OffPolicy
 
 logger = logging.getLogger(__name__)
 
 
-def build_iql_trainer(config: Dict, ):
+def build_iql_trainer(config: Dict):
     logger.info("start to create IQL trainer")
     policy_config = config["policy"]
     env_setting = config["env"]
@@ -59,6 +61,7 @@ def build_iql_trainer(config: Dict, ):
     buffers = {}
     policies = {}
     for id in agents_id:
+        logger.info("init agent %s", id)
         buffers[id] = replaybuffer.build(buffer_config)
         model = models[id]
         action_space = policy_config["local_action_space"][id]
@@ -66,7 +69,7 @@ def build_iql_trainer(config: Dict, ):
         inner_p = DQN(
             acting_net=model["acting_net"],
             target_net=model["target_net"],
-            critic_lr=critic_lr,
+            learning_rate=critic_lr,
             discount_factor=discount_factor,
             update_period=update_period,
             action_space=action_space,
@@ -74,9 +77,6 @@ def build_iql_trainer(config: Dict, ):
             prioritized=prioritized,
             loss_fn=loss_fn,
         )
-        logger.info("\t agents %s", id)
-        logger.info("\t\t action space is %s", action_space)
-        logger.info("\t\t state space is %s", state_space)
         policies[id] = EpsilonGreedy(
             inner_policy=inner_p,
             eps_frame=eps_frame,
@@ -89,22 +89,19 @@ def build_iql_trainer(config: Dict, ):
     trained_iter = training_config.get("trained_iteration", 0)
     output_dir = training_config.get("output_dir", "")
 
-    trainer = IOffPolicyTrainer(
+    policy = PolicyWrapper(type=PolicyTypes.IQL, policies=policies)
+
+    buffer = BufferWrapper(type=buffer_type, buffers=buffers)
+
+    trainer = OffPolicy(
         type=PolicyTypes.IQL,
-        policies=policies,
-        buffers=buffers,
+        policy=policy,
+        buffer=buffer,
         env=env,
         config=training_config,
-        trained_iter=trained_iter,
+        trained_iteration=trained_iter,
         output_dir=output_dir,
     )
-    logger.info("\t critic lr : %f", critic_lr)
-    logger.info("\t discount factor : %f", discount_factor)
-    logger.info("\t update period : %d", update_period)
-    logger.info("\t eps frame : %d", eps_frame)
-    logger.info("\t eps min : %f", eps_min)
-    logger.info("\t eps init : %f", eps_init)
-    logger.info("trainer build success")
     return trainer
 
 
@@ -179,7 +176,7 @@ def _build_iql_trainer(
         inner_p = DQN(
             acting_net=model["acting_net"],
             target_net=model["target_net"],
-            critic_lr=critic_lr,
+            learning_rate=critic_lr,
             discount_factor=discount_factor,
             update_period=update_period,
             action_space=action_space,

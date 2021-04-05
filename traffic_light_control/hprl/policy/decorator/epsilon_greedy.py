@@ -3,15 +3,14 @@ from typing import Dict, List
 
 import numpy as np
 
-from hprl.util.typing import Action, MultiAgentSampleBatch, SampleBatch, State, Transition
+from hprl.util.typing import Action, MultiAgentSampleBatch, SampleBatch, State
 from hprl.policy.policy import MultiAgentPolicy, Policy
 
-logger = logging.getLogger(__package__)
+logger = logging.getLogger(__name__)
 
 
 class EpsilonGreedy(Policy):
-    """
-        this class is a wrapper
+    """ this class is a wrapper
         usually to wrapping the q-learning like policy.
     """
     def __init__(
@@ -29,6 +28,11 @@ class EpsilonGreedy(Policy):
         self.eps_min = eps_min
         self.eps = eps_init
         self.action_space = action_space
+        logger.info("Epsilon Greedy init")
+        logger.info("\t epsilon frame : %d", eps_frame)
+        logger.info("\t epsilon minimum : %f", eps_min)
+        logger.info("\t epsilon inital value : %f", eps_init)
+        logger.info("Epsilon init end")
 
     def compute_action(self, state: np.ndarray) -> int:
         self.step = min(self.step + 1, self.eps_frame)

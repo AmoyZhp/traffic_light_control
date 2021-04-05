@@ -16,7 +16,8 @@ from hprl.policy import PolicyTypes
 from hprl.replaybuffer import ReplayBufferTypes
 from hprl import log_to_file
 import collections.abc
-logger = logging.getLogger(__package__)
+
+logger = logging.getLogger(__name__)
 
 
 def dict_update(d, u):
@@ -128,6 +129,7 @@ def load_trainer(
     config: Dict = ckpt["config"]
     trainer_conf = config["trainer"]
     policy_type = trainer_conf["type"]
+
     if recording:
         old_output_dir: str = trainer_conf["output_dir"]
         split_str = old_output_dir.split("_")
