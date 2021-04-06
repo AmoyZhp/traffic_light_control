@@ -1,10 +1,10 @@
 import hprl
-import runner
+import controler
 import cityflow
 
 
 def main():
-    runner.run()
+    controler.run()
 
 
 def static_test():

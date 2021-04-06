@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from runner.model.iac import IActor
+from controler.model.iac import IActor
 
 
 def make_coma_model(config, agents_id):

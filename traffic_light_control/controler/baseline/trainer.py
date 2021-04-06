@@ -2,8 +2,6 @@ from typing import Dict
 
 import hprl
 
-from runner.build_model import build_model
-
 
 def build_baseline_trainer(
     env_id: str,

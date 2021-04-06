@@ -1,4 +1,4 @@
-from runner.model.iac import ICritic
+from controler.model.iac import ICritic
 
 
 def make_vdn_model(config, agents_id):

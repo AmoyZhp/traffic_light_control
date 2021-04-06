@@ -3,10 +3,10 @@ import logging
 import hprl
 from envs.cityflow import make
 
-from runner.model.iql import make_iql_model
-from runner.model.qmix import make_qmix_model
-from runner.model.vdn import make_vdn_model
-from runner.run import run
+from controler.model.iql import make_iql_model
+from controler.model.qmix import make_qmix_model
+from controler.model.vdn import make_vdn_model
+from controler.run import run
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)

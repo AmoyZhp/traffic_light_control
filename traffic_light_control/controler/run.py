@@ -7,9 +7,9 @@ from enum import Enum
 
 import hprl
 
-import runner.baseline.max_pressure as mp
-from runner.args_paraser import args_validity_check, create_paraser
-from runner.util import log_record, plot_avg_travel_time, write_records
+import controler.baseline.max_pressure as mp
+from controler.args_paraser import args_validity_check, create_paraser
+from controler.util import log_record, plot_avg_travel_time, write_records
 
 logger = logging.getLogger(__name__)
 
