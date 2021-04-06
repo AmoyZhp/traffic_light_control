@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 from typing import Dict, List
@@ -45,6 +46,16 @@ def unwrap_records(records: List[hprl.TrainingRecord]):
         avg_travel_time.append(rd.infos[-1]["avg_travel_time"])
     records_dict["avg_travel_time"] = avg_travel_time
     return records_dict
+
+
+def write_records(records: List[hprl.TrainingRecord], path=""):
+    suffix = path.split(".")[-1]
+    if suffix != "json":
+        raise ValueError(
+            "default recorder only accept json format records for write")
+    records = unwrap_records(records)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(records, f)
 
 
 def log_record(record: hprl.TrainingRecord, logger: logging.Logger):

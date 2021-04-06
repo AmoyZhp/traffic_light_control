@@ -3,17 +3,20 @@ import json
 import logging
 import os
 import time
+from enum import Enum
 
 import hprl
 
 import runner.baseline.max_pressure as mp
 from runner.args_paraser import args_validity_check, create_paraser
-from runner.util import log_record, plot_avg_travel_time
+from runner.util import log_record, plot_avg_travel_time, write_records
 
 logger = logging.getLogger(__name__)
 
 INTERVAL = 5
 ROOT_OUTPUT_DIR = "records"
+FIG_DIR_SUFFIX = "figs"
+EVAL_RESULT_SUFFIX = "eval"
 
 
 def run():
@@ -127,22 +130,45 @@ def _train(
     if recording:
         trainer.save_checkpoint()
         records = trainer.get_records()
-
+        fig_path = f"{output_dir}/{FIG_DIR_SUFFIX}"
+        os.mkdir(fig_path)
         hprl.recorder.plot_summation_rewards(
             records=records,
-            fig_path=output_dir,
+            fig_path=fig_path,
             save_fig=True,
         )
         hprl.recorder.plot_avg_rewards(
             records=records,
-            fig_path=output_dir,
+            fig_path=fig_path,
             save_fig=True,
         )
         plot_avg_travel_time(
             records=records,
-            fig_path=output_dir,
+            fig_path=fig_path,
             save_fig=True,
         )
+        records_path = f"{output_dir}/records.json"
+        write_records(records=records, path=records_path)
+        eval_result_path = f"{output_dir}/{EVAL_RESULT_SUFFIX}"
+        os.mkdir(eval_result_path)
+        _eval(trainer=trainer, episodes=1, output_dir=eval_result_path)
+
+        reading_info = {
+            "cost_time": cost_time,
+            "episodes": episodes,
+            "config": trainer.get_config(),
+        }
+        reading_info_path = f"{output_dir}/reading_info.json"
+
+        class EnumEncoder(json.JSONEncoder):
+            def default(self, obj):
+                if isinstance(obj, Enum):
+                    return obj.name
+                return json.JSONEncoder.default(self, obj)
+
+        with open(reading_info_path, "w") as f:
+            json.dump(reading_info, f, cls=EnumEncoder)
+
     logger.info("total time cost {:.3f} h ".format(cost_time))
     logger.info(
         "end time is %s",
