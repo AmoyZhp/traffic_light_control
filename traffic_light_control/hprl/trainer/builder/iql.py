@@ -26,7 +26,6 @@ def build_iql_trainer(config: Dict):
     logger.info("start to create IQL trainer")
     policy_config = config["policy"]
     env_setting = config["env"]
-    print(env_setting)
     env_id = env_setting["type"]
     env: MultiAgentEnv = make_env(id=env_id, config=env_setting)
     agents_id = env.agents_id

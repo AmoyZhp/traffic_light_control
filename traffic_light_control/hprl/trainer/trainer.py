@@ -52,7 +52,7 @@ class Trainer(metaclass=abc.ABCMeta):
         ...
 
     @abc.abstractmethod
-    def set_reocrds(self, records: List[TrainingRecord]):
+    def set_records(self, records: List[TrainingRecord]):
         ...
 
     @abc.abstractmethod

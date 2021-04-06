@@ -5,6 +5,7 @@ from typing import Dict, List
 
 import gym
 
+import hprl
 import hprl.policy.dqn as dqn
 from hprl import log_to_file
 from hprl.env import MultiAgentEnv
@@ -126,7 +127,7 @@ def load_trainer(
     config: Dict = ckpt["config"]
     trainer_conf = config["trainer"]
     policy_type = trainer_conf["type"]
-
+    print(trainer_conf)
     if recording:
         old_output_dir: str = trainer_conf["output_dir"]
         split_str = old_output_dir.split("_")
@@ -148,8 +149,9 @@ def load_trainer(
     override_config["trainer"]["output_dir"] = output_dir
     if policy_type == PolicyTypes.IQL:
         dict_update(config, override_config)
-        trainer = build_iql_trainer(config)
-        trainer.load_checkpoint(ckpt)
+        trainer = hprl.trainer.build_iql_trainer(config)
+        trainer.set_weight(ckpt["weight"])
+        trainer.set_records(ckpt["records"])
     else:
         raise ValueError(
             "policy {} loading function not implement".format(policy_type))

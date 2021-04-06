@@ -137,11 +137,12 @@ class BasisTrainer(Trainer):
 
     def get_config(self):
         policy_config = self._policy.get_config()
-        trainer_config = {
+        trainer_config = self._config
+        trainer_config.update({
             "type": self._type,
             "trained_iteration": self._trained_iteration,
             "output_dir": self._output_dir
-        }
+        })
         config = {
             "policy": policy_config,
             "trainer": trainer_config,
@@ -149,7 +150,7 @@ class BasisTrainer(Trainer):
         }
         return config
 
-    def set_reocrds(self, records: List[TrainingRecord]):
+    def set_records(self, records: List[TrainingRecord]):
         self._records = records
 
     def get_records(self):

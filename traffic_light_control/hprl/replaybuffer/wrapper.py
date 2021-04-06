@@ -56,9 +56,7 @@ class IndependentWrapper(MAgentReplayBuffer):
         return weight
 
     def get_config(self):
-        config = {}
-        for id, buffer in self._buffers.items():
-            config[id] = buffer.get_config()
+        config = list(self._buffers.values())[0].get_config()
         return config
 
     def set_weight(self, weight):
