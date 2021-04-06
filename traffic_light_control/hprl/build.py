@@ -1,121 +1,18 @@
 import collections.abc
 import logging
 import os
-from typing import Dict, List
+from typing import Dict
 
 import gym
 
-import hprl
-import hprl.policy.dqn as dqn
-from hprl import log_to_file
-from hprl.env import MultiAgentEnv
 from hprl.env.gym_wrapper import GymWrapper
 from hprl.policy import PolicyTypes
-from hprl.recorder.recorder import Recorder, read_ckpt
+from hprl.recorder import read_ckpt
 from hprl.replaybuffer import ReplayBufferTypes
+from hprl.trainer.builder.iql import build_iql_trainer
 from hprl.trainer.trainer import Trainer
 
 logger = logging.getLogger(__name__)
-
-
-def dict_update(d, u):
-    for k, v in u.items():
-        if isinstance(v, collections.abc.Mapping):
-            d[k] = dict_update(d.get(k, {}), v)
-        else:
-            d[k] = v
-    return d
-
-
-def build_trainer(
-    config: Dict,
-    env: MultiAgentEnv,
-    models: Dict,
-    recorder: Recorder = None,
-    load=False,
-) -> Trainer:
-
-    trainer_type = config["type"]
-    trainer = None
-    if trainer_type == PolicyTypes.IQL:
-        trainer = dqn.build_iql_trainer(
-            config,
-            env,
-            models,
-            recorder,
-            load=load,
-        )
-    elif trainer_type == PolicyTypes.IAC:
-        trainer = ac.build_iac_trainer(config, env, models)
-    elif trainer_type == PolicyTypes.PPO:
-        trainer = ac.build_ppo_trainer(config, env, models)
-    elif trainer_type == PolicyTypes.VDN:
-        trainer = vdn.build_vdn_trainer(config, env, models, recorder)
-    elif trainer_type == PolicyTypes.COMA:
-        trainer = coma.build_coma_trainer(config, env, models)
-    elif trainer_type == PolicyTypes.QMIX:
-        trainer = qmix.build_qmix_trainer(config, env, models, recorder)
-    else:
-        raise ValueError("train type %s is invalid", trainer_type)
-
-    return trainer
-
-
-def gym_baseline_trainer(
-    trainer_type: PolicyTypes,
-    buffer_type: ReplayBufferTypes = None,
-    batch_size: int = 0,
-) -> Trainer:
-    if trainer_type == PolicyTypes.IQL:
-        if buffer_type is None:
-            raise ValueError("buffre type could be None for IQL")
-        config, model = dqn.get_test_setting(buffer_type)
-        env = GymWrapper(gym.make("CartPole-v1"))
-        id = env.agents_id[0]
-        models = {id: model}
-        config["policy"]["action_space"][id] = 2
-        config["policy"]["state_space"][id] = 4
-        if batch_size > 0:
-            config["executing"]["batch_size"] = batch_size
-
-        trainer = dqn.build_iql_trainer(
-            config=config,
-            env=env,
-            models=models,
-        )
-        return trainer
-    elif trainer_type == PolicyTypes.IAC:
-        config, model = ac.get_ac_test_setting()
-        env = GymWrapper(gym.make("CartPole-v1"))
-        id = env.agents_id[0]
-        models = {id: model}
-        config["policy"]["action_space"][id] = 2
-        config["policy"]["state_space"][id] = 4
-        if batch_size > 0:
-            config["executing"]["batch_size"] = batch_size
-        trainer = ac.build_iac_trainer(
-            config=config,
-            env=env,
-            models=models,
-        )
-        return trainer
-    elif trainer_type == PolicyTypes.PPO:
-        config, model = ac.get_ppo_test_setting()
-        env = GymWrapper(gym.make("CartPole-v1"))
-        id = env.agents_id[0]
-        models = {id: model}
-        config["policy"]["action_space"][id] = 2
-        config["policy"]["state_space"][id] = 4
-        if batch_size > 0:
-            config["executing"]["batch_size"] = batch_size
-        trainer = ac.build_ppo_trainer(
-            config=config,
-            env=env,
-            models=models,
-        )
-        return trainer
-    else:
-        raise ValueError("trainer type invalid {}".format(trainer_type))
 
 
 def load_trainer(
@@ -148,7 +45,7 @@ def load_trainer(
     override_config["trainer"]["output_dir"] = output_dir
     if policy_type == PolicyTypes.IQL:
         dict_update(config, override_config)
-        trainer = hprl.trainer.build_iql_trainer(config)
+        trainer = build_iql_trainer(config)
         trainer.set_weight(ckpt["weight"])
         trainer.set_records(ckpt["records"])
     else:
@@ -157,13 +54,31 @@ def load_trainer(
     return trainer
 
 
-def _load_trainer(
-    env: MultiAgentEnv,
-    models: Dict,
-    ckpt: Dict,
-) -> Trainer:
+def log_to_file(path: str = ""):
+    if not path:
+        path = "hprl.log"
+    elif os.path.isdir(path):
+        path = f"{path}/hprl.log"
+    filehander = logging.FileHandler(path, "a")
+    formatter = logging.Formatter(
+        fmt="%(asctime)s - %(levelname)s - %(message)s", )
+    filehander.setFormatter(formatter)
+    hprl_logger = logging.getLogger("hprl")
+    hprl_logger.addHandler(filehander)
 
-    config = ckpt["config"]
-    trainer = build_trainer(config=config, env=env, models=models, load=True)
-    trainer.load_checkpoint(ckpt)
-    return trainer
+
+def dict_update(d, u):
+    for k, v in u.items():
+        if isinstance(v, collections.abc.Mapping):
+            d[k] = dict_update(d.get(k, {}), v)
+        else:
+            d[k] = v
+    return d
+
+
+def build_gym_trainer(
+    trainer_type: PolicyTypes,
+    buffer_type: ReplayBufferTypes = None,
+    batch_size: int = 0,
+) -> Trainer:
+    raise NotImplementedError

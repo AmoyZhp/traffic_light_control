@@ -3,9 +3,10 @@ import torch.nn as nn
 from runner.model.iac import ICritic
 
 
-def _make_qmix_model(config, agents_id):
+def make_qmix_model(config, agents_id):
     actors_net = {}
     actors_target_net = {}
+    embed = 128
     for id in agents_id:
         actors_net[id] = ICritic(
             input_space=config["local_state"][id],
@@ -17,12 +18,12 @@ def _make_qmix_model(config, agents_id):
         )
     critic_net = QMixer(
         state_dim=config["central_state"],
-        embed_dim=config["embed_dim"],
+        embed_dim=embed,
         n_agents=len(agents_id),
     )
     critic_target_net = QMixer(
         state_dim=config["central_state"],
-        embed_dim=config["embed_dim"],
+        embed_dim=embed,
         n_agents=len(agents_id),
     )
     model = {

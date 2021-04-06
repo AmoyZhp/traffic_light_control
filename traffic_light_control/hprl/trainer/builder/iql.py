@@ -6,9 +6,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from hprl.env import MultiAgentEnv
 from hprl.env import make as make_env
-from hprl.policy.dqn.dqn import DQN
 from hprl.policy.model_registration import make_model
 from hprl.policy.policy import PolicyTypes
+from hprl.policy.single.dqn import DQN
 from hprl.policy.wrapper import EpsilonGreedy
 from hprl.policy.wrapper import IndependentWrapper as PolicyWrapper
 from hprl.replaybuffer import ReplayBufferTypes, build_basis, build_per
