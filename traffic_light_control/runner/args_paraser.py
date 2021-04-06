@@ -44,10 +44,6 @@ def args_validity_check(args):
             print("record dir should not be none" "if want to test")
     if args.policy != "MP":
         args.policy = hprl.PolicyTypes(args.policy)
-    policy = args.policy
-    if policy not in hprl.PolicyTypes:
-        print("policy type is invalid !")
-        return False
     if args.resume:
         if args.ckpt_path is None or not args.ckpt_path:
             print("checkpoint file should not be none"

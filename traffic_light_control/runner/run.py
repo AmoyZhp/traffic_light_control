@@ -7,6 +7,7 @@ import time
 import envs
 import hprl
 
+import runner.baseline.max_pressure as mp
 from runner.args_paraser import args_validity_check, create_paraser
 from runner.util import log_record, plot_avg_travel_time
 
@@ -27,6 +28,26 @@ def run():
     resume = args.resume
     recording = args.recording if mode != "eval" else False
     output_dir = ""
+
+    if mode == "baseline":
+        if args.policy == "MP":
+            env_config = {
+                "id": args.env,
+                "interval": INTERVAL,
+                "thread_num": args.env_thread_num,
+                "save_replay": args.save_replay,
+            }
+            result = mp.eval(env_config)
+            if recording:
+                output_dir = create_output_dir(
+                    root_dir=ROOT_OUTPUT_DIR,
+                    env_id=args.env,
+                    policy_id="MP",
+                )
+                filepath = f"{output_dir}/result.json"
+                with open(filepath, "w") as f:
+                    json.dump(result, f)
+
     if mode == "train":
         if resume:
             ckpt_path = args.ckpt_path
