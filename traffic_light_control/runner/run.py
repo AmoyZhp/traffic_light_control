@@ -3,15 +3,11 @@ import json
 import logging
 import os
 import time
-from typing import List
 
 import envs
 import hprl
-import hprl.recorder as hprecorder
-from hprl.util.typing import Action
 
 from runner.args_paraser import args_validity_check, create_paraser
-from runner.build_trainer import BASE_RECORDS_DIR
 from runner.util import log_record, plot_avg_travel_time
 
 logger = logging.getLogger(__name__)

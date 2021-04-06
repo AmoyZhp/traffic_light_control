@@ -2,7 +2,6 @@ import argparse
 import logging
 
 import hprl
-from hprl.policy.policy import AdvantageTypes
 
 logger = logging.getLogger(__package__)
 
@@ -43,6 +42,8 @@ def args_validity_check(args):
             return False
         if args.record_dir is None:
             print("record dir should not be none" "if want to test")
+    if args.policy != "MP":
+        args.policy = hprl.PolicyTypes(args.policy)
     policy = args.policy
     if policy not in hprl.PolicyTypes:
         print("policy type is invalid !")
@@ -75,7 +76,7 @@ def _add_core_args(parser: argparse.ArgumentParser):
 
     parser.add_argument(
         "--policy",
-        type=hprl.PolicyTypes,
+        type=str,
         required=True,
         help="which policy to be chosen",
     )
@@ -222,8 +223,8 @@ def _add_policy_related_args(parser: argparse.ArgumentParser):
 
     parser.add_argument(
         "--advg_type",
-        type=AdvantageTypes,
-        default=AdvantageTypes.QMinusV,
+        type=hprl.AdvantageTypes,
+        default=hprl.AdvantageTypes.QMinusV,
         help="the advantage type of ac like algorithm used",
     )
     parser.add_argument(

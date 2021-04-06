@@ -1,7 +1,8 @@
-from runner.build_model import build_model
-from runner.build_env import build_env
 from typing import Dict
+
 import hprl
+
+from runner.build_model import build_model
 
 
 def build_baseline_trainer(
@@ -12,30 +13,7 @@ def build_baseline_trainer(
 ):
     if env_id not in ["1x1", "1x3"]:
         raise ValueError("env id invliad, only suppor 1x1 and 1x3 env")
-
-    env = build_env(
-        env_id=env_id,
-        thread_num=1,
-        save_replay=False,
-    )
-    models = build_model(policy=policy_type, env=env)
-
-    config, episodes = _get_trainer_config(
-        env_id=env_id,
-        policy_type=policy_type,
-        buffer_type=buffer_type,
-        action_space=env.get_local_action_space(),
-        state_space=env.get_local_state_space(),
-    )
-
-    if batch_size > 0:
-        config["executing"]["batch_size"] = batch_size
-    trainer = hprl.build_trainer(
-        config=config,
-        env=env,
-        models=models,
-    )
-    return trainer, episodes
+    raise NotImplementedError
 
 
 def _get_trainer_config(

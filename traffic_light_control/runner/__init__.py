@@ -1,8 +1,10 @@
-import hprl
-from runner.run import run
-from runner.build_model import _make_iql_model
 import logging
+
+import hprl
 from envs.cityflow import make
+
+from runner.model.iql import make_iql_model
+from runner.run import run
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -22,5 +24,5 @@ __all__ = ["run"]
 hprl.env.register(id="CityFlow", entry_point=make)
 hprl.policy.register_model(
     id=hprl.PolicyTypes.IQL.value,
-    entry_point=_make_iql_model,
+    entry_point=make_iql_model,
 )
