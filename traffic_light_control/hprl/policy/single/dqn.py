@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from hprl.policy.policy import Policy
-from hprl.util.typing import SampleBatch, TransitionTuple
+from hprl.typing import SampleBatch, TransitionTuple
 
 logger = logging.getLogger(__name__)
 

@@ -4,10 +4,9 @@ import random
 from typing import Dict, List
 
 from gym import logger
-from hprl.replaybuffer.replay_buffer import (MAgentReplayBuffer, ReplayBuffer,
-                                             ReplayBufferTypes)
-from hprl.util.typing import (MultiAgentSampleBatch, SampleBatch, Transition,
-                              TransitionTuple)
+from hprl.replaybuffer.replay_buffer import MAgentReplayBuffer, ReplayBuffer
+from hprl.typing import (MultiAgentSampleBatch, ReplayBufferTypes, SampleBatch,
+                         Transition, TransitionTuple)
 
 logger = logging.getLogger(__name__)
 

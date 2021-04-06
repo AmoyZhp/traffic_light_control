@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from hprl.policy.util import parase_traj_list, parase_trajectory_to_tensor
-from hprl.util.typing import Action, State, Trajectory, TrajectoryTuple
+from hprl.typing import Action, State, Trajectory, TrajectoryTuple
 from typing import Dict, List
 from hprl.policy.policy import MultiAgentPolicy
 import torch

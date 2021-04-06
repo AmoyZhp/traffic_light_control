@@ -14,14 +14,14 @@ stream_handler.setFormatter(formatter)
 
 logger.addHandler(stream_handler)
 
-import hprl.recorder
 from hprl.build import load_trainer, log_to_file
 from hprl.env import GymWrapper, MultiAgentEnv
-from hprl.policy import AdvantageTypes, MultiAgentPolicy, PolicyTypes
-from hprl.replaybuffer import (MAgentReplayBuffer, ReplayBuffer,
-                               ReplayBufferTypes)
+from hprl.policy import MultiAgentPolicy
+from hprl.replaybuffer import MAgentReplayBuffer, ReplayBuffer
 from hprl.trainer import Trainer
-from hprl.util.typing import Action, Reward, State, Terminal, TrainingRecord
+from hprl.typing import (Action, AdvantageTypes, PolicyTypes,
+                         ReplayBufferTypes, Reward, State, Terminal,
+                         TrainingRecord)
 
 __all__ = [
     "load_trainer",

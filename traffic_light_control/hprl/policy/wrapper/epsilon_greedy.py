@@ -3,7 +3,7 @@ from typing import Dict, List
 
 import numpy as np
 from hprl.policy.policy import MultiAgentPolicy, Policy
-from hprl.util.typing import Action, MultiAgentSampleBatch, SampleBatch, State
+from hprl.typing import Action, MultiAgentSampleBatch, SampleBatch, State
 
 logger = logging.getLogger(__name__)
 

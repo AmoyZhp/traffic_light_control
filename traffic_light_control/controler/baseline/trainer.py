@@ -3,61 +3,34 @@ from typing import Dict
 import hprl
 
 
-def build_baseline_trainer(
+def _get_trainer_default_config(
     env_id: str,
     policy_type: hprl.PolicyTypes,
     buffer_type: hprl.ReplayBufferTypes,
-    batch_size: int = 0,
-):
-    if env_id not in ["1x1", "1x3"]:
-        raise ValueError("env id invliad, only suppor 1x1 and 1x3 env")
-    raise NotImplementedError
-
-
-def _get_trainer_config(
-    env_id: str,
-    policy_type: hprl.PolicyTypes,
-    buffer_type: hprl.ReplayBufferTypes,
-    action_space,
-    state_space,
 ):
     if policy_type == hprl.PolicyTypes.IQL:
         episodes = 1000
         config = _get_iql_config(
             env_id=env_id,
             buffer_type=buffer_type,
-            action_space=action_space,
-            state_space=state_space,
         )
     elif policy_type == hprl.PolicyTypes.PPO:
         episodes = 600
-        config = _get_ppo_config(
-            env_id=env_id,
-            action_space=action_space,
-            state_space=state_space,
-        )
+        config = _get_ppo_config(env_id=env_id)
     elif policy_type == hprl.PolicyTypes.IAC:
         episodes = 1000
-        config = _get_iac_config(
-            env_id=env_id,
-            action_space=action_space,
-            state_space=state_space,
-        )
+        config = _get_iac_config(env_id=env_id)
     elif policy_type == hprl.PolicyTypes.VDN:
         episodes = 1000
         config = _get_vdn_config(
             env_id=env_id,
             buffer_type=buffer_type,
-            action_space=action_space,
-            state_space=state_space,
         )
     elif policy_type == hprl.PolicyTypes.QMIX:
         episodes = 1000
         config = _get_qmix_config(
             env_id=env_id,
             buffer_type=buffer_type,
-            action_space=action_space,
-            state_space=state_space,
         )
     else:
         raise ValueError(" not support policy type for baseline")
@@ -67,8 +40,6 @@ def _get_trainer_config(
 def _get_qmix_config(
     env_id: str,
     buffer_type: hprl.ReplayBufferTypes,
-    action_space,
-    state_space,
 ):
     if env_id == "1x3":
         capacity = 20000
@@ -79,14 +50,10 @@ def _get_qmix_config(
         eps_min = 0.0001
         eps_frame = 300000
         update_period = 500
-        action_space = action_space
-        state_space = state_space
         policy_config = {
             "critic_lr": critic_lr,
             "discount_factor": discount_factor,
             "update_period": update_period,
-            "action_space": action_space,
-            "state_space": state_space,
             "eps_frame": eps_frame,
             "eps_init": eps_init,
             "eps_min": eps_min,

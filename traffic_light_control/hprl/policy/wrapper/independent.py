@@ -1,7 +1,7 @@
 from typing import Dict
 
-from hprl.policy.policy import MultiAgentPolicy, Policy, PolicyTypes
-from hprl.util.typing import Action, SampleBatch, State
+from hprl.policy.policy import MultiAgentPolicy, Policy
+from hprl.typing import Action, PolicyTypes, SampleBatch, State
 
 
 class IndependentWrapper(MultiAgentPolicy):

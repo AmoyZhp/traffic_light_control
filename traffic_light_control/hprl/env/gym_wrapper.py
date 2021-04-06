@@ -3,7 +3,7 @@ from typing import Dict, List, Tuple
 import gym
 import numpy as np
 from hprl.env.multi_agent import MultiAgentEnv
-from hprl.util.typing import Action, Reward, State, Terminal
+from hprl.typing import Action, Reward, State, Terminal
 
 
 class GymWrapper(MultiAgentEnv):

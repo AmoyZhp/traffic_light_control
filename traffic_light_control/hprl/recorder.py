@@ -6,7 +6,7 @@ from typing import Dict, List
 import matplotlib.pyplot as plt
 import torch
 
-from hprl.util.typing import Reward, TrainingRecord
+from hprl.typing import Reward, TrainingRecord
 
 
 def plot_summation_rewards(

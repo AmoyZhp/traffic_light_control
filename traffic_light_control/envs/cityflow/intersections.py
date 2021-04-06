@@ -1,7 +1,7 @@
+from typing import Dict, List
+
 import numpy as np
-from numpy.core.numeric import flatnonzero
-from envs.cityflow.road import Road, RoadLink, IncomingDirection
-from typing import List, Dict
+from envs.cityflow.road import Road, RoadLink
 
 Phase = List[int]
 

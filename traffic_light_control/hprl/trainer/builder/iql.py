@@ -7,13 +7,13 @@ import torch.nn.functional as F
 from hprl.env import MultiAgentEnv
 from hprl.env import make as make_env
 from hprl.policy.model_registration import make_model
-from hprl.policy.policy import PolicyTypes
 from hprl.policy.single.dqn import DQN
 from hprl.policy.wrapper import EpsilonGreedy
 from hprl.policy.wrapper import IndependentWrapper as PolicyWrapper
-from hprl.replaybuffer import ReplayBufferTypes, build_basis, build_per
+from hprl.replaybuffer import build_basis, build_per
 from hprl.replaybuffer.wrapper import IndependentWrapper as BufferWrapper
 from hprl.trainer import OffPolicyTrainer
+from hprl.typing import PolicyTypes, ReplayBufferTypes
 
 logger = logging.getLogger(__name__)
 
@@ -111,3 +111,70 @@ def build_iql_trainer(config: Dict):
         output_dir=output_dir,
     )
     return trainer
+
+
+def get_gym_test_config(buffer_type: ReplayBufferTypes):
+    capacity = 4000
+    critic_lr = 1e-3
+    batch_size = 64
+    discount_factor = 0.99
+    eps_init = 1.0
+    eps_min = 0.01
+    eps_frame = 5000
+    update_period = 100
+    action_space = 2
+    state_space = 4
+    alpha = 0.6
+    beta = 0.4
+    policy_config = {
+        "critic_lr": critic_lr,
+        "discount_factor": discount_factor,
+        "update_period": update_period,
+        "action_space": {},
+        "state_space": {},
+        "eps_frame": eps_frame,
+        "eps_init": eps_init,
+        "eps_min": eps_min,
+    }
+    buffer_config = {
+        "type": buffer_type,
+        "capacity": capacity,
+        "alpha": alpha,
+    }
+    exec_config = {
+        "batch_size": batch_size,
+        "per_beta": beta,
+        "recording": True,
+        "ckpt_frequency": 0,
+        "record_base_dir": "gym_test",
+    }
+    trainner_config = {
+        "type": PolicyTypes.IQL,
+        "executing": exec_config,
+        "policy": policy_config,
+        "buffer": buffer_config,
+    }
+    acting_net = CartPole(input_space=state_space, output_space=action_space)
+
+    target_net = CartPole(input_space=state_space, output_space=action_space)
+
+    model = {
+        "acting_net": acting_net,
+        "target_net": target_net,
+    }
+
+    return trainner_config, model
+
+
+class CartPole(nn.Module):
+    def __init__(self, input_space, output_space) -> None:
+        super(CartPole, self).__init__()
+        self.fc1 = nn.Linear(input_space, 24)
+        self.fc2 = nn.Linear(24, 24)
+        self.fc3 = nn.Linear(24, output_space)
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        action = self.fc3(x)
+        return action

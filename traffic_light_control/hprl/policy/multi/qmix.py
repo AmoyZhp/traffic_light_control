@@ -6,8 +6,8 @@ import torch
 import torch.nn as nn
 import torch.optim as optim
 from hprl.policy.policy import MultiAgentPolicy
-from hprl.util.typing import (Action, MultiAgentSampleBatch, State, Transition,
-                              TransitionTuple)
+from hprl.typing import (Action, MultiAgentSampleBatch, State, Transition,
+                         TransitionTuple)
 
 logger = logging.getLogger(__name__)
 

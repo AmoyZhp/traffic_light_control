@@ -1,8 +1,8 @@
 from typing import Dict, List
 
-from hprl.replaybuffer.replay_buffer import (MAgentReplayBuffer, ReplayBuffer,
-                                             ReplayBufferTypes)
-from hprl.util.typing import SampleBatch, Transition, TransitionTuple
+from hprl.replaybuffer.replay_buffer import MAgentReplayBuffer, ReplayBuffer
+from hprl.typing import (ReplayBufferTypes, SampleBatch, Transition,
+                         TransitionTuple)
 
 
 class IndependentWrapper(MAgentReplayBuffer):

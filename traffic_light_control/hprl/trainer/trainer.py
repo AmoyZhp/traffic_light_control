@@ -2,7 +2,7 @@ import abc
 import logging
 from typing import Callable, Dict, List
 
-from hprl.util.typing import TrainingRecord
+from hprl.typing import TrainingRecord
 
 LogRecordFn = Callable[[TrainingRecord, logging.Logger], None]
 

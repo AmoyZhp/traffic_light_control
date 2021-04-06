@@ -2,13 +2,8 @@ import abc
 from enum import Enum
 from typing import Dict, List, Union
 
-from hprl.util.typing import (MultiAgentSampleBatch, SampleBatch, Transition,
-                              TransitionTuple)
-
-
-class ReplayBufferTypes(Enum):
-    Common = "Common"
-    Prioritized = "PER"
+from hprl.typing import (MultiAgentSampleBatch, SampleBatch, Transition,
+                         TransitionTuple)
 
 
 class MAgentReplayBuffer(metaclass=abc.ABCMeta):

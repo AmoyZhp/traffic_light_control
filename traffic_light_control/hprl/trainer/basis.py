@@ -5,11 +5,12 @@ import time
 from typing import Callable, Dict, List
 
 from hprl.env import MultiAgentEnv
-from hprl.policy.policy import MultiAgentPolicy, PolicyTypes
-from hprl.replaybuffer import MAgentReplayBuffer, ReplayBufferTypes
-from hprl.trainer.recording import log_record, read_ckpt, write_ckpt
+from hprl.policy.policy import MultiAgentPolicy
+from hprl.recorder import log_record, read_ckpt, write_ckpt
+from hprl.replaybuffer import MAgentReplayBuffer
 from hprl.trainer.trainer import Trainer
-from hprl.util.typing import TrainingRecord, Transition
+from hprl.typing import (PolicyTypes, ReplayBufferTypes, TrainingRecord,
+                         Transition)
 
 logger = logging.getLogger(__name__)
 

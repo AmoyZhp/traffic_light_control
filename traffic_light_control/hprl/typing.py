@@ -1,5 +1,6 @@
 from collections import namedtuple
 from dataclasses import dataclass, field
+from enum import Enum, auto
 from typing import Dict, List
 
 import numpy as np
@@ -88,3 +89,22 @@ class SampleBatch():
     trajectorys: List[TrajectoryTuple] = field(default_factory=list)
     weights: List[float] = field(default_factory=list)
     idxes: List[float] = field(default_factory=list)
+
+
+class PolicyTypes(Enum):
+    IQL = "IQL"
+    IPPO = "IPPO"
+    IAC = "IAC"
+    VDN = "VDN"
+    COMA = "COMA"
+    QMIX = "QMIX"
+
+
+class AdvantageTypes(Enum):
+    RewardToGO = auto()
+    QMinusV = auto()
+
+
+class ReplayBufferTypes(Enum):
+    Common = "Common"
+    Prioritized = "PER"

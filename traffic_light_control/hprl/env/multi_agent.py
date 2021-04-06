@@ -1,7 +1,7 @@
 import abc
 from typing import Dict, List, Tuple
 
-from hprl.util.typing import Action, Reward, State, Terminal
+from hprl.typing import Action, Reward, State, Terminal
 
 
 class MultiAgentEnv(metaclass=abc.ABCMeta):

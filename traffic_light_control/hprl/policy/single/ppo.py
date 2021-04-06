@@ -10,7 +10,7 @@ from torch.distributions import Categorical
 from hprl.policy.policy import MultiAgentPolicy
 from hprl.policy.util import to_tensor_for_trajectory, compute_reward_to_go
 from hprl.policy.policy import AdvantageTypes
-from hprl.util.typing import Action, SampleBatch, State, Trajectory
+from hprl.typing import Action, SampleBatch, State, Trajectory
 
 logger = logging.getLogger(__package__)
 

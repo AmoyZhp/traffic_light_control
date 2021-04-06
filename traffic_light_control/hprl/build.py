@@ -6,11 +6,10 @@ from typing import Dict
 import gym
 
 from hprl.env.gym_wrapper import GymWrapper
-from hprl.policy import PolicyTypes
 from hprl.recorder import read_ckpt
-from hprl.replaybuffer import ReplayBufferTypes
 from hprl.trainer.builder.iql import build_iql_trainer
 from hprl.trainer.trainer import Trainer
+from hprl.typing import PolicyTypes, ReplayBufferTypes
 
 logger = logging.getLogger(__name__)
 

@@ -7,10 +7,10 @@ from hprl.env import MultiAgentEnv
 from hprl.env import make as make_env
 from hprl.policy.model_registration import make_model
 from hprl.policy.multi.vdn import VDN
-from hprl.policy.policy import PolicyTypes
 from hprl.policy.wrapper import MAEpsilonGreedy
-from hprl.replaybuffer import ReplayBufferTypes, build_basis, build_per
+from hprl.replaybuffer import build_basis, build_per
 from hprl.trainer.basis import OffPolicyTrainer
+from hprl.typing import PolicyTypes, ReplayBufferTypes
 
 logger = logging.getLogger(__name__)
 
