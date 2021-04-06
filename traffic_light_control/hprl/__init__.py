@@ -27,6 +27,7 @@ def log_to_file(path: str = ""):
     logger.addHandler(filehander)
 
 
+import hprl.recorder
 from hprl.build import build_trainer, gym_baseline_trainer, load_trainer
 from hprl.env import GymWrapper, MultiAgentEnv
 from hprl.policy import AdvantageTypes, MultiAgentPolicy, PolicyTypes

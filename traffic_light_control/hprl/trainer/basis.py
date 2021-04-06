@@ -156,6 +156,10 @@ class BasisTrainer(Trainer):
     def get_records(self):
         return self._records
 
+    @property
+    def output_dir(self):
+        return self._output_dir
+
 
 class OffPolicyTrainer(BasisTrainer):
     def __init__(

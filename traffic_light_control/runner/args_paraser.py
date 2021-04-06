@@ -1,7 +1,8 @@
 import argparse
-from hprl.policy.policy import AdvantageTypes
 import logging
+
 import hprl
+from hprl.policy.policy import AdvantageTypes
 
 logger = logging.getLogger(__package__)
 
@@ -23,7 +24,7 @@ PER_BETA = 0.4
 def create_paraser():
     parser = argparse.ArgumentParser()
     parser = _add_core_args(parser)
-    parser = _add_path_related_args(parser)
+    parser = _add_record_related_args(parser)
     parser = _add_policy_related_args(parser)
     parser = _add_env_related_args(parser)
 
@@ -32,12 +33,12 @@ def create_paraser():
 
 def args_validity_check(args):
     mode = args.mode
-    if mode not in ["train", "test", "baseline"]:
-        print(" model value invalid !")
+    if mode not in ["train", "eval", "baseline"]:
+        print(" mode value invalid !")
         return False
 
-    if mode == "test":
-        if args.ckpt_file is None:
+    if mode == "eval":
+        if args.ckpt_path is None:
             print("checkpoint file should not be none" "if want to test")
             return False
         if args.record_dir is None:
@@ -47,7 +48,7 @@ def args_validity_check(args):
         print("policy type is invalid !")
         return False
     if args.resume:
-        if args.ckpt_file is None or not args.ckpt_file:
+        if args.ckpt_path is None or not args.ckpt_path:
             print("checkpoint file should not be none"
                   "if want to resume training")
             return False
@@ -62,7 +63,7 @@ def _add_core_args(parser: argparse.ArgumentParser):
         "--mode",
         type=str,
         default="train",
-        help="Mode of execution. Include [ train , test, baseline ]",
+        help="Mode of execution. Include [ train , eval, baseline ]",
     )
 
     parser.add_argument(
@@ -108,7 +109,7 @@ def _add_core_args(parser: argparse.ArgumentParser):
     return parser
 
 
-def _add_path_related_args(parser: argparse.ArgumentParser):
+def _add_record_related_args(parser: argparse.ArgumentParser):
     parser.add_argument(
         "--ckpt_frequency",
         type=int,
@@ -129,7 +130,7 @@ def _add_path_related_args(parser: argparse.ArgumentParser):
         help="directory of record",
     )
     parser.add_argument(
-        "--ckpt_file",
+        "--ckpt_path",
         type=str,
         default=None,
         help="name of checkpoint file",
@@ -190,6 +191,16 @@ def _add_policy_related_args(parser: argparse.ArgumentParser):
         default=EPS_FRAME,
         help="framed has be taken to eps min",
     )
+    parser.add_argument(
+        "--eps_init",
+        type=float,
+        default=EPS_INIT,
+        help="initial value of epsilon greedy",
+    )
+    parser.add_argument("--eps_min",
+                        type=float,
+                        default=EPS_MIN,
+                        help="minimum value of epsilon greedy")
     parser.add_argument(
         "--gamma",
         type=float,

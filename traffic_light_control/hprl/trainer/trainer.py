@@ -14,7 +14,7 @@ class Trainer(metaclass=abc.ABCMeta):
     def train(
         self,
         episodes: int,
-        ckpt_frequnecy: int,
+        ckpt_frequency: int,
         log_record_fn: LogRecordFn,
     ) -> List[TrainingRecord]:
         ...
@@ -57,4 +57,9 @@ class Trainer(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_records(self):
+        ...
+
+    @property
+    @abc.abstractmethod
+    def output_dir(self):
         ...

@@ -127,7 +127,6 @@ def load_trainer(
     config: Dict = ckpt["config"]
     trainer_conf = config["trainer"]
     policy_type = trainer_conf["type"]
-    print(trainer_conf)
     if recording:
         old_output_dir: str = trainer_conf["output_dir"]
         split_str = old_output_dir.split("_")

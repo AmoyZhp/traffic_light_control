@@ -32,9 +32,7 @@ def build_iql_trainer(config: Dict):
 
     model_id = policy_config["model_id"]
     model_config = {
-        "central_state": env.central_state_space,
         "local_state": env.local_state_space,
-        "central_action": env.central_action_space,
         "local_action": env.local_action_space,
     }
     models: Dict = make_model(
@@ -42,6 +40,10 @@ def build_iql_trainer(config: Dict):
         config=model_config,
         agents_id=agents_id,
     )
+    policy_config.update({
+        "local_state_space": env.local_state_space,
+        "local_action_space": env.local_action_space,
+    })
 
     buffer_config = config["buffer"]
     buffer_type = buffer_config["type"]
